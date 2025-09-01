@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Leedz Invoicer</title>
+
+  <link rel="stylesheet" href="css/globals.css" />
+  <link rel="stylesheet" href="css/leedz_layout.css" />
+ 
+  <!-- Load parser scripts first -->
+  <script src="js/parser.js"></script>
+  <script src="js/linkedin_parser.js"></script>
+  
+  <!-- Then load the main sidebar script -->
+  <script type="module" src="js/sidebar.js"></script>
+  <script type="module" src="js/http_utils.js"></script>
+
+</head>
+
+
+<body class="leedz-sidebar">
+
+  <header class="leedz-header">
+    <img src="icons/logo_black.png" alt="The Leedz" class="leedz-logo"/>
+    <img src="icons/hamburger.png" alt="Menu" class="leedz-hamburger"/>
+  </header>
+
+
+  <div class="buttons-container">
+    <button id="reloadBtn" class="reload-button" title="Reload the parser">
+      <span>
+        <img src="icons/search.svg" class="button-icon" alt="reload parser"/>
+      </span>
+    </button>
+
+    <button id="clearBtn" class="clear-button" title="Clear all fields">
+      <span>✕</span>
+    </button>
+  </div>
+
+
+  <main class="leedz-form-section">
+
+    <div class="status-bar">
+      <span id="statusText">Ready</span>
+    </div>
+
+    <label for="display_win">Booking Information:</label>
+    <textarea id="display_win" class="sidebar-input display-win" placeholder="key=value\nclientId=...\ntitle=...\n..."></textarea>
+
+    <!-- BUTTONS -->
+    <div class="button-wrapper">
+      <button id="cancelBtn" class="sidebar-button" title="Clear and reset">
+        Cancel
+      </button>
+
+      <button id="saveBtn" class="sidebar-button" title="Save to database">
+        Save
+      </button>
+
+      <button id="pdfBtn" class="sidebar-button" title="Render PDF">
+        PDF
+      </button>
+    </div>
+
+  </main>
+
+  <footer class="leedz-footer">
+    <img src="icons/grass.png" alt="grass" class="leedz-grass"/>
+
+    <div id="debug-output" style="z-index:999;font-family: Arial; font-size: 11px; color: white; padding: 6px; overflow-y: auto; height: 100px;"></div>
+    <!--
+    <ul class="leedz-footer-links">
+      <li><a href="/about">About the Leedz</a></li>
+      <li><a href="/contact">Contact Us</a></li>
+    </ul>
+    -->
+
+  </footer>
+
+</body>
+</html>

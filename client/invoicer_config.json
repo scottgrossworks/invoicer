@@ -1,0 +1,26 @@
+{
+  "llm": {
+    "provider": "lmstudio",
+    "baseUrl": "http://127.0.0.1:1234",
+    "endpoints": {
+      "models": "/v1/models",
+      "completions": "/v1/chat/completions"
+    }
+  },
+  "db": {
+    "provider": "local_prisma_sqlite",
+    "baseUrl": "http://127.0.0.1:3000"
+  },
+  "parsers": [
+    { "name": "LinkedInParser", "module": "js/parser/linkedin_parser.js" },
+    { "name": "GmailParser", "module": "js/parser/gmail_parser.js" },
+    { "name": "XParser", "module": "js/parser/x_parser.js" }
+  ],
+  "render": {
+    "provider": "pdf",
+    "outputDir": "Downloads/Invoices",
+    "fileName": ""
+  }
+}
+
+
