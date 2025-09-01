@@ -38,6 +38,42 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Keep the message channel open for async response
   }
 
+  //
+  // Handle LLM requests to avoid CORS issues
+  //
+  if (message.type === 'leedz_llm_request') {
+    console.log('DEBUG: Background script received LLM request');
+    const { request } = message;
+    
+    console.log('DEBUG: Making fetch to:', request.url);
+    console.log('DEBUG: Request method:', request.method);
+    console.log('DEBUG: Request headers:', request.headers);
+    console.log('DEBUG: Request body:', JSON.stringify(request.body, null, 2));
+    
+    fetch(request.url, {
+      method: request.method,
+      headers: request.headers,
+      body: JSON.stringify(request.body)
+    })
+    .then(response => {
+      console.log('DEBUG: Fetch response status:', response.status);
+      if (response.ok) {
+        return response.json().then(data => {
+          console.log('DEBUG: Sending success response to content script');
+          sendResponse({ ok: true, data: data });
+        });
+      } else {
+        console.log('DEBUG: Sending error response to content script');
+        sendResponse({ ok: false, status: response.status, statusText: response.statusText });
+      }
+    })
+    .catch(error => {
+      console.log('DEBUG: Fetch failed:', error.message);
+      sendResponse({ ok: false, error: error.message });
+    });
+    
+    return true;
+  }
 
 });
 

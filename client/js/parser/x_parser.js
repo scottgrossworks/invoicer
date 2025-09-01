@@ -19,8 +19,8 @@ export class XParser extends ParserInterface {
         this.supportedKeys = ['profile', 'handle', 'name', 'bio'];
     }
 
-    async checkPageMatch() {
-        const testUrl = window.location.href;
+    async checkPageMatch(url) {
+        const testUrl = url || window.location.href;
         if (!X_REGEX.test(testUrl)) {
             return false;
         }

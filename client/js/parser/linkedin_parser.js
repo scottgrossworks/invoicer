@@ -15,8 +15,8 @@ class LinkedInParser extends ParserInterface {
         this._ready = false;
     }
 
-    async checkPageMatch() {
-        const testUrl = window.location.href;
+    async checkPageMatch(url) {
+        const testUrl = url || window.location.href;
         return testUrl && LINKEDIN_PROFILE_REGEX.test(testUrl);
     }
 

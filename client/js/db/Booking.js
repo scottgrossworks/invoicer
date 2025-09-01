@@ -8,7 +8,7 @@ class Booking {
       this.clientId = data.clientId;
       this.title = data.title;
       this.description = data.description;
-      this.address = data.address;
+      this.location = data.location;
       this.startDate = data.startDate;
       this.endDate = data.endDate;
       this.startTime = data.startTime;
@@ -18,8 +18,7 @@ class Booking {
       this.flatRate = data.flatRate;
       this.totalAmount = data.totalAmount;
       this.status = data.status;
-      this.sourceEmail = data.sourceEmail;
-      this.extractedData = data.extractedData;
+      this.source = data.source;
       this.notes = data.notes;
       this.createdAt = data.createdAt;
       this.updatedAt = data.updatedAt;
@@ -29,7 +28,7 @@ class Booking {
       this.clientId = data.clientId;
       this.title = data.title;
       this.description = data.description || null;
-      this.address = data.address || null;
+      this.location = data.location || null;
       this.startDate = data.startDate || null;
       this.endDate = data.endDate || null;
       this.startTime = data.startTime || null;
@@ -39,8 +38,7 @@ class Booking {
       this.flatRate = data.flatRate || null;
       this.totalAmount = data.totalAmount || null;
       this.status = data.status || 'pending';
-      this.sourceEmail = data.sourceEmail || null;
-      this.extractedData = data.extractedData || null;
+      this.source = data.source || null;
       this.notes = data.notes || null;
       this.createdAt = new Date();
       this.updatedAt = new Date();
@@ -55,9 +53,7 @@ class Booking {
       errors.push('Client ID is required');
     }
 
-    if (!data.title || data.title.trim() === '') {
-      errors.push('Title is required');
-    }
+
 
     if (data.startDate && data.endDate && data.startDate > data.endDate) {
       errors.push('Start date cannot be after end date');
@@ -120,20 +116,20 @@ class Booking {
   }
 
   hasLocation() {
-    return !!(this.address);
+    return !!(this.location);
   }
 
   getDisplayTitle() {
-    return this.address ? `${this.title} - ${this.address}` : this.title;
+    return this.location || 'Booking';
   }
 
   // Data transformation
   toCreateData() {
     return {
       clientId: this.clientId,
-      title: this.title,
+
       description: this.description || undefined,
-      address: this.address || undefined,
+      location: this.location || undefined,
       startDate: this.startDate || undefined,
       endDate: this.endDate || undefined,
       startTime: this.startTime || undefined,
@@ -143,8 +139,8 @@ class Booking {
       flatRate: this.flatRate || undefined,
       totalAmount: this.totalAmount || undefined,
       status: this.status || undefined,
-      sourceEmail: this.sourceEmail || undefined,
-      extractedData: this.extractedData || undefined,
+      source: this.source || undefined,
+      notes: this.notes || undefined,
       notes: this.notes || undefined
     };
   }
@@ -153,9 +149,9 @@ class Booking {
     return {
       id: this.id,
       clientId: this.clientId,
-      title: this.title,
+
       description: this.description,
-      address: this.address,
+      location: this.location,
       startDate: this.startDate,
       endDate: this.endDate,
       startTime: this.startTime,
@@ -165,8 +161,8 @@ class Booking {
       flatRate: this.flatRate,
       totalAmount: this.totalAmount,
       status: this.status,
-      sourceEmail: this.sourceEmail,
-      extractedData: this.extractedData,
+      source: this.source,
+      notes: this.notes,
       notes: this.notes,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt
@@ -176,9 +172,9 @@ class Booking {
   // Update methods
   update(data) {
     if (data.clientId !== undefined) this.clientId = data.clientId;
-    if (data.title !== undefined) this.title = data.title;
+
     if (data.description !== undefined) this.description = data.description;
-    if (data.address !== undefined) this.address = data.address;
+    if (data.location !== undefined) this.location = data.location;
     if (data.startDate !== undefined) this.startDate = data.startDate;
     if (data.endDate !== undefined) this.endDate = data.endDate;
     if (data.startTime !== undefined) this.startTime = data.startTime;
@@ -188,8 +184,8 @@ class Booking {
     if (data.flatRate !== undefined) this.flatRate = data.flatRate;
     if (data.totalAmount !== undefined) this.totalAmount = data.totalAmount;
     if (data.status !== undefined) this.status = data.status;
-    if (data.sourceEmail !== undefined) this.sourceEmail = data.sourceEmail;
-    if (data.extractedData !== undefined) this.extractedData = data.extractedData;
+    if (data.source !== undefined) this.source = data.source;
+    if (data.notes !== undefined) this.notes = data.notes;
     if (data.notes !== undefined) this.notes = data.notes;
     this.updatedAt = new Date();
   }
@@ -205,7 +201,7 @@ Booking.prototype.toJSON = function() {
     clientId: this.clientId,
     title: this.title,
     description: this.description,
-    address: this.address,
+    location: this.location,
     startDate: this.startDate,
     endDate: this.endDate,
     startTime: this.startTime,
@@ -215,8 +211,8 @@ Booking.prototype.toJSON = function() {
     flatRate: this.flatRate,
     totalAmount: this.totalAmount,
     status: this.status,
-    sourceEmail: this.sourceEmail,
-    extractedData: this.extractedData,
+    source: this.source,
+    notes: this.notes,
     notes: this.notes,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt
