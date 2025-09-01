@@ -18,7 +18,7 @@ function updateDebugOutput(...args) {
         return String(a);
       })
       .join(' ');
-    const style = isError ? 'color: #ff5555;' : '';
+    const style = isError ? 'color: #ffdddd;' : '';
     debugOutput.innerHTML += `<div style="${style}">[${now}] ${message}</div>`;
     debugOutput.scrollTop = debugOutput.scrollHeight;
   } catch (e) {

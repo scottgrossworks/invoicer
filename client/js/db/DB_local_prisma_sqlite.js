@@ -31,9 +31,9 @@ export class DB_Local_PragmaSqlite extends DB_Layer {
     // Create Booking payload
     const bookingPayload = {
       clientId: data.clientId || client.id,
-      title: data.title || '',
+
       description: data.description || null,
-      address: data.address || null,
+      location: data.location || null,
       startDate: data.startDate || null,
       endDate: data.endDate || null,
       startTime: data.startTime || null,
@@ -43,8 +43,8 @@ export class DB_Local_PragmaSqlite extends DB_Layer {
       flatRate: data.flatRate ? Number(data.flatRate) : null,
       totalAmount: data.totalAmount ? Number(data.totalAmount) : null,
       status: data.status || 'pending',
-      sourceEmail: data.sourceEmail || null,
-      extractedData: data.extractedData || null,
+      source: data.source || null,
+      notes: data.notes || null,
       notes: data.notes || null
     };
 

@@ -34,40 +34,86 @@ console.log('LeedzEx content.js loaded');
 
 // respond to sidebar requests
 chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
-  if (msg.type !== 'leedz_parse_linkedin') return;   // ignore others
-
-  (async () => {
-    try {
-      const p = new window.LinkedInParser();
-      await p.waitUntilReady();          // <h1> now visible in page DOM
-     
-    
-      // ────────────────────────────────────────────────
-      // send back the SAME field names populateFromRecord expects
-      // ────────────────────────────────────────────────
-      reply({
-        ok: true,
-        data: {
-          id:            null, // new record
-          name:          p.getValue('name'),
-          org:           p.getValue('org'),
-          title:         p.getValue('title'),
-          location:      p.getValue('location'),
-          phone:         null,  // Add this line
-          www:           null,
-          outreachCount: 0,
-          lastContact:   null,
-          notes:         null,
-          linkedin:      p.getValue('profile'),
-          on_x:          null
+  if (msg.type === 'leedz_parse_page') {
+    (async () => {
+      try {
+        console.log('Content script received parse request for:', msg.parser);
+        
+        // Import the parser dynamically
+        let parser;
+        switch (msg.parser) {
+          case 'LinkedInParser':
+            const { default: LinkedInParser } = await import(chrome.runtime.getURL('js/parser/linkedin_parser.js'));
+            parser = new LinkedInParser();
+            break;
+          case 'GmailParser':
+            const { default: GmailParser } = await import(chrome.runtime.getURL('js/parser/gmail_parser.js'));
+            parser = new GmailParser();
+            break;
+          case 'XParser':
+            const { default: XParser } = await import(chrome.runtime.getURL('js/parser/x_parser.js'));
+            parser = new XParser();
+            break;
+          default:
+            throw new Error(`Unknown parser: ${msg.parser}`);
         }
-      });
-    } catch (e) {
-      reply({ ok:false, error: e.message });
-    }
-  })();
 
-  return true; // keep port open for async reply
+        // Create a state-like object to collect data
+        const data = {};
+        const state = {
+          set: (key, value) => { data[key] = value; },
+          get: (key) => data[key] || null
+        };
+
+        // Run the parser
+        await parser.parse(state);
+        
+        console.log('Parser extracted data:', data);
+        
+        reply({
+          ok: true,
+          data: data
+        });
+      } catch (e) {
+        console.error('Content script parser error:', e);
+        reply({ ok: false, error: e.message });
+      }
+    })();
+
+    return true; // keep port open for async reply
+  }
+  
+  // Legacy LinkedIn parsing (keep for backward compatibility)
+  if (msg.type === 'leedz_parse_linkedin') {
+    (async () => {
+      try {
+        const p = new window.LinkedInParser();
+        await p.waitUntilReady();
+        
+        reply({
+          ok: true,
+          data: {
+            id:            null,
+            name:          p.getValue('name'),
+            org:           p.getValue('org'),
+            title:         p.getValue('title'),
+            location:      p.getValue('location'),
+            phone:         null,
+            www:           null,
+            outreachCount: 0,
+            lastContact:   null,
+            notes:         null,
+            linkedin:      p.getValue('profile'),
+            on_x:          null
+          }
+        });
+      } catch (e) {
+        reply({ ok:false, error: e.message });
+      }
+    })();
+
+    return true;
+  }
 });
 
 
