@@ -33,7 +33,7 @@ initLogging();
  */
 function refresh(record) {
   copyFromRecord(state, record);
- updateFormFromState();
+  updateFormFromState();
 }
 
 
@@ -62,9 +62,10 @@ log('sidebar.js script loaded');
  * Updates the form with any extracted data from successful parsing
  * Called on page load and when manually triggered by user
  * @returns {Promise<void>}
- */
+*/
 async function reloadParsers() {
   try {
+    showLoadingSpinner();
     setStatus('Detecting page type...');
     log('Getting current tab...');
     
@@ -73,12 +74,12 @@ async function reloadParsers() {
       chrome.runtime.sendMessage({ type: 'leedz_get_tab_url' }, resolve);
     });
 
-    if (!url || !tabId) {
-      log('Cannot auto-detect page data');
+      if (!url || !tabId) {
+        log('Cannot auto-detect page data');
       setStatus('No page detected');
-      return;
-    }
-
+        return;
+      }
+      
     log(`Current tab URL: ${url}`);
     log('Loading parsers...');
     const parsers = await getParsers();
@@ -147,6 +148,30 @@ async function reloadParsers() {
 
 
 /**
+ * Show the loading spinner overlay
+ */
+function showLoadingSpinner() {
+  const spinner = document.getElementById('loading_spinner');
+  const table = document.getElementById('booking_table');
+  if (spinner && table) {
+    table.style.opacity = '0.3';
+    spinner.style.display = 'block';
+  }
+}
+
+/**
+ * Hide the loading spinner overlay
+ */
+function hideLoadingSpinner() {
+  const spinner = document.getElementById('loading_spinner');
+  const table = document.getElementById('booking_table');
+  if (spinner && table) {
+    spinner.style.display = 'none';
+    table.style.opacity = '1';
+  }
+}
+
+/**
  * Populate the booking table with all fields from state.
  * Shows ALL Booking and Client fields, with values if available, blank if not.
  */
@@ -162,11 +187,17 @@ function populateBookingTable() {
   
   // Valid Booking fields  
   const bookingFields = ['description', 'location', 
-    'startDate', 'endDate', 'startTime', 'endTime', 'duration', 
+    'startDate', 'startTime', 'endDate', 'endTime', 'duration', 
     'hourlyRate', 'flatRate', 'totalAmount', 'notes'];
   
   const allFields = [...clientFields, ...bookingFields];
   const stateObj = state.toObject ? state.toObject() : {};
+  
+    // Auto-complete endDate to match startDate if endDate is missing
+  if (stateObj.startDate && !stateObj.endDate) {
+    state.set('endDate', stateObj.startDate);
+    stateObj.endDate = stateObj.startDate; // Update local copy for display
+  }
   
   // Calculate duration before displaying if startTime and endTime are available
   if (stateObj.startTime && stateObj.endTime) {
@@ -247,6 +278,15 @@ function populateBookingTable() {
         state.set(fieldName, value);
       } else {
         state.delete(fieldName);
+      }
+      
+      // Auto-complete endDate when startDate is entered
+      if (fieldName === 'startDate' && value) {
+        const endDateInput = document.querySelector('input[data-field="endDate"]');
+        if (endDateInput && !endDateInput.value.trim()) {
+          endDateInput.value = value;
+          state.set('endDate', value);
+        }
       }
       
       // Auto-calculate duration if startTime and endTime are available
@@ -382,6 +422,7 @@ function calculateTotalAmount() {
  * Populates the booking table with all fields and values.
  */
 function updateFormFromState() {
+  hideLoadingSpinner();
   populateBookingTable();
 }
 

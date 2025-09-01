@@ -114,7 +114,7 @@ html, body {
 .booking-table {
   width: 100%;
   border-collapse: collapse;
-  font-family: Consolas, Monaco, "Courier New", monospace;
+  font-family: "Circular", Helvetica Neue, Helvetica, Arial, sans-serif;
   font-size: 12px;
 }
 
@@ -160,6 +160,32 @@ html, body {
   background-color: #fff;
   border: 1px solid #007cba;
   outline: none;
+}
+
+.loading-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.loading-spinner img {
+  width: 90px;
+  height: 90px;
+  margin: 10px;
+}
+
+.loading-spinner span {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: #666;
 }
 
 .status-bar {
