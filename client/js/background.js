@@ -42,13 +42,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Handle LLM requests to avoid CORS issues
   //
   if (message.type === 'leedz_llm_request') {
-    console.log('DEBUG: Background script received LLM request');
+    //console.log('DEBUG: Background script received LLM request');
     const { request } = message;
     
-    console.log('DEBUG: Making fetch to:', request.url);
-    console.log('DEBUG: Request method:', request.method);
-    console.log('DEBUG: Request headers:', request.headers);
-    console.log('DEBUG: Request body:', JSON.stringify(request.body, null, 2));
+    // console.log('DEBUG: Making fetch to:', request.url);
+    // console.log('DEBUG: Request method:', request.method);
+    // console.log('DEBUG: Request headers:', request.headers);
+    // console.log('DEBUG: Request body:', JSON.stringify(request.body, null, 2));
     
     fetch(request.url, {
       method: request.method,

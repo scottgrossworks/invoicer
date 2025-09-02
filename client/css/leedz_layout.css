@@ -40,6 +40,27 @@ html, body {
   border-top: 4px solid var(--LEEDZ_GREEN);
 }
 
+.logo-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.app-label {
+  position: absolute;
+  top: -12px;
+  background-color: darkgreen;
+  color: white;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-weight: 500;
+  text-transform: lowercase;
+  z-index: 10;
+  margin-top:2px;
+}
+
 .leedz-logo {
   height: 35px;
 }
@@ -57,7 +78,7 @@ html, body {
   flex-direction: column;
   overflow-y: auto;   /* Scroll if content overflows */
   min-height: 0;      /* Prevent flexbox overflow issues */
-  max-height:70vh;
+  max-height:75vh;
   padding: 10px;
   width: 98%;
   margin: 0 auto;
@@ -492,6 +513,46 @@ input.invalid {
 
 /* hasReplied button removed */
 
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0px;
+}
+
+.section-header label {
+  margin: 0px;
+  font-size: 16px;
+  color: darkgreen;
+  font-weight: 600;
+  flex: 1;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.settings-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  margin-right:20px;
+  
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.settings-button:hover {
+  background-color: #ccc;
+}
+
 
 
 
@@ -502,19 +563,20 @@ input.invalid {
 
 /* Button icon styling to fit within the button */
 .button-icon {
-  width: 14px;
-  height: 14px;
+  width: 20px;
+  height: 20px;
   object-fit: contain;
 }
 
 
 .reload-button {
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background-color: var(--LEEDZ_GREEN);
   color: white;
 
+  margin-right:10px;
   border: none;
   display: flex;
   align-items: center;

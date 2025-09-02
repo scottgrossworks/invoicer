@@ -250,28 +250,28 @@ Return ONLY valid JSON with extracted fields. Example format:
       }
     };
 
-    console.log('DEBUG: Attempting LLM request via background script');
+    // console.log('Attempting LLM request via background script');
 
     return new Promise((resolve) => {
       try {
         chrome.runtime.sendMessage(
           { type: 'leedz_llm_request', request: llmRequest },
           (response) => {
-            console.log('DEBUG: Background response received:', response);
+            // console.log('Background response received:', response);
             if (chrome.runtime.lastError) {
-              console.log('DEBUG: Chrome runtime error:', chrome.runtime.lastError.message);
+              console.error('Chrome runtime error:', chrome.runtime.lastError.message);
               resolve(null);
             } else if (!response) {
-              console.log('DEBUG: No response from background script');
+              console.log('No response from background script');
               resolve(null);
             } else {
-              console.log('DEBUG: Valid response received');
+              console.log('Valid response received');
               resolve(response);
             }
           }
         );
       } catch (error) {
-        console.log('DEBUG: Exception sending message:', error);
+        console.error('Exception sending message:', error);
         resolve(null);
       }
     });

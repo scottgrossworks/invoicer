@@ -37,7 +37,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
   if (msg.type === 'leedz_parse_page') {
     (async () => {
       try {
-        console.log('Content script received parse request for:', msg.parser);
+        // console.log('Content script received parse request for:', msg.parser);
         
         // Import the parser dynamically
         let parser;
