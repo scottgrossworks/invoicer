@@ -25,19 +25,6 @@ initLogging();
 
 
 
-/**
- * Refreshes the form with data from a database record
- * Updates the application state and form fields with existing record data
- * Typically called when loading existing data from the database
- * @param {Object} record - Database record object containing profile/contact data
- */
-function refresh(record) {
-  copyFromRecord(state, record);
-  updateFormFromState();
-}
-
-
-
 
 
 
@@ -79,16 +66,23 @@ async function reloadParsers() {
       setStatus('No page detected');
         return;
       }
-      
+    
+      //
+      // iterate through all the parsers
+      // and check if they match the current url
+      // if they do, run the parser
+      // if they don't, skip them
+      // if they match, run the parser
+      // if they don't, skip them
     log(`Current tab URL: ${url}`);
-    log('Loading parsers...');
+    // log('Loading parsers...');
     const parsers = await getParsers();
     log(`Found ${parsers.length} parsers`);
 
     let matched = false;
     for (const p of parsers) {
       try {
-        log(`Checking parser: ${p.name || 'unnamed'}`);
+        log(`Checking: ${p.name || 'unnamed'}`);
         // Check if parser matches this URL
         if (p.checkPageMatch && await p.checkPageMatch(url)) {
           setStatus(`Parsing with ${p.name || 'parser'}...`);
@@ -108,7 +102,7 @@ async function reloadParsers() {
                 }
               });
               updateFormFromState();
-              setStatus(`Parsed by ${p.name || 'parser'}`);
+              // setStatus(`Parsed by ${p.name || 'parser'}`);
             } else {
               logError(`Parser ${p.name} failed:`, response?.error || 'Unknown error');
               setStatus('Parse failed');
@@ -118,7 +112,7 @@ async function reloadParsers() {
           matched = true;
           break;
         } else {
-          log(`Parser ${p.name} did not match URL: ${url}`);
+          // log(`Parser ${p.name} did not match URL: ${url}`);
         }
       } catch (e) {
         logError(`Parser ${p.name} failed:`, e);
@@ -428,6 +422,30 @@ function updateFormFromState() {
 
 
 
+//
+// Reload button
+//
+const reloadBtn = document.getElementById('reloadBtn');
+reloadBtn.addEventListener('click', () => {
+  clearForm();
+  reloadParsers();
+});
+
+//
+// Settings button
+//
+const settingsBtn = document.getElementById('settingsBtn');
+settingsBtn.addEventListener('click', async () => {
+  try {
+    // Dynamic import of PDF settings
+    const { default: PDF_settings } = await import('./settings/PDF_settings.js');
+    const pdfSettings = new PDF_settings();
+    await pdfSettings.open();
+  } catch (error) {
+    console.error('Failed to open settings:', error);
+  }
+});
+
 
 
 
@@ -447,12 +465,13 @@ function clearForm() {
 }
 
 /**
- * Set the one-line status text in the status bar.
+ * REDIRECTS TO FOOTER
  * @param {string} text - Status message to show
  */
 function setStatus(text) {
-  const s = document.getElementById('statusText');
-  if (s) s.textContent = text;
+  // const s = document.getElementById('statusText');
+  // if (s) s.textContent = text;
+  log(text);
 }
 
 /**

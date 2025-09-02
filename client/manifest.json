@@ -64,6 +64,7 @@
         "js/*",
         "invoicer_config.json",
         "sidebar.html",
+        "pdf_settings.html",
         "icons/*"
       ],
       "matches": ["<all_urls>"]
