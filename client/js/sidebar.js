@@ -74,7 +74,7 @@ async function reloadParsers() {
       // if they don't, skip them
       // if they match, run the parser
       // if they don't, skip them
-    log(`Current tab URL: ${url}`);
+    // log(`Current tab URL: ${url}`);
     // log('Loading parsers...');
     const parsers = await getParsers();
     log(`Found ${parsers.length} parsers`);
@@ -95,7 +95,7 @@ async function reloadParsers() {
           }, (response) => {
             if (response?.ok && response?.data) {
               log(`Parser ${p.name} completed successfully`);
-              log('LLM response data:', response.data);
+              console.log('LLM response data:', response.data);
               Object.entries(response.data).forEach(([k, v]) => {
                 if (v !== null && v !== undefined && v !== '') {
                   state.set(k, v);
@@ -297,26 +297,12 @@ function populateBookingTable() {
         value = formatCurrency(value);
       }
       
-      // Revert duration calculation and state.delete replacement
-      // Calculate duration before displaying if startTime and endTime are available
-      let duration;
-      if (!isNaN(startTotalMinutes) && !isNaN(endTotalMinutes)) {
-        if (endTotalMinutes < startTotalMinutes) {
-          duration = (24 * 60 - startTotalMinutes) + endTotalMinutes;
-        } else {
-          duration = endTotalMinutes - startTotalMinutes;
-        }
-        const durationHours = (duration / 60).toFixed(1);
-        state.set('duration', durationHours);
-        stateObj.duration = durationHours; // Update local copy for display
-      }
-
       if (value) {
         state.set(fieldName, value);
       } else {
-        state.delete(fieldName);
+        state.set(fieldName, null); // Corrected from state.delete(fieldName)
       }
-      
+
       // Auto-complete endDate when startDate is entered
       if (fieldName === 'startDate' && value) {
         const endDateInput = document.querySelector('input[data-field="endDate"]');

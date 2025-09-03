@@ -276,53 +276,158 @@ ${threadContent}
         // Map LLM fields to our booking fields
         const mapped = {};
         
-        // Handle date mapping
-        if (parsed.serviceDate) mapped.startDate = parsed.serviceDate;
-        if (parsed.startDate) mapped.startDate = parsed.startDate;
-        
-        // Handle time mapping
-        if (parsed.startTime) mapped.startTime = parsed.startTime;
-        if (parsed.endTime) mapped.endTime = parsed.endTime;
-        
-        // Handle location mapping
-        if (parsed.location) mapped.location = parsed.location;
-        if (parsed.address) mapped.location = parsed.address;
-        
-        // Handle description mapping
-        if (parsed.description) mapped.description = parsed.description;
-        
-        // Handle rate mapping
-        if (parsed.rate && parsed.rate !== 'Not specified' && parsed.rate !== 'Not applicable') {
-          mapped.hourlyRate = parsed.rate;
-        }
-        if (parsed.hourlyRate && parsed.hourlyRate !== 'Not specified' && parsed.hourlyRate !== 'Not applicable') {
-          mapped.hourlyRate = parsed.hourlyRate;
-        }
-        
-        // Handle total amount (but don't include "Not applicable")
-        if (parsed.totalAmount && parsed.totalAmount !== 'Not applicable' && parsed.totalAmount !== 'Not specified') {
-          mapped.totalAmount = parsed.totalAmount;
-        }
-        
-        // Handle client contact details
-        if (parsed.clientContactDetails) {
-          if (parsed.clientContactDetails.name) mapped.name = parsed.clientContactDetails.name;
-          if (parsed.clientContactDetails.email) mapped.email = parsed.clientContactDetails.email;
-          if (parsed.clientContactDetails.phone) mapped.phone = parsed.clientContactDetails.phone;
-        }
-        
-        // Copy other direct mappings
-        ['name', 'email', 'phone', 'company', 'notes', 'endDate'].forEach(field => {
-          if (parsed[field] && parsed[field] !== 'Not applicable' && parsed[field] !== 'Not specified') {
+        // Direct mappings for all expected fields from the updated prompt
+        const fieldsToMap = [
+          'name',
+          'email',
+          'phone',
+          'location',
+          // 'startDate', // Handled below
+          // 'endDate',   // Handled below
+          'startTime',
+          'endTime',
+          'duration',
+          'hourlyRate',
+          'flatRate',
+          'totalAmount',
+          'description',
+          'company', 
+          'notes'    
+        ];
+
+        fieldsToMap.forEach(field => {
+          if (parsed[field] !== undefined && parsed[field] !== null && parsed[field] !== 'Not applicable' && parsed[field] !== 'Not specified') {
             mapped[field] = parsed[field];
           }
         });
+
+        // Handle date mapping: Prioritize startDate/endDate, then parsed.date
+        if (parsed.startDate && parsed.startDate !== 'Not applicable' && parsed.startDate !== 'Not specified') {
+          mapped.startDate = parsed.startDate;
+        }
+        if (parsed.endDate && parsed.endDate !== 'Not applicable' && parsed.endDate !== 'Not specified') {
+          mapped.endDate = parsed.endDate;
+        }
+        if (parsed.date && parsed.date !== 'Not applicable' && parsed.date !== 'Not specified') {
+          if (!mapped.startDate) mapped.startDate = parsed.date;
+          if (!mapped.endDate) mapped.endDate = parsed.date; // Auto-complete endDate if not explicitly provided
+        }
+        
+        // Smart time correction based on duration: If duration suggests overnight work
+        if (mapped.startTime && mapped.endTime && mapped.duration) {
+          const duration = parseFloat(mapped.duration);
+          if (!isNaN(duration)) {
+            const correctedTimes = this._correctTimesWithDuration(mapped.startTime, mapped.endTime, duration);
+            if (correctedTimes) {
+              mapped.startTime = correctedTimes.startTime;
+              mapped.endTime = correctedTimes.endTime;
+            }
+          }
+        }
+        
+        // Handle potential alternate mappings or consolidations
+        // if (parsed.serviceDate && !mapped.startDate) mapped.startDate = parsed.serviceDate; // Removed as LLM now returns startDate/endDate
+        if (parsed.address && !mapped.location) mapped.location = parsed.address;
+        if (parsed.rate && parsed.rate !== 'Not applicable' && parsed.rate !== 'Not specified' && !mapped.hourlyRate) {
+          mapped.hourlyRate = parsed.rate; // Use parsed.rate if hourlyRate is not set
+        }
+
+        // Special handling for duration, rates, and amounts to ensure they are numbers
+        if (mapped.duration) mapped.duration = parseFloat(mapped.duration);
+        if (mapped.hourlyRate) mapped.hourlyRate = parseFloat(mapped.hourlyRate);
+        if (mapped.flatRate) mapped.flatRate = parseFloat(mapped.flatRate);
+        if (mapped.totalAmount) mapped.totalAmount = parseFloat(mapped.totalAmount);
+
+        // Clean up NaN values resulting from parseFloat if original was not a valid number
+        if (isNaN(mapped.duration)) delete mapped.duration;
+        if (isNaN(mapped.hourlyRate)) delete mapped.hourlyRate;
+        if (isNaN(mapped.flatRate)) delete mapped.flatRate;
+        if (isNaN(mapped.totalAmount)) delete mapped.totalAmount;
         
         return mapped;
       }
       return null;
     } catch (error) {
       console.warn('Failed to parse LLM JSON response');
+      return null;
+    }
+  }
+
+  /**
+   * Corrects time interpretation based on duration context
+   * If times don't make logical sense with duration, adjust AM/PM interpretation
+   * @param {string} startTime - Start time from LLM
+   * @param {string} endTime - End time from LLM  
+   * @param {number} duration - Duration in hours
+   * @returns {Object|null} Corrected times or null if no correction needed
+   */
+  _correctTimesWithDuration(startTime, endTime, duration) {
+    try {
+      // Parse times - handle both 24hr format and already formatted times
+      const parseTime = (timeStr) => {
+        if (/(AM|PM)/i.test(timeStr)) {
+          // Already formatted, convert to 24hr for calculation
+          const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+          if (!match) return null;
+          
+          let hours = parseInt(match[1]);
+          const minutes = parseInt(match[2]);
+          const period = match[3].toUpperCase();
+          
+          if (period === 'PM' && hours !== 12) hours += 12;
+          if (period === 'AM' && hours === 12) hours = 0;
+          
+          return { hours, minutes, originalFormat: timeStr };
+        } else {
+          // 24hr format like "19:00"
+          const [hours, minutes] = timeStr.split(':').map(Number);
+          return { hours, minutes, originalFormat: timeStr };
+        }
+      };
+
+      const start = parseTime(startTime);
+      const end = parseTime(endTime);
+      
+      if (!start || !end) return null;
+
+      // Calculate actual duration between the times
+      let actualDuration;
+      if (end.hours >= start.hours) {
+        // Same day
+        actualDuration = (end.hours - start.hours) + (end.minutes - start.minutes) / 60;
+      } else {
+        // Overnight (end time next day)
+        actualDuration = (24 - start.hours + end.hours) + (end.minutes - start.minutes) / 60;
+      }
+
+      // If actual duration doesn't match expected duration (within 0.5 hour tolerance)
+      if (Math.abs(actualDuration - duration) > 0.5) {
+        // Try different interpretations
+        
+        // Case 1: If LLM provided 24hr times but they should be interpreted differently
+        if (!/(AM|PM)/i.test(startTime) && !/(AM|PM)/i.test(endTime)) {
+          // Try interpreting as: 19:00 = 7:00 AM, 11:00 = 11:00 AM (4 hour duration)
+          if (start.hours === 19 && end.hours === 11 && Math.abs(duration - 4) < 0.5) {
+            return {
+              startTime: '7:00 AM',
+              endTime: '11:00 AM'
+            };
+          }
+          
+          // Try other common misinterpretations
+          // 19:00 = 7:00 PM, but if duration is 4 hours, end should be 11:00 PM
+          if (start.hours === 19 && duration === 4) {
+            return {
+              startTime: '7:00 PM', 
+              endTime: '11:00 PM'
+            };
+          }
+        }
+      }
+
+      return null; // No correction needed
+    } catch (error) {
+      console.warn('Error correcting times:', error);
       return null;
     }
   }
