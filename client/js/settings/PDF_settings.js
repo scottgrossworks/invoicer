@@ -32,58 +32,80 @@ class PDF_settings extends Settings {
   }
 
   /**
-   * Load PDF settings from config file
+   * Load PDF settings from database with fallback to config file
    * @returns {Promise<Object>} PDF settings object
    */
   async load() {
     try {
-      const response = await fetch(chrome.runtime.getURL('invoicer_config.json'));
-      const config = await response.json();
-      return config.pdfSettings || this.getDefaults();
+      // Try to load from database first
+      const configResponse = await fetch(chrome.runtime.getURL('invoicer_config.json'));
+      const config = await configResponse.json();
+      const serverUrl = config.db?.baseUrl || 'http://127.0.0.1:3000';
+      
+      const dbResponse = await fetch(`${serverUrl}/config`);
+      
+      if (dbResponse.ok) {
+        const dbConfig = await dbResponse.json();
+        console.log('PDF settings loaded from database');
+        return dbConfig;
+      } else {
+        console.log('No database config found, using config file defaults');
+        return config.pdfSettings || this.getDefaults();
+      }
+      
     } catch (error) {
-      console.error('Failed to load PDF settings from config:', error);
-      return this.getDefaults();
+      console.error('Failed to load PDF settings from database, using config file:', error);
+      
+      // Fallback to config file
+      try {
+        const response = await fetch(chrome.runtime.getURL('invoicer_config.json'));
+        const config = await response.json();
+        return config.pdfSettings || this.getDefaults();
+      } catch (configError) {
+        console.error('Failed to load PDF settings from config file:', configError);
+        return this.getDefaults();
+      }
     }
   }
 
   /**
-   * Save PDF settings by downloading updated config file
+   * Save PDF settings to database via server API
    * @param {Object} settings - PDF settings to save
    * @returns {Promise<void>}
    */
   async save(settings) {
     try {
-      // Load current config
-      const response = await fetch(chrome.runtime.getURL('invoicer_config.json'));
-      const config = await response.json();
+      // Get server baseUrl from config
+      const configResponse = await fetch(chrome.runtime.getURL('invoicer_config.json'));
+      const config = await configResponse.json();
+      const serverUrl = config.db?.baseUrl || 'http://127.0.0.1:3000';
       
-      // Update PDF settings section
-      config.pdfSettings = settings;
+      // Send settings to server
+      const response = await fetch(`${serverUrl}/config`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(settings)
+      });
       
-      // Create updated config file content
-      const updatedConfig = JSON.stringify(config, null, 2);
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
+      }
       
-      // Create download blob
-      const blob = new Blob([updatedConfig], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
+      const result = await response.json();
+      console.log('PDF settings saved to database:', result.id);
       
-      // Trigger download
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'invoicer_config.json';
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      
-      console.log('PDF settings saved - config file downloaded');
-      
-      // Also save to Chrome storage as backup
+      // Also save to Chrome storage as backup/cache
       await chrome.storage.local.set({ pdfSettings: settings });
       
     } catch (error) {
-      console.error('Failed to save PDF settings:', error);
+      console.error('Failed to save PDF settings to database:', error);
+      
+      // Fallback: save to Chrome storage only
+      await chrome.storage.local.set({ pdfSettings: settings });
+      console.log('PDF settings saved to Chrome storage as fallback');
+      
       throw error;
     }
   }
