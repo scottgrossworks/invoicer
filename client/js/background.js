@@ -56,19 +56,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       body: JSON.stringify(request.body)
     })
     .then(response => {
-      console.log('DEBUG: Fetch response status:', response.status);
+      // console.log('DEBUG: Fetch response status:', response.status);
       if (response.ok) {
         return response.json().then(data => {
-          console.log('DEBUG: Sending success response to content script');
+          // console.log('DEBUG: Sending success response to content script');
           sendResponse({ ok: true, data: data });
         });
       } else {
-        console.log('DEBUG: Sending error response to content script');
+        console.error('Sending error response to content script');
         sendResponse({ ok: false, status: response.status, statusText: response.statusText });
       }
     })
     .catch(error => {
-      console.log('DEBUG: Fetch failed:', error.message);
+      console.error('Fetch failed:', error.message);
       sendResponse({ ok: false, error: error.message });
     });
     

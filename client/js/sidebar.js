@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
   reloadParsers();
 });  // CLOSED the DOMContentLoaded listener
 
-log('sidebar.js script loaded');
+// log('sidebar.js script loaded');
 
 
 
@@ -54,7 +54,7 @@ async function reloadParsers() {
   try {
     showLoadingSpinner();
     setStatus('Detecting page type...');
-    log('Getting current tab...');
+    // log('Getting current tab...');
     
     // Get current tab URL and tabId
     const { url, tabId } = await new Promise(resolve => {
@@ -95,13 +95,19 @@ async function reloadParsers() {
           }, (response) => {
             if (response?.ok && response?.data) {
               log(`Parser ${p.name} completed successfully`);
-              // Merge parsed data into state
+              log('LLM response data:', response.data);
               Object.entries(response.data).forEach(([k, v]) => {
                 if (v !== null && v !== undefined && v !== '') {
                   state.set(k, v);
+                  // log(`State set for ${k}: ${v}`);
                 }
               });
+
               updateFormFromState();
+
+              // Save current state to Chrome storage for settings page access - moved here to ensure state is fully updated
+              chrome.storage.local.set({ 'currentBookingState': state.toObject() });
+
               // setStatus(`Parsed by ${p.name || 'parser'}`);
             } else {
               logError(`Parser ${p.name} failed:`, response?.error || 'Unknown error');
@@ -186,6 +192,7 @@ function populateBookingTable() {
   
   const allFields = [...clientFields, ...bookingFields];
   const stateObj = state.toObject ? state.toObject() : {};
+  // log('stateObj at start of populateBookingTable:', stateObj);
   
     // Auto-complete endDate to match startDate if endDate is missing
   if (stateObj.startDate && !stateObj.endDate) {
@@ -194,21 +201,23 @@ function populateBookingTable() {
   }
   
   // Calculate duration before displaying if startTime and endTime are available
-  if (stateObj.startTime && stateObj.endTime) {
-    const [startHours, startMinutes] = stateObj.startTime.split(':').map(Number);
-    const [endHours, endMinutes] = stateObj.endTime.split(':').map(Number);
-    
+  let duration;
+  const startTime = stateObj.startTime;
+  const endTime = stateObj.endTime;
+
+  if (startTime && endTime) {
+    const [startHours, startMinutes] = startTime.split(':').map(Number);
+    const [endHours, endMinutes] = endTime.split(':').map(Number);
+
     const startTotalMinutes = startHours * 60 + (startMinutes || 0);
     const endTotalMinutes = endHours * 60 + (endMinutes || 0);
-    
-    let duration;
+
     if (endTotalMinutes < startTotalMinutes) {
-      // Crosses midnight
       duration = (24 * 60 - startTotalMinutes) + endTotalMinutes;
     } else {
       duration = endTotalMinutes - startTotalMinutes;
     }
-    
+
     const durationHours = (duration / 60).toFixed(1);
     state.set('duration', durationHours);
     stateObj.duration = durationHours; // Update local copy for display
@@ -241,13 +250,33 @@ function populateBookingTable() {
     
     // Convert time fields to 12-hour format for display
     let displayValue = stateObj[field] || '';
+    //log(`Field: ${field}, stateObj[field]: ${stateObj[field]}, initial displayValue: ${displayValue}`);
     if ((field === 'startTime' || field === 'endTime') && displayValue) {
       displayValue = convertTo12Hour(displayValue);
+      //log(`  After convertTo12Hour for ${field}: ${displayValue}`);
+    }
+    // Pretty-print ISO-like dates for display only
+    if ((field === 'startDate' || field === 'endDate') && displayValue) {
+      displayValue = formatDateForDisplay(displayValue);
+      //log(`  After formatDateForDisplay for ${field}: ${displayValue}`);
     }
     
     // Add 'hours' suffix to duration for display
     if (field === 'duration' && displayValue) {
       displayValue = `${displayValue} hours`;
+    }
+    
+    // Define formatCurrency function
+    function formatCurrency(value) {
+      if (typeof value === 'string' && !value.startsWith('$')) {
+        return `$${value}`;
+      }
+      return value;
+    }
+
+    // Ensure currency fields display with a '$' prefix
+    if (field === 'hourlyRate' || field === 'flatRate' || field === 'totalAmount') {
+      displayValue = formatCurrency(displayValue);
     }
     
     input.value = displayValue;
@@ -258,16 +287,30 @@ function populateBookingTable() {
       const fieldName = e.target.getAttribute('data-field');
       let value = e.target.value.trim();
       
-      // Convert time fields back to 24-hour format for storage
-      if ((fieldName === 'startTime' || fieldName === 'endTime') && value) {
-        value = convertTo24Hour(value);
-      }
-      
       // Remove 'hours' suffix from duration before storing
       if (fieldName === 'duration' && value) {
         value = value.replace(/\s*hours?\s*$/i, '').trim();
       }
       
+      // Ensure currency fields display with a '$' prefix
+      if (fieldName === 'hourlyRate' || fieldName === 'flatRate' || fieldName === 'totalAmount') {
+        value = formatCurrency(value);
+      }
+      
+      // Revert duration calculation and state.delete replacement
+      // Calculate duration before displaying if startTime and endTime are available
+      let duration;
+      if (!isNaN(startTotalMinutes) && !isNaN(endTotalMinutes)) {
+        if (endTotalMinutes < startTotalMinutes) {
+          duration = (24 * 60 - startTotalMinutes) + endTotalMinutes;
+        } else {
+          duration = endTotalMinutes - startTotalMinutes;
+        }
+        const durationHours = (duration / 60).toFixed(1);
+        state.set('duration', durationHours);
+        stateObj.duration = durationHours; // Update local copy for display
+      }
+
       if (value) {
         state.set(fieldName, value);
       } else {
@@ -312,17 +355,26 @@ function populateBookingTable() {
  * @returns {string} Time in 12-hour format (e.g., "7:00 PM", "4:30 AM")
  */
 function convertTo12Hour(time24) {
-  if (!time24 || !time24.includes(':')) return time24;
+  if (!time24) return time24;
+  const t = String(time24).trim();
+  // If already in 12-hour format with AM/PM, return as-is
+  if (/\b(AM|PM)\b/i.test(t)) return t;
+  if (!t.includes(':')) return t;
   
-  const [hours, minutes] = time24.split(':');
+  const [hours, minutes] = t.split(':');
   const hour = parseInt(hours, 10);
-  const min = minutes || '00';
+  const min = (minutes || '00').replace(/\s*(AM|PM)/i, '');
+  if (isNaN(hour)) return t;
   
   if (hour === 0) return `12:${min} AM`;
   if (hour < 12) return `${hour}:${min} AM`;
   if (hour === 12) return `12:${min} PM`;
   return `${hour - 12}:${min} PM`;
 }
+
+
+
+
 
 /**
  * Convert 12-hour time to 24-hour format for storage.
@@ -348,6 +400,9 @@ function convertTo24Hour(time12) {
   
   return `${hour.toString().padStart(2, '0')}:${min}`;
 }
+
+
+
 
 /**
  * Calculate duration as the difference between startTime and endTime.
@@ -420,6 +475,16 @@ function updateFormFromState() {
   populateBookingTable();
 }
 
+function formatDateForDisplay(value) {
+  if (!value) return value;
+  const s = String(value).trim();
+  if (/(January|February|March|April|May|June|July|August|September|October|November|December)/i.test(s)) {
+    return s;
+  }
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return s;
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
 
 
 //
@@ -496,7 +561,6 @@ function wireUI() {
       lines.forEach(line => {
         const idx = line.indexOf('=');
         if (idx > 0) {
-          // ADD NEWLINES???
           const key = line.slice(0, idx).trim();
           const val = line.slice(idx + 1).trim();
           if (key) state.set(key, val);
@@ -512,6 +576,9 @@ function wireUI() {
  */
 async function onSave() {
   try {
+    // Ensure current state is saved to Chrome storage for PDF settings page
+    await chrome.storage.local.set({ 'currentBookingState': state.toObject() });
+
     setStatus('Saving...');
     const db = await getDbLayer();
     await db.save(state);
