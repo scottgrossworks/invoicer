@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leedz Invoicer PDF Settings</title>
+  <link rel="stylesheet" href="css/leedz_layout.css">
+  <link rel="stylesheet" href="css/pdf_settings.css">
+</head>
+<body>
+  <div class="settings-container">
+    <div class="settings-header">
+      <h1>PDF Invoice Settings</h1>
+      <p style="margin: 8px 0 0 0; opacity: 0.9;">Configure your invoice template and branding</p>
+    </div>
+    
+    <div class="settings-content">
+      <!-- Company Information -->
+      <div class="setting-group">
+        <h3>Company Information</h3>
+        <div class="setting-row">
+          <label>Company Name:</label>
+          <input type="text" id="companyName" placeholder="Scott R. Gross">
+        </div>
+        <div class="setting-row">
+          <label>Company Address:</label>
+          <textarea id="companyAddress" placeholder="5115 S Van Ness Ave&#10;Los Angeles, CA 90062"></textarea>
+        </div>
+        <div class="setting-row">
+          <label>Company Phone:</label>
+          <input type="text" id="companyPhone" placeholder="(123) 456-7890">
+        </div>
+        <div class="setting-row">
+          <label>Company Email:</label>
+          <input type="email" id="companyEmail" placeholder="name@example.com">
+        </div>
+        <div class="setting-row">
+          <label>Logo URL:</label>
+          <input type="url" id="logoUrl" placeholder="https://example.com/logo.png">
+        </div>
+      </div>
+
+      <!-- Bank Information -->
+      <div class="setting-group">
+        <div class="collapsible-header" id="bankInfoToggle">
+          <span>Bank Information</span>
+          <span class="collapse-arrow">▼</span>
+        </div>
+        <div class="collapsible-content" id="bankInfoContent">
+          <div class="setting-row">
+            <label>Bank Name:</label>
+            <input type="text" id="bankName" placeholder="Example Bank">
+          </div>
+          <div class="setting-row">
+            <label>Bank Address:</label>
+            <textarea id="bankAddress" placeholder="1234 Main Street&#10;City, State 12345"></textarea>
+          </div>
+          <div class="setting-row">
+            <label>Bank Phone:</label>
+            <input type="text" id="bankPhone" placeholder="(123) 456-7890">
+          </div>
+          <div class="setting-row">
+            <label>Account Number:</label>
+            <input type="text" id="bankAccount" placeholder="1234567890">
+          </div>
+          <div class="setting-row">
+            <label>ABA Routing:</label>
+            <input type="text" id="bankRouting" placeholder="123456789">
+          </div>
+          <div class="setting-row">
+            <label>WIRE Routing:</label>
+            <input type="text" id="bankWire" placeholder="123456789">
+          </div>
+        </div>
+      </div>
+
+      <!-- Services Information -->
+      <div class="setting-group">
+        <h3>Services Information</h3>
+        <div class="setting-row">
+          <label>Services Performed:</label>
+          <input type="text" id="servicesPerformed" placeholder="Live Caricatures">
+        </div>
+        <div class="setting-row">
+          <label>Contact Handle:</label>
+          <input type="text" id="contactHandle" placeholder="@yourhandle">
+        </div>
+      </div>
+
+
+
+      <!-- Terms & Footer -->
+      <div class="setting-group">
+        <h3>Terms & Footer</h3>
+        <div class="setting-row">
+          <label>
+            <input type="checkbox" id="includeTerms" checked> Include Terms
+          </label>
+        </div>
+        <div class="setting-row">
+          <label>Terms Text:</label>
+          <textarea id="terms" placeholder="Payment terms and conditions..."></textarea>
+        </div>
+        <div class="setting-row">
+          <label>Footer Text:</label>
+          <input type="text" id="footerText" placeholder="Thank you for your business!">
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="button-group">
+        <button class="btn btn-primary" id="saveBtn">Save Settings</button>
+        <button class="btn btn-cornflower" id="previewBtn">Preview Invoice</button>
+        <button class="btn btn-coral" id="downloadPdfBtn">Download PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/settings/pdf_settings_page.js"></script>
+</body>
+</html>

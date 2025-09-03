@@ -1,0 +1,303 @@
+/* PDF Settings Page Styles */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  background: #f5f5f5;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding: 20px;
+  min-height: 100vh;
+  overflow-y: scroll;
+  box-sizing: border-box;
+}
+
+.settings-container {
+  max-width: 800px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  margin-bottom: 40px;
+}
+
+.settings-header {
+  background: var(--LEEDZ_GREEN);
+  color: white;
+  padding: 24px;
+  text-align: center;
+}
+
+.settings-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.settings-content {
+  padding: 32px;
+  max-height: calc(100vh - 180px); /* Ensure content area scrolls */
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.setting-group {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.setting-group:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.setting-group h3 {
+  margin: 0 0 16px 0;
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap; /* Allow items to wrap for better responsiveness */
+}
+
+.setting-row label {
+  width: 140px;
+  font-weight: 500;
+  color: #555;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.setting-row input, .setting-row select, .setting-row textarea {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.setting-row textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+.color-input {
+  width: 60px !important;
+  height: 36px;
+  padding: 2px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* Collapsible Bank Info */
+.collapsible-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 16px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.collapsible-header:hover {
+  background: #e9ecef;
+}
+
+.collapse-arrow {
+  font-size: 12px;
+  transition: transform 0.2s;
+}
+
+.collapsible-header.collapsed .collapse-arrow {
+  transform: rotate(-90deg);
+}
+
+.collapsible-content {
+  max-height: 0;
+  opacity: 0;
+  margin-bottom: 0;
+  pointer-events: none; /* Prevents blocking clicks when collapsed */
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out, margin-bottom 0.3s ease-out;
+}
+
+.collapsible-content.expanded {
+  max-height: 500px;
+  opacity: 1;
+  margin-bottom: 16px;
+  pointer-events: auto; /* Allows interaction when expanded */
+}
+
+.template-preview {
+  width: 100%;
+  height: 300px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-style: italic;
+}
+
+.button-group {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #e5e5e5;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-primary {
+  background: var(--LEEDZ_GREEN);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #059669;
+}
+
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #4b5563;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid #d1d5db;
+  color: #374151;
+}
+
+.btn-outline:hover {
+  background: #f9fafb;
+}
+
+/* Cornflower blue for Preview Invoice button */
+.btn-cornflower {
+  background: #6495ed;
+  color: white;
+}
+
+.btn-cornflower:hover {
+  background: #4169e1; /* royal blue when pressed */
+}
+
+/* Coral for Download PDF button */
+.btn-coral {
+  background: #ff7f50;
+  color: white;
+}
+
+.btn-coral:hover {
+  background: #e85d3f;
+}
+
+/* Responsive adjustments */
+@media (max-height: 800px) {
+  body {
+    padding: 10px;
+  }
+  
+  .settings-content {
+    padding: 20px;
+  }
+}
+
+/* Force scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Uniform placeholder color across the PDF Settings page */
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af !important;  /* lightgray */
+  opacity: 1 !important;      /* ensure not dimmed by browser defaults */
+}
+
+/* More specific selectors */
+.settings-content input::placeholder,
+.settings-content textarea::placeholder {
+  color: #9ca3af !important;  /* lightgray */
+  opacity: 1 !important;      /* ensure not dimmed by browser defaults */
+}
+
+.setting-row input::placeholder,
+.setting-row textarea::placeholder {
+  color: #9ca3af !important;  /* lightgray */
+  opacity: 1 !important;      /* ensure not dimmed by browser defaults */
+}
+
+/* Vendor fallbacks for older browsers */
+input::-webkit-input-placeholder,
+textarea::-webkit-input-placeholder,
+.settings-content input::-webkit-input-placeholder,
+.settings-content textarea::-webkit-input-placeholder,
+.setting-row input::-webkit-input-placeholder,
+.setting-row textarea::-webkit-input-placeholder { 
+  color: #9ca3af !important; 
+  opacity: 1 !important;
+}
+
+input:-ms-input-placeholder,
+textarea:-ms-input-placeholder,
+.settings-content input:-ms-input-placeholder,
+.settings-content textarea:-ms-input-placeholder,
+.setting-row input:-ms-input-placeholder,
+.setting-row textarea:-ms-input-placeholder { 
+  color: #9ca3af !important; 
+  opacity: 1 !important;
+}
+
+input::-ms-input-placeholder,
+textarea::-ms-input-placeholder,
+.settings-content input::-ms-input-placeholder,
+.settings-content textarea::-ms-input-placeholder,
+.setting-row input::-ms-input-placeholder,
+.setting-row textarea::-ms-input-placeholder { 
+  color: #9ca3af !important; 
+  opacity: 1 !important;
+}
