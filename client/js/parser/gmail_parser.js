@@ -132,7 +132,7 @@ class GmailParser extends ParserInterface {
       const emailBodies = document.querySelectorAll('.a3s.aiL');
       
       if (emailBodies.length === 0) {
-        console.warn('No email bodies found with selector .a3s.aiL');
+        console.log('No email bodies found with selector .a3s.aiL');
         return '';
       }
 
@@ -172,7 +172,7 @@ class GmailParser extends ParserInterface {
       }
 
       // Construct structured prompt for booking data extraction
-      const prompt = this._buildLLMPrompt(emailData, threadContent);
+      const prompt = this._buildLLMPrompt(emailData, threadContent, config.gmailParser);
       
       // Send request via background script to avoid CORS issues
       const response = await this._sendLLMRequest(llmConfig, prompt);
@@ -195,40 +195,24 @@ class GmailParser extends ParserInterface {
    * Build structured prompt for LLM booking data extraction
    * @param {Object} emailData - Email and name data
    * @param {string} threadContent - Email thread content
+   * @param {Object} parserConfig - Gmail parser configuration from config file
    * @returns {string} Formatted prompt for LLM
    */
-  _buildLLMPrompt(emailData, threadContent) {
+  _buildLLMPrompt(emailData, threadContent, parserConfig) {
     const knownInfo = [
       emailData.email ? `Email: ${emailData.email}` : '',
       emailData.name ? `Name: ${emailData.name}` : ''
     ].filter(Boolean).join('\n');
 
-    return `Extract booking/invoice information from this email thread. Focus on:
-- Date/time of service (serviceDate, startTime, endTime)
-- Duration or hours worked
-- Rate or cost information
-- Service/project description
-- Location (physical or "Remote")
-- Client contact details
+    // Get system prompt from config, fallback to basic prompt if not available
+    const systemPrompt = parserConfig?.systemPrompt || 'Extract booking information from email and output JSON.';
 
-Known client info:
-${knownInfo || 'None provided'}
-
-Email thread content:
+    return `${systemPrompt}\n\n
+Known client info:\n
+${knownInfo || 'None provided'}\n\n
+Email thread content:\n
 ${threadContent}
-
-Return ONLY valid JSON with extracted fields. Example format:
-{
-  "serviceDate": "2025-01-15",
-  "startTime": "9:00 AM", 
-  "endTime": "5:00 PM",
-  "duration": "8 hours",
-  "rate": "$150/hour",
-  "totalAmount": "$1200",
-  "description": "Web development consulting",
-  "location": "Remote",
-  "projectName": "Website Redesign"
-}`;
+`;
   }
 
   /**
@@ -250,14 +234,15 @@ Return ONLY valid JSON with extracted fields. Example format:
       }
     };
 
-    // console.log('Attempting LLM request via background script');
+      console.log(`Sending LLM request to ${llmConfig.baseUrl}`);
+
 
     return new Promise((resolve) => {
       try {
         chrome.runtime.sendMessage(
           { type: 'leedz_llm_request', request: llmRequest },
           (response) => {
-            // console.log('Background response received:', response);
+            console.log("LLM response received");
             if (chrome.runtime.lastError) {
               console.error('Chrome runtime error:', chrome.runtime.lastError.message);
               resolve(null);
