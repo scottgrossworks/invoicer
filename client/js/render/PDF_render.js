@@ -1,9 +1,10 @@
-import RenderLayer from './Render_layer.js';
+import { RenderLayer } from './Render_layer.js';
 import PDF_template from './PDF_template.js';
 
 /**
- * PDF Render implementation using html2pdf.js
- * Renders booking data as PDF invoice using HTML templates
+ * PDF Render implementation extending RenderLayer
+ * Uses html2pdf.js to generate PDF invoices from HTML templates
+ * Only provider_registry should instantiate this class directly
  */
 class PDF_render extends RenderLayer {
   constructor() {
@@ -22,12 +23,12 @@ class PDF_render extends RenderLayer {
     try {
       console.log('PDF Render starting...');
       
-      // Extract data from state
+      // Extract data from state using inherited helper methods
       const bookingData = this.extractBookingData(state);
       const clientData = this.extractClientData(state);
       
-      // Generate HTML template
-      const html = this.template.generateInvoiceHTML(bookingData, clientData, settings);
+      // Generate HTML template (async call)
+      const html = await this.template.generateInvoiceHTML(bookingData, clientData, settings);
       
       // Load html2pdf library dynamically
       await this.loadHtml2PDF();
@@ -109,41 +110,9 @@ class PDF_render extends RenderLayer {
     });
   }
 
-  /**
-   * Extract booking data from state
-   * @param {Object} state - Application state
-   * @returns {Object} Booking data
-   */
-  extractBookingData(state) {
-    return {
-      description: state.get('description'),
-      location: state.get('location'),
-      startDate: state.get('startDate'),
-      endDate: state.get('endDate'), 
-      startTime: state.get('startTime'),
-      endTime: state.get('endTime'),
-      duration: state.get('duration'),
-      hourlyRate: state.get('hourlyRate'),
-      flatRate: state.get('flatRate'),
-      totalAmount: state.get('totalAmount'),
-      notes: state.get('notes')
-    };
-  }
 
-  /**
-   * Extract client data from state
-   * @param {Object} state - Application state
-   * @returns {Object} Client data
-   */
-  extractClientData(state) {
-    return {
-      name: state.get('name'),
-      email: state.get('email'),
-      phone: state.get('phone'),
-      company: state.get('company')
-    };
-  }
 
+  
   /**
    * Generate filename for PDF
    * @param {Object} bookingData - Booking information

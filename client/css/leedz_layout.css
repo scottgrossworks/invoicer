@@ -14,6 +14,7 @@ html, body {
   flex-direction: column;
   height: 100vh;
   width: 100%;
+  overflow-y: auto; /* Ensure sidebar itself can scroll if content exceeds viewport */
 
   background-color: white;
 }
@@ -78,8 +79,9 @@ html, body {
   flex-direction: column;
   overflow-y: auto;   /* Scroll if content overflows */
   min-height: 0;      /* Prevent flexbox overflow issues */
-  max-height:75vh;
   padding: 10px;
+  height:auto;
+  max-height:75vh;
   width: 98%;
   margin: 0 auto;
   box-sizing: border-box;
@@ -126,7 +128,7 @@ html, body {
   flex: 1;
   margin: 2px 0 20px 0;
   min-height: 400px;
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - 200px); /* Keep display-win height constrained */
   overflow-y: auto;
   border: 1px solid #ccc;
   border-radius: 4px;
@@ -268,13 +270,13 @@ html, body {
   left: 0;
   width: 100%;
   background: var(--LEEDZ_GREEN);
-  min-height: 20px;
+  min-height: 40px;
+  max-height: 120px;
   z-index: 10;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
 }
-
 
 .leedz-grass {
   position: absolute;
@@ -286,51 +288,17 @@ html, body {
   display: block;
 }
 
-.leedz-footer-links {
-  position: relative;
-  z-index: 5;
-  margin: 0;
-  padding: 20px;
-  list-style: none;
-  text-align: left;
-}
-
-.leedz-footer-links li {
-  color: white;
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-}
-
-.leedz-footer-links li::before {
-  content: "•";
-  margin-right: 8px;
-  display: inline-block;
-}
-
-.leedz-footer-links a {
-  color: white;
-  text-decoration: none;
-}
-
 /* Debug output styling */
 .debug-output {
+  overflow-y: auto;
+  max-height: 120px;
+  margin:5px;
+  color:white;
+  font-weight:600;
   position: relative;
   z-index: 999;
   font-family: 'Courier New', Consolas, monospace;
   font-size: 11px;
-  font-weight: 600;
-  color: white;
-  padding: 8px;
-  overflow-y: auto;
-  max-height: 100px;
-  background: var(--LEEDZ_GREEN);
-  border-radius: 4px;
-  margin: 8px;
-  word-wrap: break-word;
-  white-space: pre-wrap;
 }
 
 .debug-output div {
