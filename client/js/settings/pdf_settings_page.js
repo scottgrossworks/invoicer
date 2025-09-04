@@ -35,32 +35,31 @@ class PDFSettingsPage {
 
   /**
    * Populate form fields with settings data
+   * Only sets values if they are not null or empty, allowing placeholders to show otherwise.
+   * Adds 'placeholder-like-value' class for styling.
    * @param {Object} settings - Settings object
    */
   populateForm(settings) {
-    // Company Information
-    document.getElementById('companyName').value = settings.companyName || '';
-    document.getElementById('companyAddress').value = settings.companyAddress || '';
-    document.getElementById('companyPhone').value = settings.companyPhone || '';
-    document.getElementById('companyEmail').value = settings.companyEmail || '';
-    document.getElementById('logoUrl').value = settings.logoUrl || '';
+    const fields = [
+      'companyName', 'companyAddress', 'companyPhone', 'companyEmail', 'logoUrl',
+      'bankName', 'bankAddress', 'bankPhone', 'bankAccount', 'bankRouting', 'bankWire',
+      'servicesPerformed', 'contactHandle', 'terms', 'footerText'
+    ];
 
-    // Bank Information
-    document.getElementById('bankName').value = settings.bankName || '';
-    document.getElementById('bankAddress').value = settings.bankAddress || '';
-    document.getElementById('bankPhone').value = settings.bankPhone || '';
-    document.getElementById('bankAccount').value = settings.bankAccount || '';
-    document.getElementById('bankRouting').value = settings.bankRouting || '';
-    document.getElementById('bankWire').value = settings.bankWire || '';
+    fields.forEach(field => {
+      const element = document.getElementById(field);
+      if (element && settings[field] !== null && settings[field] !== undefined && settings[field] !== '') {
+        element.value = settings[field];
+        element.classList.add('placeholder-like-value');
+      }
+    });
 
-    // Services Information
-    document.getElementById('servicesPerformed').value = settings.servicesPerformed || '';
-    document.getElementById('contactHandle').value = settings.contactHandle || '';
-
-    // Terms & Footer
-    document.getElementById('includeTerms').checked = settings.includeTerms !== false;
-    document.getElementById('terms').value = settings.terms || '';
-    document.getElementById('footerText').value = settings.footerText || '';
+    // Handle specific non-text fields
+    const includeTermsElement = document.getElementById('includeTerms');
+    if (includeTermsElement) {
+      // Checkbox should be checked if settings.includeTerms is true or 'true'
+      includeTermsElement.checked = settings.includeTerms === true || settings.includeTerms === 'true';
+    }
   }
 
   /**
@@ -111,11 +110,23 @@ class PDFSettingsPage {
       this.downloadPdf();
     });
 
-    // Form change listeners (removed updatePreview calls)
+    // Form change listeners
     const formElements = document.querySelectorAll('input, select, textarea');
     formElements.forEach(element => {
-      element.addEventListener('change', () => {
-        // Preview functionality removed
+      element.addEventListener('input', () => {
+        // Remove placeholder-like styling when user starts typing
+        element.classList.remove('placeholder-like-value');
+        element.classList.add('active-input'); // Add active class to revert text color
+      });
+      element.addEventListener('focus', () => {
+        element.classList.remove('placeholder-like-value');
+        element.classList.add('active-input');
+      });
+      element.addEventListener('blur', () => {
+        // If field is empty after blur, re-apply placeholder-like styling
+        if (!element.value) {
+          element.classList.remove('active-input');
+        }
       });
     });
   }
@@ -145,12 +156,6 @@ class PDFSettingsPage {
       servicesPerformed: document.getElementById('servicesPerformed').value,
       contactHandle: document.getElementById('contactHandle').value,
 
-      // Template Design
-      // Removed: template: document.getElementById('template').value,
-      // Removed: primaryColor: document.getElementById('primaryColor').value,
-      // Removed: fontFamily: document.getElementById('fontFamily').value,
-      // Removed: fontSize: parseInt(document.getElementById('fontSize').value),
-
       // Terms & Footer
       includeTerms: document.getElementById('includeTerms').checked,
       terms: document.getElementById('terms').value,
@@ -167,7 +172,7 @@ class PDFSettingsPage {
       await this.pdfSettings.save(settings);
       
       // Show success message
-      this.showMessage('Settings saved! Updated config file downloaded. Replace the old invoicer_config.json file to make changes permanent.', 'success');
+      this.showMessage('Settings saved successfully to database!', 'success');
       
     } catch (error) {
       console.error('Failed to save settings:', error);
@@ -204,8 +209,8 @@ class PDFSettingsPage {
         }
       };
 
-      // Generate PDF using the constructed invoiceState
-      await pdfRender.render(invoiceState);
+      // Generate PDF using the constructed invoiceState and loaded settings
+      await pdfRender.render(invoiceState, settings);
 
       this.showMessage('PDF downloaded successfully!', 'success');
 
@@ -264,41 +269,6 @@ class PDFSettingsPage {
       console.error('Failed to generate preview:', error);
       this.showMessage('Failed to generate preview. Please try again.', 'error');
     }
-  }
-
-  /**
-   * Update the preview area
-   */
-  updatePreview() {
-    const settings = this.collectFormData();
-    const preview = document.getElementById('templatePreview');
-    
-    // Simple preview showing company name and color
-    preview.innerHTML = `
-      <div style="
-        font-family: ${settings.fontFamily}; 
-        font-size: ${settings.fontSize}px;
-        color: ${settings.primaryColor};
-        text-align: center;
-        padding: 20px;
-      ">
-        <h2 style="margin: 0 0 10px 0; color: ${settings.primaryColor};">
-          ${settings.companyName || 'Your Company'}
-        </h2>
-        <p style="margin: 0; color: #666; font-size: 12px;">
-          Template: ${settings.template} | Font: ${settings.fontFamily}
-        </p>
-        <div style="
-          margin-top: 20px;
-          padding: 10px;
-          border: 1px solid ${settings.primaryColor};
-          border-radius: 4px;
-          font-size: 11px;
-        ">
-          Click "Preview Invoice" for full preview
-        </div>
-      </div>
-    `;
   }
 
   /**

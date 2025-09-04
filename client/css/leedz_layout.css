@@ -124,7 +124,7 @@ html, body {
 
 .display-win {
   flex: 1;
-  margin: 20px 0;
+  margin: 2px 0 20px 0;
   min-height: 400px;
   max-height: calc(100vh - 200px);
   overflow-y: auto;

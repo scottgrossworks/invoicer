@@ -26,27 +26,6 @@
     "provider": "pdf",
     "outputDir": "Downloads/Invoices",
     "fileName": ""  
-  },
-  "pdfSettings": {
-    "companyName": "Your Company",
-    "companyAddress": "123 Main St\nCity, ST 12345",
-    "companyPhone": "(123) 456-7890",
-    "companyEmail": "name@example.com",
-    "logoUrl": "",
-    "bankName": "",
-    "bankAddress": "",
-    "bankPhone": "",
-    "bankAccount": "",
-    "bankRouting": "",
-    "bankWire": "",
-    "servicesPerformed": "Professional Services",
-    "contactHandle": "@yourhandle",
-    "primaryColor": "#000000",
-    "fontFamily": "Arial",
-    "fontSize": 12,
-    "includeTerms": true,
-    "terms": "Payment is due within 30 days of invoice date.",
-    "footerText": "Thank you for your business!"
   }
 } 
 

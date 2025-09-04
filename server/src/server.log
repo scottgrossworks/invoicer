@@ -49,3 +49,15 @@
 [2025-09-04T04:03:08.051Z] GET /config
 [2025-09-04T04:12:23.622Z] GET /config
 [2025-09-04T04:14:54.124Z] Received SIGINT, shutting down gracefully...
+[2025-09-04T04:25:33.923Z] Database connected successfully
+[2025-09-04T04:25:33.928Z] ! Local API running on http://localhost:3000
+[2025-09-04T04:25:36.770Z] POST /clients
+[2025-09-04T04:25:36.799Z] POST /bookings
+[2025-09-04T04:25:41.463Z] GET /config
+[2025-09-04T04:29:32.884Z] GET /config
+[2025-09-04T04:48:24.964Z] GET /config
+[2025-09-04T05:07:07.379Z] GET /config
+[2025-09-04T05:16:09.073Z] POST /clients
+[2025-09-04T05:16:09.092Z] POST /bookings
+[2025-09-04T05:16:10.824Z] GET /config
+[2025-09-04T05:23:10.584Z] GET /config

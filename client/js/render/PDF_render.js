@@ -15,18 +15,16 @@ class PDF_render extends RenderLayer {
   /**
    * Render booking data as PDF invoice
    * @param {Object} state - Application state containing booking/client data
+   * @param {Object} settings - PDF settings
    * @returns {Promise<void>}
    */
-  async render(state) {
+  async render(state, settings) {
     try {
       console.log('PDF Render starting...');
       
       // Extract data from state
       const bookingData = this.extractBookingData(state);
       const clientData = this.extractClientData(state);
-      
-      // Load PDF settings
-      const settings = await this.loadSettings();
       
       // Generate HTML template
       const html = this.template.generateInvoiceHTML(bookingData, clientData, settings);
@@ -112,49 +110,6 @@ class PDF_render extends RenderLayer {
   }
 
   /**
-   * Load PDF settings from Chrome storage
-   * @returns {Promise<Object>} PDF settings
-   */
-  async loadSettings() {
-    try {
-      const result = await chrome.storage.local.get(['pdfSettings']);
-      return result.pdfSettings || this.getDefaultSettings();
-    } catch (error) {
-      console.warn('Could not load PDF settings, using defaults:', error);
-      return this.getDefaultSettings();
-    }
-  }
-
-  /**
-   * Get default PDF settings
-   * @returns {Object} Default settings
-   */
-  getDefaultSettings() {
-    return {
-      companyName: 'Your Company',
-      companyAddress: '123 Main Street\nCity, State 12345\nCountry',
-      primaryColor: '#2563eb',
-      fontFamily: 'Arial',
-      fontSize: 12,
-      includeTerms: true,
-      terms: 'Payment is due within 30 days of invoice date.',
-      footerText: 'Thank you for your business!'
-    };
-  }
-
-  /**
-   * Generate filename for PDF
-   * @param {Object} bookingData - Booking information
-   * @param {Object} clientData - Client information
-   * @returns {string} Generated filename
-   */
-  generateFileName(bookingData, clientData) {
-    const clientName = (clientData.name || 'client').replace(/[^a-zA-Z0-9]/g, '_');
-    const date = new Date().toISOString().split('T')[0];
-    return `invoice_${clientName}_${date}.pdf`;
-  }
-
-  /**
    * Extract booking data from state
    * @param {Object} state - Application state
    * @returns {Object} Booking data
@@ -187,6 +142,18 @@ class PDF_render extends RenderLayer {
       phone: state.get('phone'),
       company: state.get('company')
     };
+  }
+
+  /**
+   * Generate filename for PDF
+   * @param {Object} bookingData - Booking information
+   * @param {Object} clientData - Client information
+   * @returns {string} Generated filename
+   */
+  generateFileName(bookingData, clientData) {
+    const clientName = (clientData.name || 'client').replace(/[^a-zA-Z0-9]/g, '_');
+    const date = new Date().toISOString().split('T')[0];
+    return `invoice_${clientName}_${date}.pdf`;
   }
 }
 

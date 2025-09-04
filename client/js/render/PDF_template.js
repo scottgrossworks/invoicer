@@ -9,7 +9,20 @@ class PDF_template {
     this.name = 'PDF_template';
     this.template = null; // Will store the compiled Handlebars template
     this.templateReady = false;
-    this.templatePromise = this.loadTemplate();
+    this.templatePromise = this._initTemplate(); // Call an async initializer
+  }
+
+  async _initTemplate() {
+    try {
+      await this.loadTemplate();
+      // Helpers are now built into our custom Handlebars implementation
+      this.templateReady = true;
+      return this; // Return the instance for awaiting
+    } catch (error) {
+      console.error('Failed to initialize Handlebars template:', error);
+      this.templateReady = false;
+      throw error;
+    }
   }
 
   /**
@@ -17,40 +30,51 @@ class PDF_template {
    * Dynamically imports Handlebars library and fetches the HTML template
    */
   async loadTemplate() {
+    // Load Handlebars dynamically and force it to global scope
     try {
-      // Dynamic import Handlebars
-      const handlebarsModule = await import(chrome.runtime.getURL('js/lib/handlebars.runtime.min.js'));
-      this.Handlebars = handlebarsModule.default || handlebarsModule;
+      const handlebarsUrl = chrome.runtime.getURL('lib/handlebars.runtime.min.js');
       
+      // If Handlebars not loaded, load it now
+      if (!window.Handlebars) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = handlebarsUrl;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error('Failed to load Handlebars'));
+          document.head.appendChild(script);
+        });
+      }
+      
+      this.Handlebars = window.Handlebars;
       const templatePath = chrome.runtime.getURL('js/render/invoice_template.html');
       const response = await fetch(templatePath);
-      const templateHtml = await response.text();
-      this.template = this.Handlebars.compile(templateHtml);
-      this.registerHelpers();
-      this.templateReady = true;
+      this.template = this.Handlebars.compile(await response.text());
     } catch (error) {
-      console.error('Failed to load or compile Handlebars template:', error);
-      this.templateReady = false;
+      console.error('Handlebars loading failed:', error);
+      throw error;
     }
   }
+
+
+  
 
   /**
    * Registers custom Handlebars helpers for template rendering
    * Includes formatters for dates, times, currency, addresses and conditional helpers
    */
-  registerHelpers() {
-    this.Handlebars.registerHelper('formatDate', this.formatDate);
-    this.Handlebars.registerHelper('formatTime', this.formatTime);
-    this.Handlebars.registerHelper('formatCurrency', this.formatCurrency);
-    this.Handlebars.registerHelper('formatAddress', this.formatAddress);
-    this.Handlebars.registerHelper('ifShouldShowBankInfo', function(settings, options) {
+  registerHelpers(HandlebarsInstance) {
+    HandlebarsInstance.registerHelper('formatDate', this.formatDate);
+    HandlebarsInstance.registerHelper('formatTime', this.formatTime);
+    HandlebarsInstance.registerHelper('formatCurrency', this.formatCurrency);
+    HandlebarsInstance.registerHelper('formatAddress', this.formatAddress);
+    HandlebarsInstance.registerHelper('ifShouldShowBankInfo', function(settings, options) {
       if (PDF_template.prototype.shouldShowBankInfo(settings)) {
         return options.fn(this);
       } else {
         return options.inverse(this);
       }
     });
-    this.Handlebars.registerHelper('or', function (value1, value2) {
+    HandlebarsInstance.registerHelper('or', function (value1, value2) {
       return value1 || value2;
     });
   }
@@ -140,17 +164,30 @@ class PDF_template {
 
   /**
    * Generates complete HTML invoice using Handlebars template and context data
-   * @param {Object} context - Combined booking, client, and settings data for template
+   * @param {Object} bookingData - Booking/service data
+   * @param {Object} clientData - Client information  
+   * @param {Object} settings - Settings and configuration
    * @returns {Promise<string>} Complete HTML string with CSS for PDF generation
    * @throws {Error} If template is not ready or failed to load
    */
-  async generateInvoiceHTML(context) {
+  async generateInvoiceHTML(bookingData, clientData, settings) {
     // Ensure template is loaded before using it
     await this.templatePromise;
     
     if (!this.templateReady || !this.template) {
       throw new Error('Template not ready or failed to load');
     }
+
+    // Create context object with all data for template
+    const context = {
+      bookingData: bookingData || {},
+      clientData: clientData || {},
+      settings: settings || {},
+      invoiceNumber: this.generateInvoiceNumber(),
+      invoiceDate: new Date().toLocaleDateString()
+    };
+    
+    console.log('Template context:', context); // Debug log
     
     return `
       ${this.template(context)}

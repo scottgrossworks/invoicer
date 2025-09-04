@@ -42,7 +42,11 @@ class GmailParser extends ParserInterface {
       const threadContent = this._extractThreadContent();
       
       if (!threadContent?.trim()) {
-        console.warn('No thread content found');
+        console.warn('No thread content found - this may indicate Gmail DOM changes or the page is not fully loaded');
+        console.log('Page URL:', window.location.href);
+        console.log('Page ready state:', document.readyState);
+        console.log('Gmail-specific elements found:', document.querySelectorAll('[data-message-id]').length);
+        state.set('parseError', 'No email content could be extracted. Try refreshing the page or opening the email thread.');
         return;
       }
 
@@ -128,24 +132,74 @@ class GmailParser extends ParserInterface {
    */
   _extractThreadContent() {
     try {
-      // Gmail email body selector - .a3s.aiL contains the email content
-      const emailBodies = document.querySelectorAll('.a3s.aiL');
-      
-      if (emailBodies.length === 0) {
-        console.log('No email bodies found with selector .a3s.aiL');
+      // Gmail email body selectors - try multiple fallback strategies
+      const selectors = [
+        // Current Gmail structure (2024+)
+        '.a3s.aiL',
+        // Alternative selectors for different Gmail views
+        '[role="main"] .a3s',
+        '.adP .a3s',
+        '[data-message-id] .a3s',
+        '.adn .a3s',
+        '.gs .a3s',
+        // Older Gmail selectors as fallbacks
+        '.ii.gt',
+        '.message-content',
+        '[data-legacy-message-id] .a3s',
+        // Generic content selectors
+        '.gmail-message-content',
+        '.email-content'
+      ];
+
+      let emailBodies = null;
+      let usedSelector = '';
+
+      // Try each selector until we find content
+      for (const selector of selectors) {
+        emailBodies = document.querySelectorAll(selector);
+        if (emailBodies.length > 0) {
+          usedSelector = selector;
+          console.log(`Found ${emailBodies.length} email bodies using selector: ${selector}`);
+          break;
+        }
+      }
+
+      if (!emailBodies || emailBodies.length === 0) {
+        console.warn('No email bodies found with any Gmail selector. Available selectors tried:', selectors);
+        console.log('Current page URL:', window.location.href);
+        console.log('Page title:', document.title);
+
+        // Try to find any potential email content areas
+        const potentialContent = document.querySelectorAll('[role="main"], .main-content, #main');
+        if (potentialContent.length > 0) {
+          console.log('Found potential content areas:', potentialContent.length);
+          // Try to extract text from main content area
+          const mainContent = potentialContent[0].textContent?.trim();
+          if (mainContent && mainContent.length > 100) {
+            console.log('Using main content area as fallback');
+            return mainContent;
+          }
+        }
+
         return '';
       }
 
       // Extract text from each email body and join with separators
       const threadText = Array.from(emailBodies)
-        .map(body => body.innerText?.trim() || '')
+        .map(body => {
+          const text = body.innerText?.trim() || body.textContent?.trim() || '';
+          console.log(`Extracted content from selector ${usedSelector}: ${text.substring(0, 100)}...`);
+          return text;
+        })
         .filter(text => text.length > 0)
         .join('\n\n--- EMAIL SEPARATOR ---\n\n');
-      
+
+      console.log(`Successfully extracted thread content (${threadText.length} chars) using selector: ${usedSelector}`);
       return threadText;
-      
+
     } catch (error) {
       console.error('Error extracting thread content:', error);
+      console.error('Stack trace:', error.stack);
       return '';
     }
   }
