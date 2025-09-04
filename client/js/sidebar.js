@@ -1,6 +1,6 @@
 // sidebar.js — LeedzEx Sidebar Control Logic (Simplified for Debugging)
 
-import { StateFactory, copyFromRecord, mergePageData } from './state.js';
+import { StateFactory } from './state.js';
 import { initLogging, log, logError } from './logging.js';
 
 import { getDbLayer, getParsers, getRenderer } from './provider_registry.js';
@@ -600,17 +600,44 @@ async function onSave() {
   }
 }
 
+
+
+
 async function onPdf() {
   try {
     setStatus('Rendering PDF...');
     const renderer = await getRenderer();
-    await renderer.render(state, {});
+    const pdfSettings = new PDF_settings();
+    const settings = await pdfSettings.load();
+
+    // Get real booking state from Chrome storage
+    const stateData = await chrome.storage.local.get(['currentBookingState']);
+    
+    // Construct a state-like object that prioritizes real data over mock data
+    const invoiceState = {
+      get: (key) => {
+        // Prioritize real state data
+        if (stateData.currentBookingState && stateData.currentBookingState[key] !== undefined && stateData.currentBookingState[key] !== null && stateData.currentBookingState[key] !== '') {
+          return stateData.currentBookingState[key];
+        }
+        // Fallback to settings or default for description and location if stateData is empty
+        if (key === 'description') return settings.servicesPerformed || '';
+        if (key === 'location') return settings.companyAddress ? settings.companyAddress.split('\n')[0] : '';
+        // Fallback to empty string for other fields if no real data or setting
+        return '';
+      }
+    };
+    
+    await renderer.render(invoiceState, settings);
     setStatus('PDF generated successfully!');
   } catch (e) {
     logError('PDF render failed:', e);
     setStatus('PDF render failed');
   }
 }
+
+
+
 
 /**
  * Toggle footer between collapsed and expanded states
