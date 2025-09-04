@@ -1,0 +1,26 @@
+-- CreateTable
+CREATE TABLE "Config" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT,
+    "companyName" TEXT,
+    "companyAddress" TEXT,
+    "companyPhone" TEXT,
+    "companyEmail" TEXT,
+    "logoUrl" TEXT,
+    "bankName" TEXT,
+    "bankAddress" TEXT,
+    "bankPhone" TEXT,
+    "bankAccount" TEXT,
+    "bankRouting" TEXT,
+    "bankWire" TEXT,
+    "servicesPerformed" TEXT,
+    "contactHandle" TEXT,
+    "primaryColor" TEXT,
+    "fontFamily" TEXT,
+    "fontSize" INTEGER,
+    "includeTerms" BOOLEAN,
+    "terms" TEXT,
+    "footerText" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+);

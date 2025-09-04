@@ -1,0 +1,69 @@
+// prisma/schema.prisma
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./leedz_invoicer.sqlite"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Client {
+  id            String    @id @default(cuid())
+  name          String
+  email         String?   @unique
+  phone         String?
+  company       String?
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  bookings      Booking[]
+}
+
+model Booking {
+  id            String    @id @default(cuid())
+  clientId      String
+  client        Client    @relation(fields: [clientId], references: [id])
+
+  description   String?
+  location      String?
+  startDate     DateTime?
+  endDate       DateTime?
+  startTime     String?
+  endTime       String?
+  duration      Float?    // hours
+  hourlyRate    Float?
+  flatRate      Float?
+  totalAmount   Float?
+  status        String    @default("pending") // pending, confirmed, completed, cancelled
+  source        String?   // original source (gmail, linkedin, etc)
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Config {
+  id                String    @id @default(cuid())
+  
+  // PDF Settings fields from invoicer_config.json
+  companyName       String?
+  companyAddress    String?
+  companyPhone      String?
+  companyEmail      String?
+  logoUrl           String?
+  bankName          String?
+  bankAddress       String?
+  bankPhone         String?
+  bankAccount       String?
+  bankRouting       String?
+  bankWire          String?
+  servicesPerformed String?
+  contactHandle     String?
+  includeTerms      Boolean?
+  terms             String?
+  footerText        String?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
