@@ -30,6 +30,9 @@ class PDF_render extends RenderLayer {
       const bookingData = this.extractBookingData(state);
       const clientData = this.extractClientData(state);
       
+      // Generate HTML template (async call) and assign it to a variable
+      const htmlBody = await this.template.generateInvoiceHTML(bookingData, clientData, settings);
+      
       // Fetch the CSS content and combine it with the HTML
       const cssContent = await this.template.getInvoiceCSS();
       const html = `<html><head><style>${cssContent}</style></head><body>${htmlBody}</body></html>`;
@@ -113,8 +116,6 @@ class PDF_render extends RenderLayer {
       document.head.appendChild(script);
     });
   }
-
-
 
 
   /**
