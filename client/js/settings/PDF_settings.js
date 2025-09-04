@@ -49,22 +49,15 @@ class PDF_settings extends Settings {
         console.log('PDF settings loaded from database');
         return dbConfig;
       } else {
-        console.log('No database config found, using config file defaults');
-        return config.pdfSettings || this.getDefaults();
+        console.log('No database config found, using minimal defaults');
+        return this.getDefaults();
       }
       
     } catch (error) {
-      console.error('Failed to load PDF settings from database, using config file:', error);
+      console.error('Failed to load PDF settings from database, using minimal defaults:', error);
       
-      // Fallback to config file
-      try {
-        const response = await fetch(chrome.runtime.getURL('invoicer_config.json'));
-        const config = await response.json();
-        return config.pdfSettings || this.getDefaults();
-      } catch (configError) {
-        console.error('Failed to load PDF settings from config file:', configError);
-        return this.getDefaults();
-      }
+      // Fallback: If DB load fails, use minimal defaults
+      return this.getDefaults();
     }
   }
 
@@ -125,33 +118,14 @@ class PDF_settings extends Settings {
   }
 
   /**
-   * Get default PDF settings
-   * @returns {Object} Default settings
+   * Get default PDF settings (empty object to rely on HTML placeholders)
+   * @returns {Object} Empty default settings
    */
   getDefaults() {
     return {
       template: 'modern',
-      companyName: 'Your Company',
-      companyAddress: '123 Main St\nCity, State 12345',
-      companyPhone: '(123) 456-7890',
-      companyEmail: 'name@example.com',
-      logoUrl: '',
-      // Bank Information Defaults
-      bankName: 'Example Bank',
-      bankAddress: '1234 Main Street\nCity, State 12345',
-      bankPhone: '(123) 456-7890',
-      bankAccount: '1234567890',
-      bankRouting: '123456789',
-      bankWire: '123456789',
-      // Services Information Defaults
-      servicesPerformed: 'Professional Services',
-      contactHandle: '@yourhandle',
-      primaryColor: '#000000', // Hardcoded black
-      fontFamily: 'Arial',
-      fontSize: 12,
+      // Explicitly set includeTerms to true as it's a checkbox and needs a default
       includeTerms: true,
-      terms: 'Payment is due within 30 days of invoice date.',
-      footerText: 'Thank you for your business!'
     };
   }
 }
