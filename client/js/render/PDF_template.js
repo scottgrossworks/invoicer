@@ -15,9 +15,9 @@ class PDF_template {
   async _initTemplate() {
     try {
       await this.loadTemplate();
-      // Helpers are now built into our custom Handlebars implementation
+      this.registerHelpers(this.Handlebars); 
       this.templateReady = true;
-      return this; // Return the instance for awaiting
+      return this;
     } catch (error) {
       console.error('Failed to initialize Handlebars template:', error);
       this.templateReady = false;

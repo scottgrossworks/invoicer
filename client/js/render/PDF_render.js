@@ -30,13 +30,26 @@ class PDF_render extends RenderLayer {
       const bookingData = this.extractBookingData(state);
       const clientData = this.extractClientData(state);
       
-      // Generate HTML template (async call) and assign it to a variable
-      const htmlBody = await this.template.generateInvoiceHTML(bookingData, clientData, settings);
+      // Generate the raw HTML content from the template
+      const htmlContent = await this.template.generateInvoiceHTML(bookingData, clientData, settings);
       
-      // Fetch the CSS content and combine it with the HTML
+      // Fetch the CSS content
       const cssContent = await this.template.getInvoiceCSS();
-      const html = `<html><head><style>${cssContent}</style></head><body>${htmlBody}</body></html>`;
+
+      // Find the closing head tag in the HTML content
+      const headEndTag = '</head>';
+      const headEndIndex = htmlContent.indexOf(headEndTag);
       
+      let html;
+      if (headEndIndex !== -1) {
+          // Inject the CSS content directly into the <head>
+          html = htmlContent.slice(0, headEndIndex) + `<style>${cssContent}</style>` + htmlContent.slice(headEndIndex);
+      } else {
+          // Fallback if no head tag is found (unlikely but safe)
+          console.warn("Could not find </head> tag, PDF might be unstyled.");
+          html = `<style>${cssContent}</style>` + htmlContent;
+      }
+
       // Load html2pdf library dynamically
       await this.loadHtml2PDF();
       
