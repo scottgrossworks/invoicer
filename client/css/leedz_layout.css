@@ -291,8 +291,9 @@ html, body {
 /* Debug output styling */
 .debug-output {
   overflow-y: auto;
+  overflow-x: hidden;
   max-height: 120px;
-  margin:5px;
+  margin:10px;
   color:white;
   font-weight:600;
   position: relative;

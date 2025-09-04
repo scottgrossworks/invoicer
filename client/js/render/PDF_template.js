@@ -56,6 +56,23 @@ class PDF_template {
   }
 
 
+
+    /**
+   * Fetches and returns the content of the CSS file as a string.
+   * @returns {Promise<string>} The CSS content.
+   */
+    async getInvoiceCSS() {
+      const cssPath = chrome.runtime.getURL('css/pdf_invoice.css');
+      const response = await fetch(cssPath);
+      if (!response.ok) {
+          throw new Error(`Failed to fetch CSS: ${response.statusText}`);
+      }
+      return response.text();
+    }
+
+
+
+
   
 
   /**
@@ -162,6 +179,10 @@ class PDF_template {
            (settings.bankWire && settings.bankWire.trim() !== '');
   }
 
+
+
+
+
   /**
    * Generates complete HTML invoice using Handlebars template and context data
    * @param {Object} bookingData - Booking/service data
@@ -189,21 +210,10 @@ class PDF_template {
     
     console.log('Template context:', context); // Debug log
     
-    return `
-      ${this.template(context)}
-      <link rel="stylesheet" href="${chrome.runtime.getURL('css/pdf_invoice.css')}">
-    `;
+    return `${this.template(context)}`;
   }
 
-  /**
-   * Legacy method - CSS content moved to pdf_invoice.css file
-   * @param {Object} settings - Settings object (unused)
-   * @returns {string} Empty string as CSS is now in separate file
-   * @deprecated Use pdf_invoice.css file instead
-   */
-  getInvoiceCSS(settings) {
-    return ''; // Should be empty now as CSS is in a separate file
-  }
+
 }
 
 export default PDF_template;
