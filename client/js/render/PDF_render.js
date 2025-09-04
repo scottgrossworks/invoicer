@@ -21,103 +21,8 @@ class PDF_render extends RenderLayer {
    * @param {Object} state - Application state containing booking/client data
    * @param {Object} settings - PDF settings
    * @returns {Promise<void>}
-   
-  async render(state, settings) {
-    try {
-      console.log('PDF Render starting...');
-      
-      // Extract data from state using inherited helper methods
-      const bookingData = this.extractBookingData(state);
-      const clientData = this.extractClientData(state);
-      
-      // Generate the raw HTML content from the template
-      const htmlContent = await this.template.generateInvoiceHTML(bookingData, clientData, settings);
-      
-      // Fetch the CSS content
-      const cssContent = await this.template.getInvoiceCSS();
-
-      // Find the closing head tag in the HTML content
-      const headEndTag = '</head>';
-      const headEndIndex = htmlContent.indexOf(headEndTag);
-      
-      let html;
-      if (headEndIndex !== -1) {
-          // Inject the CSS content directly into the <head>
-          html = htmlContent.slice(0, headEndIndex) + `<style>${cssContent}</style>` + htmlContent.slice(headEndIndex);
-      } else {
-          // Fallback if no head tag is found (unlikely but safe)
-          console.warn("Could not find </head> tag, PDF might be unstyled.");
-          html = `<style>${cssContent}</style>` + htmlContent;
-      }
-
-      // Load html2pdf library dynamically
-      await this.loadHtml2PDF();
-      
-      // Configure PDF options
-      const options = {
-        margin: 0.5,
-        filename: this.generateFileName(bookingData, clientData),
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { 
-          scale: 2,
-          useCORS: true,
-          letterRendering: true
-        },
-        jsPDF: { 
-          unit: 'in', 
-          format: 'letter', 
-          orientation: 'portrait' 
-        }
-      };
-      
-      // Create temporary div for HTML content
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = html;
-      tempDiv.style.position = 'absolute';
-      tempDiv.style.left = '-9999px';
-      tempDiv.style.top = '-9999px';
-      document.body.appendChild(tempDiv);
-      
-      // Generate and download PDF
-      await window.html2pdf()
-        .set(options)
-        .from(tempDiv)
-        .save();
-      
-      // Clean up
-      document.body.removeChild(tempDiv);
-      
-      // Update status
-      const message = `PDF invoice generated: ${options.filename}`;
-      console.log(message);
-      
-      // Send success message to sidebar
-      if (typeof chrome !== 'undefined' && chrome.runtime) {
-        chrome.runtime.sendMessage({
-          type: 'leedz_update_status',
-          message: message
-        });
-      }
-      
-    } catch (error) {
-      console.error('PDF render error:', error);
-      
-      // Send error message to sidebar
-      if (typeof chrome !== 'undefined' && chrome.runtime) {
-        chrome.runtime.sendMessage({
-          type: 'leedz_update_status',
-          message: 'PDF generation failed'
-        });
-      }
-      
-      throw error;
-    }
-  }
-
-*/
-
-
-
+   */
+  
 /**
    * Render booking data as PDF invoice
    * @param {Object} state - Application state containing booking/client data
@@ -132,25 +37,23 @@ async render(state, settings) {
     const bookingData = this.extractBookingData(state);
     const clientData = this.extractClientData(state);
     
-    // Generate the raw HTML content from the template
+    // Generate the raw HTML body content from the template
     const htmlBody = await this.template.generateInvoiceHTML(bookingData, clientData, settings);
     
     // Fetch the CSS content
     const cssContent = await this.template.getInvoiceCSS();
 
-    // Find the closing head tag in the HTML content
-    const headEndTag = '</head>';
-    const headEndIndex = htmlBody.indexOf(headEndTag);
-    
-    let html;
-    if (headEndIndex !== -1) {
-        // Inject the CSS content directly into the <head>
-        html = htmlBody.slice(0, headEndIndex) + `<style>${cssContent}</style>` + htmlBody.slice(headEndIndex);
-    } else {
-        // Fallback if no head tag is found (unlikely but safe)
-        console.warn("Could not find </head> tag, PDF might be unstyled.");
-        html = `<style>${cssContent}</style>` + htmlBody;
-    }
+    // Combine body content with inlined CSS into a new, valid HTML document
+    const html = `
+      <html>
+      <head>
+        <style>${cssContent}</style>
+      </head>
+      <body>
+        ${htmlBody}
+      </body>
+      </html>
+    `;
 
     // Load html2pdf library dynamically
     await this.loadHtml2PDF();
@@ -215,8 +118,6 @@ async render(state, settings) {
     throw error;
   }
 }
-
-
 
   /**
    * Load html2pdf library dynamically
