@@ -1,0 +1,97 @@
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Invoice</title>
+  <link rel="stylesheet" href="../css/pdf_invoice.css">
+</head>
+<body>
+  <div class="invoice">
+    <div class="invoice-header">
+      <div class="company-info">
+        <h1 class="company-name">{{settings.companyName}}</h1>
+        <div class="company-address">{{{formatAddress settings.companyAddress}}}</div>
+        <div class="company-contact">{{settings.companyPhone}}</div>
+        <div class="company-contact">{{settings.companyEmail}}</div>
+      </div>
+      <div class="header-right">
+        <div class="invoice-details">
+          <div class="invoice-title">INVOICE #{{invoiceNumber}}</div>
+          <div class="invoice-date">{{invoiceDate}}</div>
+        </div>
+        {{#ifShouldShowBankInfo settings}}
+        <div class="bank-info">
+          <div class="bank-label">Bank:</div>
+          <div class="bank-details">{{settings.bankName}}</div>
+          <div class="bank-details">{{settings.bankAddress}}</div>
+          <div class="bank-details">{{settings.bankPhone}}</div>
+          <div class="bank-account">Acct: {{settings.bankAccount}}</div>
+          <div class="bank-routing">ABA Routing: {{settings.bankRouting}}</div>
+          <div class="bank-wire">WIRE Routing: {{settings.bankWire}}</div>
+        </div>
+        {{/ifShouldShowBankInfo}}
+      </div>
+    </div>
+
+    <div class="billing-section">
+      <div class="client-info">
+        <div class="client-name">{{clientData.name}}</div>
+        {{#if clientData.email}}<div class="client-email">{{clientData.email}}</div>{{/if}}
+        {{#if clientData.phone}}<div class="client-phone">{{clientData.phone}}</div>{{/if}}
+        {{#if clientData.company}}<div class="client-company">{{clientData.company}}</div>{{/if}}
+        <!-- <div class="client-address">{{{formatAddress clientData.address}}}</div> -->
+      </div>
+    </div>
+
+    <div class="service-section">
+      <table class="service-table">
+        <thead>
+          <tr>
+            <th class="qty-col">QTY</th>
+            <th class="description-col">DESCRIPTION</th>
+            <th class="unit-col">UNIT PRICE</th>
+            <th class="total-col">LINE TOTAL</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="qty-col">1</td>
+            <td class="description-col">
+              <div class="service-title">{{bookingData.description}}</div>
+              <br>
+              <div class="service-date">{{formatDate bookingData.startDate}}</div>
+              <div class="service-time">{{formatTime bookingData.startTime}} &ndash; {{formatTime bookingData.endTime}} {{#if bookingData.duration}}({{bookingData.duration}}){{/if}}</div>
+              <br>
+              <div class="service-location">{{bookingData.location}}</div>
+              {{#if bookingData.notes}}<br><div class="service-notes">{{bookingData.notes}}</div>{{/if}}
+            </td>
+            <td class="unit-col">{{formatCurrency (or bookingData.hourlyRate bookingData.flatRate)}}</td>
+            <td class="total-col">{{formatCurrency bookingData.totalAmount}}</td>
+          </tr>
+          <tr class="empty-row">
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr class="empty-row">
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr class="total-row">
+            <td></td>
+            <td></td>
+            <td class="total-label">TOTAL</td>
+            <td class="total-amount">{{formatCurrency bookingData.totalAmount}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="invoice-footer">
+      <div class="thank-you">Thank You,</div>
+      <div class="contact-handle">{{settings.contactHandle}}</div>
+    </div>
+  </div>
+</body>
