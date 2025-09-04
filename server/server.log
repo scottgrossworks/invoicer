@@ -1,0 +1,3 @@
+[2025-08-30T00:15:47.799Z] Database connected successfully
+[2025-08-30T00:15:47.803Z] ! Local API running on http://localhost:3000
+[2025-08-30T00:16:44.894Z] Received SIGINT, shutting down gracefully...

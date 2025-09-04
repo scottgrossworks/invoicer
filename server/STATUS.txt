@@ -1,0 +1,108 @@
+LEEDZ INVOICER SYSTEM - PROJECT STATUS SUMMARY
+================================================
+
+PROJECT OVERVIEW
+----------------
+The Leedz Invoicer System is a platform for managing client bookings and generating invoices. It integrates a Chrome extension for data extraction and PDF generation with a robust backend API for data persistence and configuration management.
+
+CORE ARCHITECTURE
+-----------------
+The system follows a three-tier architecture with clear separation of concerns:
+
+1. DATABASE LAYER (SQLite + Prisma)
+   - SQLite database for data persistence.
+   - Prisma ORM for type-safe database operations.
+   - Schema defines Client, Booking, and Config models.
+   - Database abstraction through Leedz_DB interface for future extensibility.
+
+2. API LAYER (Express.js + JavaScript)
+   - RESTful HTTP API server running on port 3000.
+   - Handles CRUD operations for clients, bookings, and configuration settings.
+   - Implements statistics endpoints for business intelligence.
+   - Uses OOP architecture with Client and Booking classes for business logic.
+   - Configuration externalized to server_config.json.
+   - Enhanced with `asyncRoute` middleware for consistent error handling and timeout management.
+
+3. CLIENT-SIDE EXTENSION (Chrome Extension + JavaScript)
+   - Chrome extension for interacting with web pages (e.g., Gmail, LinkedIn).
+   - Features LLM integration for intelligent data extraction from emails.
+   - Provides a user interface for manual booking entry and PDF settings management.
+   - Generates customizable PDF invoices using Handlebars templates and `html2pdf.js`.
+
+KEY COMPONENTS
+--------------
+1. Database Models:
+   - Client: id, name, email, phone, company, notes, createdAt, updatedAt
+   - Booking: id, clientId, description, location, startDate, endDate, startTime, endTime, duration, hourlyRate, flatRate, totalAmount, status, source, notes, createdAt, updatedAt
+   - Config: id, companyName, companyAddress, companyPhone, companyEmail, logoUrl, bankName, bankAddress, bankPhone, bankAccount, bankRouting, bankWire, servicesPerformed, contactHandle, includeTerms, terms, footerText, createdAt, updatedAt
+
+2. API Endpoints (Refactored and Streamlined):
+   - `POST /clients` - Creates a new client.
+   - `GET /clients` - Retrieves clients with optional filters.
+   - `GET /clients/:id` - Retrieves a specific client by ID.
+   - `DELETE /clients/:id` - Deletes a client by ID.
+   - `GET /clients/stats` - Retrieves aggregate statistics for all clients.
+   - `GET /clients/:id/stats` - Retrieves statistics for a specific client.
+   - `POST /bookings` - Creates a new booking.
+   - `GET /bookings` - Retrieves bookings with optional filters.
+   - `GET /bookings/:id` - Retrieves a specific booking by ID.
+   - `PUT /bookings/:id` - Updates an existing booking.
+   - `DELETE /bookings/:id` - Deletes a booking by ID.
+   - `POST /config` - Uploads and saves client configuration to database.
+   - `GET /config` - Retrieves the latest configuration from the database.
+   - `GET /stats` - Retrieves system-wide statistics.
+
+3. Chrome Extension Features:
+   - **LLM Integration:** Extracts structured data (booking, client info) from email content using a configurable system prompt.
+   - **PDF Generation:** Creates professional PDF invoices from booking data and user-defined settings using Handlebars templates.
+   - **Settings Management:** Allows users to configure invoice details (company info, bank info, terms) with persistence to the database and local caching.
+   - **Date/Time/Currency Formatting:** Ensures consistent and user-friendly display of dates, times, and monetary values.
+
+ARCHITECTURAL DECISIONS
+-----------------------
+1. OOP Refactoring: Transformed monolithic server logic into modular classes with clear separation of concerns. Client and Booking classes encapsulate business logic and validation.
+
+2. Database Abstraction: Implemented Leedz_DB interface with Prisma_Sqlite_DB concrete implementation, allowing future database migrations without changing application logic.
+
+3. Configuration Management: Externalized all server configuration to `server_config.json`. Client-side `invoicer_config.json` now serves as defaults/fallbacks for PDF settings, with primary storage handled by the server API and database.
+
+4. Robust API Endpoints: Implemented `asyncRoute` middleware for all API endpoints to centralize timeout handling, retry logic, and standardized error responses.
+
+5. Persistent Client Settings: Client PDF settings are now stored in the database via the `/config` API endpoints, ensuring persistence across sessions and browser reloads.
+
+TECHNICAL STACK
+---------------
+- Backend: Node.js, Express.js, JavaScript
+- Database: SQLite with Prisma ORM
+- Frontend (Extension): HTML, CSS, JavaScript, Handlebars.js, html2pdf.js
+- AI Integration: LM Studio (for LLM inference on client-side)
+- Configuration: JSON-based configuration files
+
+CURRENT STATUS
+--------------
+- Database schema fully defined (Client, Booking, Config models).
+- API server fully functional with all CRUD operations and configuration management.
+- Client-side Chrome extension integrates LLM parsing, robust PDF generation, and persistent settings management.
+- All core functionalities outlined in the project overview have been addressed and implemented.
+
+CHALLENGES ADDRESSED
+-------------------
+1. Server-side Redundancy: Eliminated duplicate retry/timeout logic and standardized error handling across all API endpoints.
+
+2. Client-side Data Persistence: Implemented database-backed storage for PDF settings, overcoming browser extension limitations for direct file saving.
+
+3. LLM Time Interpretation: Developed smart correction logic in the Gmail parser to accurately interpret ambiguous time data from LLM responses based on duration context.
+
+4. PDF Generation Refactoring: Transitioned from programmatic HTML generation to a Handlebars templating engine for improved maintainability and flexibility in PDF output.
+
+5. Dynamic Module Loading: Resolved complex dynamic import issues within the Chrome extension context for Handlebars and other modules.
+
+NEXT STEPS
+----------
+- Full end-to-end testing of client-server interaction, especially for PDF settings save/load.
+- Further refinement of LLM prompts for improved data extraction accuracy.
+- User interface enhancements for a more polished experience.
+- Consider implementing authentication/authorization for multi-user support.
+- Explore additional features like recurring bookings or custom invoice templates.
+
+This system now represents a comprehensive, modern approach to business software, combining robust backend services with a user-friendly, AI-augmented client-side experience for invoicing and booking management.
