@@ -1,0 +1,154 @@
+[2025-08-30T00:34:44.803Z] Database connected successfully
+[2025-08-30T00:34:44.810Z] ! Local API running on http://localhost:3000
+[2025-08-30T01:05:04.172Z] Received SIGINT, shutting down gracefully...
+[2025-08-30T04:30:35.994Z] Database connected successfully
+[2025-08-30T04:30:36.001Z] ! Local API running on http://localhost:3000
+[2025-08-31T02:56:42.522Z] POST /clients
+[2025-08-31T04:17:21.914Z] Received SIGINT, shutting down gracefully...
+[2025-08-31T04:19:16.820Z] Database connected successfully
+[2025-08-31T04:19:16.826Z] ! Local API running on http://localhost:3000
+[2025-08-31T04:20:09.433Z] Database connected successfully
+[2025-08-31T04:20:09.437Z] * Server listen failed: Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at Function.listen (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\application.js:635:24)
+    at C:\Users\Scott\Desktop\WKG\INVOICER\server\dist\server.js:418:28
+[2025-08-31T04:20:32.192Z] Database connected successfully
+[2025-08-31T04:20:32.197Z] * Server listen failed: Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at Function.listen (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\application.js:635:24)
+    at C:\Users\Scott\Desktop\WKG\INVOICER\server\dist\server.js:418:28
+[2025-08-31T04:21:11.788Z] Database connected successfully
+[2025-08-31T04:21:11.794Z] * Server listen failed: Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at Function.listen (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\application.js:635:24)
+    at C:\Users\Scott\Desktop\WKG\INVOICER\server\dist\server.js:418:28
+[2025-08-31T04:22:56.177Z] Received SIGINT, shutting down gracefully...
+[2025-08-31T04:23:57.483Z] Database connected successfully
+[2025-08-31T04:23:57.490Z] ! Local API running on http://localhost:3000
+[2025-08-31T17:12:40.514Z] Received SIGINT, shutting down gracefully...
+[2025-08-31T17:31:55.280Z] Database connected successfully
+[2025-08-31T17:31:55.284Z] ! Local API running on http://localhost:3000
+[2025-08-31T18:15:57.426Z] GET /clients
+[2025-08-31T18:16:06.263Z] GET /clients
+[2025-08-31T18:17:53.006Z] GET /clients
+[2025-08-31T18:18:29.668Z] GET /clients
+[2025-08-31T18:33:02.797Z] GET /clients
+[2025-08-31T18:34:13.110Z] GET /clients
+[2025-08-31T19:09:18.828Z] GET /clients
+[2025-08-31T19:14:32.608Z] Received SIGINT, shutting down gracefully...
+[2025-08-31T19:14:36.693Z] Database connected successfully
+[2025-08-31T19:14:36.697Z] ! Local API running on http://localhost:3000
+[2025-08-31T19:15:35.447Z] GET /clients
+[2025-08-31T19:15:35.448Z] GET /clients - start
+[2025-08-31T19:15:35.449Z] GET /clients - calling db.getClients with filters: {}
+[2025-08-31T19:15:35.458Z] GET /clients - got results: 1 items
+[2025-08-31T19:15:35.463Z] GET /clients - response sent
+[2025-08-31T19:16:08.651Z] GET /clients
+[2025-08-31T19:16:08.651Z] GET /clients - start
+[2025-08-31T19:16:08.652Z] GET /clients - calling db.getClients with filters: {}
+[2025-08-31T19:16:08.655Z] GET /clients - got results: 1 items
+[2025-08-31T19:16:08.659Z] GET /clients - response sent
+[2025-08-31T19:17:15.368Z] POST /clients
+[2025-08-31T19:19:47.241Z] POST /clients
+[2025-08-31T19:20:17.014Z] GET /clients
+[2025-08-31T19:20:17.015Z] GET /clients - start
+[2025-08-31T19:20:17.016Z] GET /clients - calling db.getClients with filters: {}
+[2025-08-31T19:20:17.019Z] GET /clients - got results: 3 items
+[2025-08-31T19:20:17.021Z] GET /clients - response sent
+[2025-08-31T19:23:52.366Z] GET /clients
+[2025-08-31T19:23:52.367Z] GET /clients - start
+[2025-08-31T19:23:52.367Z] GET /clients - calling db.getClients with filters: {}
+[2025-08-31T19:23:52.370Z] GET /clients - got results: 3 items
+[2025-08-31T19:23:52.371Z] GET /clients - response sent
+[2025-08-31T19:25:35.215Z] DELETE /clients/%7BclientId%7D
+[2025-08-31T19:41:58.887Z] GET /clients
+[2025-08-31T19:41:58.888Z] GET /clients - start
+[2025-08-31T19:41:58.889Z] GET /clients - calling db.getClients with filters: {}
+[2025-08-31T19:41:58.892Z] GET /clients - got results: 3 items
+[2025-08-31T19:41:58.893Z] GET /clients - response sent
+[2025-08-31T19:46:15.309Z] GET /clients
+[2025-08-31T19:46:15.310Z] GET /clients - start
+[2025-08-31T19:46:15.310Z] GET /clients - calling db.getClients with filters: {}
+[2025-08-31T19:46:15.326Z] GET /clients failed: PrismaClientKnownRequestError: 
+[31mInvalid [1m`this.prisma.client.findMany()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\dist\prisma_sqlite_db.js:57:41[24m
+
+  [2m[90m54[39m [36mif[39m [34m([39mfilters?[34m.[39mname[34m)[39m [34m{[39m[22m
+  [2m[90m55[39m     where[34m.[39mname = [34m{[39m contains[34m:[39m filters[34m.[39mname[34m,[39m mode[34m:[39m [1m[32m'insensitive'[39m[22m[2m [34m}[39m[34m;[39m[22m
+  [2m[90m56[39m [34m}[39m[22m
+[1m[31m→[39m[22m [2m[90m57[39m [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mclient[34m.[39m[36mfindMany[39m[34m([39m[22m
+The column `main.Client.taxId` does not exist in the current database.
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.getClients (C:\Users\Scott\Desktop\WKG\INVOICER\server\dist\prisma_sqlite_db.js:57:16)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\dist\server.js:153:25
+[2025-08-31T19:46:48.579Z] GET /clients
+[2025-08-31T19:46:48.581Z] GET /clients - start
+[2025-08-31T19:46:48.582Z] GET /clients - calling db.getClients with filters: {}
+[2025-08-31T19:46:48.586Z] GET /clients failed: PrismaClientKnownRequestError: 
+[31mInvalid [1m`this.prisma.client.findMany()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\dist\prisma_sqlite_db.js:57:41[24m
+
+  [2m[90m54[39m [36mif[39m [34m([39mfilters?[34m.[39mname[34m)[39m [34m{[39m[22m
+  [2m[90m55[39m     where[34m.[39mname = [34m{[39m contains[34m:[39m filters[34m.[39mname[34m,[39m mode[34m:[39m [1m[32m'insensitive'[39m[22m[2m [34m}[39m[34m;[39m[22m
+  [2m[90m56[39m [34m}[39m[22m
+[1m[31m→[39m[22m [2m[90m57[39m [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mclient[34m.[39m[36mfindMany[39m[34m([39m[22m
+The column `main.Client.taxId` does not exist in the current database.
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.getClients (C:\Users\Scott\Desktop\WKG\INVOICER\server\dist\prisma_sqlite_db.js:57:16)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\dist\server.js:153:25
+[2025-08-31T19:47:21.347Z] GET /clients
+[2025-08-31T19:47:21.348Z] GET /clients - start
+[2025-08-31T19:47:21.348Z] GET /clients - calling db.getClients with filters: {}
+[2025-08-31T19:47:21.351Z] GET /clients failed: PrismaClientKnownRequestError: 
+[31mInvalid [1m`this.prisma.client.findMany()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\dist\prisma_sqlite_db.js:57:41[24m
+
+  [2m[90m54[39m [36mif[39m [34m([39mfilters?[34m.[39mname[34m)[39m [34m{[39m[22m
+  [2m[90m55[39m     where[34m.[39mname = [34m{[39m contains[34m:[39m filters[34m.[39mname[34m,[39m mode[34m:[39m [1m[32m'insensitive'[39m[22m[2m [34m}[39m[34m;[39m[22m
+  [2m[90m56[39m [34m}[39m[22m
+[1m[31m→[39m[22m [2m[90m57[39m [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mclient[34m.[39m[36mfindMany[39m[34m([39m[22m
+The column `main.Client.taxId` does not exist in the current database.
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.getClients (C:\Users\Scott\Desktop\WKG\INVOICER\server\dist\prisma_sqlite_db.js:57:16)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\dist\server.js:153:25
+[2025-08-31T19:48:18.668Z] GET /clients
+[2025-08-31T19:48:18.669Z] GET /clients - start
+[2025-08-31T19:48:18.670Z] GET /clients - calling db.getClients with filters: {}
+[2025-08-31T19:48:18.673Z] GET /clients failed: PrismaClientKnownRequestError: 
+[31mInvalid [1m`this.prisma.client.findMany()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\dist\prisma_sqlite_db.js:57:41[24m
+
+  [2m[90m54[39m [36mif[39m [34m([39mfilters?[34m.[39mname[34m)[39m [34m{[39m[22m
+  [2m[90m55[39m     where[34m.[39mname = [34m{[39m contains[34m:[39m filters[34m.[39mname[34m,[39m mode[34m:[39m [1m[32m'insensitive'[39m[22m[2m [34m}[39m[34m;[39m[22m
+  [2m[90m56[39m [34m}[39m[22m
+[1m[31m→[39m[22m [2m[90m57[39m [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mclient[34m.[39m[36mfindMany[39m[34m([39m[22m
+The column `main.Client.taxId` does not exist in the current database.
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.getClients (C:\Users\Scott\Desktop\WKG\INVOICER\server\dist\prisma_sqlite_db.js:57:16)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\dist\server.js:153:25
+[2025-08-31T19:50:32.403Z] Database connected successfully
+[2025-08-31T19:50:32.408Z] ! Local API running on http://localhost:3000
+[2025-08-31T19:51:03.399Z] GET /clients
+[2025-08-31T19:51:03.401Z] GET /clients - start
+[2025-08-31T19:51:03.401Z] GET /clients - calling db.getClients with filters: {}
+[2025-08-31T19:51:03.411Z] GET /clients - got results: 0 items
+[2025-08-31T19:51:03.415Z] GET /clients - response sent
+[2025-08-31T19:53:07.852Z] POST /clients
