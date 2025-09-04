@@ -190,6 +190,7 @@ body {
 .btn-primary {
   background: var(--LEEDZ_GREEN);
   color: white;
+  font-weight: 600;
 }
 
 .btn-primary:hover {
@@ -219,6 +220,7 @@ body {
 .btn-cornflower {
   background: #6495ed;
   color: white;
+  font-weight: 600;
 }
 
 .btn-cornflower:hover {
@@ -229,6 +231,7 @@ body {
 .btn-coral {
   background: #ff7f50;
   color: white;
+  font-weight: 600;
 }
 
 .btn-coral:hover {
