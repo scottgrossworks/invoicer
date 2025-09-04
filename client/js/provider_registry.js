@@ -1,15 +1,64 @@
-// provider_registry.js — loads configuration and returns providers
+/**
+ * Provider Registry - Centralized configuration loader and provider factory
+ * 
+ * This module serves as the main dependency injection system for the Leedz Invoicer extension.
+ * It loads configuration from invoicer_config.json and creates appropriate provider instances
+ * for database operations, LLM interactions, rendering, and email parsing.
+ * 
+ * Used by: 
+ * - sidebar.js (main application logic)
+ * 
+ * Dependencies:
+ * - invoicer_config.json (configuration file)
+ * - ./db/DB_local_prisma_sqlite.js (database provider)
+ * - ./render/PDF_render.js (PDF rendering provider)
+ * - Various parser modules (email parsing providers)
+ */
 
+/**
+ * Loads the main configuration file for the extension
+ * 
+ * Attempts to fetch invoicer_config.json from the extension's root directory.
+ * If the config file is missing or corrupted, returns sensible defaults for local development.
+ * 
+ * @returns {Promise<Object>} Configuration object with llm, db, render, and parsers sections
+ * @throws {Error} Never throws - always returns valid config (defaults if needed)
+ * 
+ * Used by: All other functions in this module
+ * 
+ * Default fallback configuration:
+ * - LLM: localhost:1234 (typical local LLM server)
+ * - Database: localhost:3000 with SQLite provider
+ */
 export async function loadConfig() {
   try {
     const res = await fetch(chrome.runtime.getURL('invoicer_config.json'));
     if (!res.ok) throw new Error('Config fetch failed');
     return await res.json();
   } catch (e) {
-    return { llm: { baseUrl: 'http://localhost:1234' }, db: { baseUrl: 'http://localhost:3000', provider: 'local_prisma_sqlite' } };
+    // Return sensible defaults if config loading fails
+    return { 
+      llm: { baseUrl: 'http://localhost:1234' }, 
+      db: { baseUrl: 'http://localhost:3000', provider: 'local_prisma_sqlite' } 
+    };
   }
 }
 
+/**
+ * Creates and returns the configured database layer instance
+ * 
+ * Factory function that reads the database provider configuration and instantiates
+ * the appropriate database layer class. Currently only supports local SQLite via Prisma.
+ * 
+ * @returns {Promise<DB_Local_PragmaSqlite>} Database layer instance for CRUD operations
+ * @throws {Error} If unknown database provider is specified in config
+ * 
+ * Used by: 
+ * - sidebar.js:569 (for saving booking data)
+ * 
+ * Supported providers:
+ * - 'local_prisma_sqlite': Uses DB_local_prisma_sqlite.js with local SQLite database
+ */
 export async function getDbLayer() {
   const cfg = await loadConfig();
   const provider = cfg?.db?.provider || 'local_prisma_sqlite';
@@ -20,11 +69,41 @@ export async function getDbLayer() {
   throw new Error('Unknown DB provider: ' + provider);
 }
 
+/**
+ * Returns the LLM (Large Language Model) configuration
+ * 
+ * Extracts LLM settings from the main config for use by email parsers.
+ * The LLM is used to parse email content and extract booking information.
+ * 
+ * @returns {Promise<Object>} LLM configuration object with baseUrl and other settings
+ * 
+ * Used by: 
+ * - Email parser modules (indirectly through configuration)
+ * 
+ * Typical configuration:
+ * - baseUrl: URL of the LLM API endpoint (e.g., 'http://localhost:1234')
+ * - Additional model-specific settings (temperature, max_tokens, etc.)
+ */
 export async function getLlmConfig() {
   const cfg = await loadConfig();
   return cfg.llm || { baseUrl: 'http://localhost:1234' };
 }
 
+/**
+ * Creates and returns the configured rendering engine instance
+ * 
+ * Factory function for document rendering providers. Currently supports PDF generation
+ * for creating invoice documents from booking data.
+ * 
+ * @returns {Promise<PDFRender>} Rendering engine instance for generating documents
+ * @throws {Error} If unknown render provider is specified in config
+ * 
+ * Used by:
+ * - sidebar.js:581 (for generating PDF invoices)
+ * 
+ * Supported providers:
+ * - 'pdf': Uses PDF_render.js for PDF document generation
+ */
 export async function getRenderer() {
   const cfg = await loadConfig();
   const provider = cfg?.render?.provider || 'pdf';
@@ -35,6 +114,30 @@ export async function getRenderer() {
   throw new Error('Unknown render provider: ' + provider);
 }
 
+/**
+ * Creates and returns all configured email parser instances
+ * 
+ * Factory function that dynamically loads and instantiates email parser modules
+ * based on the configuration. Each parser is responsible for extracting booking
+ * information from specific email formats (Gmail, Outlook, etc.).
+ * 
+ * @returns {Promise<Array>} Array of parser instances ready for email processing
+ * 
+ * Used by:
+ * - sidebar.js:79 (for parsing email content into booking data)
+ * 
+ * Parser loading strategy:
+ * 1. Iterates through cfg.parsers array from config
+ * 2. Dynamically imports each parser module
+ * 3. Attempts multiple export patterns (default, named, Parser class)
+ * 4. Silently skips parsers that fail to load (graceful degradation)
+ * 5. Returns array of successfully loaded parser instances
+ * 
+ * Configuration format:
+ * "parsers": [
+ *   { "name": "GmailParser", "module": "js/parser/gmail_parser.js" }
+ * ]
+ */
 export async function getParsers() {
   const cfg = await loadConfig();
   const entries = cfg.parsers || [];
@@ -42,13 +145,14 @@ export async function getParsers() {
   for (const entry of entries) {
     try {
       const mod = await import(chrome.runtime.getURL(entry.module));
-      // Accept default export or named
+      // Accept default export or named export patterns
       const ParserCtor = mod.default || mod[entry.name] || mod.Parser || null;
       if (ParserCtor) {
         instances.push(new ParserCtor());
       }
     } catch (e) {
-      // skip failed parser load
+      // Silently skip failed parser loads to ensure other parsers still work
+      console.warn(`Failed to load parser from ${entry.module}:`, e);
     }
   }
   return instances;

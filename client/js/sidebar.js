@@ -95,7 +95,7 @@ async function reloadParsers() {
           }, (response) => {
             if (response?.ok && response?.data) {
               log(`Parser ${p.name} completed successfully`);
-              console.log('LLM response data:', response.data);
+              // console.log('LLM response data:', response.data);
               Object.entries(response.data).forEach(([k, v]) => {
                 if (v !== null && v !== undefined && v !== '') {
                   state.set(k, v);
@@ -499,7 +499,14 @@ settingsBtn.addEventListener('click', async () => {
 
 
 
-
+// FOOTER
+/**
+const footer = document.getElementsByClassName('leedz-grass');
+footer[0].addEventListener('click', () => {
+  // COLLAPSE THE FOOTER?
+  toggleFooter(); // Call to collapse the footer
+});
+*/
 
 
 
@@ -538,6 +545,24 @@ function wireUI() {
 
   const pdfBtn = document.getElementById('pdfBtn');
   if (pdfBtn) pdfBtn.addEventListener('click', () => onPdf());
+
+
+  /**
+  // Add grass toggle functionality
+  const grassToggle = document.getElementById('grass-toggle');
+  if (grassToggle) {
+    console.log('Grass element found, adding click listener...');
+    grassToggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleFooter();
+    });
+
+  } else {
+    console.error('Grass toggle element not found!');
+  }
+*/
+
 
   const display = document.getElementById('display_win');
   if (display) {
@@ -579,13 +604,28 @@ async function onPdf() {
   try {
     setStatus('Rendering PDF...');
     const renderer = await getRenderer();
-    const result = await renderer.renderToPdf(state, {});
-    setStatus(`Save to ${result.fileName} in ${result.dir}`);
+    await renderer.render(state, {});
+    setStatus('PDF generated successfully!');
   } catch (e) {
     logError('PDF render failed:', e);
     setStatus('PDF render failed');
   }
 }
 
+/**
+ * Toggle footer between collapsed and expanded states
+ 
+function toggleFooter() {
+  console.log('Grass clicked! Toggling footer...');
+  const footer = document.getElementById('footer');
+  if (footer) {
+    footer.classList.toggle('expanded');
+    console.log('Footer classes:', footer.className);
+  } else {
+    console.error('Footer element not found!');
+  }
+}
+
+*/
 
 
