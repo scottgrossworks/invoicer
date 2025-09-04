@@ -210,7 +210,9 @@ class PDF_template {
     
     console.log('Template context:', context); // Debug log
     
-    return `${this.template(context)}`;
+    const htmlString = this.template(context);
+    const bodyMatch = /<body[^>]*>([\s\S]*)<\/body>/i.exec(htmlString);
+    return bodyMatch ? bodyMatch[1] : htmlString;
   }
 
 
