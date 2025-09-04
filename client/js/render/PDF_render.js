@@ -1,6 +1,9 @@
 import { RenderLayer } from './Render_layer.js';
 import PDF_template from './PDF_template.js';
 
+// const HTML_2_PDF = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
+const HTML_2_PDF = "lib/html2pdf.bundle.min.js";
+
 /**
  * PDF Render implementation extending RenderLayer
  * Uses html2pdf.js to generate PDF invoices from HTML templates
@@ -27,8 +30,9 @@ class PDF_render extends RenderLayer {
       const bookingData = this.extractBookingData(state);
       const clientData = this.extractClientData(state);
       
-      // Generate HTML template (async call)
-      const html = await this.template.generateInvoiceHTML(bookingData, clientData, settings);
+      // Fetch the CSS content and combine it with the HTML
+      const cssContent = await this.template.getInvoiceCSS();
+      const html = `<html><head><style>${cssContent}</style></head><body>${htmlBody}</body></html>`;
       
       // Load html2pdf library dynamically
       await this.loadHtml2PDF();
@@ -103,16 +107,16 @@ class PDF_render extends RenderLayer {
     
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+      script.src = HTML_2_PDF;
       script.onload = () => resolve();
-      script.onerror = () => reject(new Error('Failed to load html2pdf library'));
+      script.onerror = () => reject(new Error('Failed to load html2pdf library: ' + HTML_2_PDF));
       document.head.appendChild(script);
     });
   }
 
 
 
-  
+
   /**
    * Generate filename for PDF
    * @param {Object} bookingData - Booking information
