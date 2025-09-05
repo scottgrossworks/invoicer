@@ -55,14 +55,8 @@
               <div class="service-location">{{bookingData.location}}</div>
               {{#if bookingData.notes}}<br><div class="service-notes">{{bookingData.notes}}</div>{{/if}}
             </td>
-            <td class="unit-col">{{formatCurrency (or bookingData.hourlyRate bookingData.flatRate)}}</td>
+            <td class="unit-col">{{formatCurrency (or bookingData.hourlyRate bookingData.flatRate (calculateHourlyRate bookingData.totalAmount bookingData.duration))}}</td>
             <td class="total-col">{{formatCurrency bookingData.totalAmount}}</td>
-          </tr>
-          <tr class="empty-row">
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
           </tr>
           <tr class="empty-row">
             <td></td>
