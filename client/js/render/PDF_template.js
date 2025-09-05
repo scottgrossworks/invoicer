@@ -91,8 +91,16 @@ class PDF_template {
         return options.inverse(this);
       }
     });
-    HandlebarsInstance.registerHelper('or', function (value1, value2) {
-      return value1 || value2;
+    HandlebarsInstance.registerHelper('or', function (value1, value2, value3) {
+      return value1 || value2 || value3;
+    });
+    
+    HandlebarsInstance.registerHelper('calculateHourlyRate', (totalAmount, duration) => {
+      if (!totalAmount || !duration) return 0;
+      const total = parseFloat(totalAmount.toString().replace(/[$,]/g, ''));
+      const hours = parseFloat(duration);
+      if (isNaN(total) || isNaN(hours) || hours === 0) return 0;
+      return total / hours;
     });
   }
 
@@ -161,7 +169,7 @@ class PDF_template {
    * @returns {string} Currency formatted string (e.g., "$150.00") or original if invalid
    */
   formatCurrency(amount) {
-    if (!amount) return '$0.00';
+    if (amount === null || amount === undefined || amount === '') return '$0.00';
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount)) return amount; // Return original if not a number
     return `$${parsedAmount.toFixed(2)}`;
@@ -208,7 +216,7 @@ class PDF_template {
       invoiceDate: new Date().toLocaleDateString()
     };
     
-    console.log('Template context:', context); // Debug log
+    // console.log('Template context:', context); // Debug log
     
     return this.template(context); // Template already contains only body content
   }

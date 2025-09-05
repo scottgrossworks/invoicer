@@ -267,12 +267,21 @@ function populateBookingTable() {
       displayValue = `${displayValue} hours`;
     }
     
-    // Define formatCurrency function
+    // Define formatCurrency function - ALWAYS display with $ prefix
     function formatCurrency(value) {
-      if (typeof value === 'string' && !value.startsWith('$')) {
-        return `$${value}`;
+      if (!value || value === '' || value === null || value === undefined) {
+        return '$0.00';
       }
-      return value;
+      
+      const strValue = String(value).trim();
+      
+      // If already has $, return as is
+      if (strValue.startsWith('$')) {
+        return strValue;
+      }
+      
+      // Add $ prefix to any non-empty value
+      return `$${strValue}`;
     }
 
     // Ensure currency fields display with a '$' prefix
@@ -283,8 +292,8 @@ function populateBookingTable() {
     input.value = displayValue;
     input.setAttribute('data-field', field);
     
-    // Update state when input changes
-    input.addEventListener('input', (e) => {
+    // Function to handle value updates (for both input and enter key)
+    const updateValue = (e) => {
       const fieldName = e.target.getAttribute('data-field');
       let value = e.target.value.trim();
       
@@ -321,6 +330,40 @@ function populateBookingTable() {
       // Auto-calculate totalAmount if hourlyRate and duration are available
       if (fieldName === 'hourlyRate' || fieldName === 'duration') {
         calculateTotalAmount();
+      }
+    };
+
+    // Handle Enter key to commit changes and format currency
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const fieldName = e.target.getAttribute('data-field');
+        
+        // For currency fields, ensure $ is added when Enter is pressed
+        if (fieldName === 'hourlyRate' || fieldName === 'flatRate' || fieldName === 'totalAmount') {
+          const value = e.target.value.trim();
+          if (value && !value.startsWith('$')) {
+            e.target.value = formatCurrency(value);
+          }
+        }
+        
+        updateValue(e);
+        e.target.blur(); // Remove focus to show the value is committed
+      }
+    });
+    
+    // Update state when input changes
+    input.addEventListener('input', updateValue);
+    
+    // Also format currency fields when they lose focus
+    input.addEventListener('blur', (e) => {
+      const fieldName = e.target.getAttribute('data-field');
+      if (fieldName === 'hourlyRate' || fieldName === 'flatRate' || fieldName === 'totalAmount') {
+        const value = e.target.value.trim();
+        if (value && !value.startsWith('$')) {
+          e.target.value = formatCurrency(value);
+          updateValue(e);
+        }
       }
     });
     
@@ -448,7 +491,7 @@ function calculateTotalAmount() {
     // Update the totalAmount input field if it exists
     const totalInput = document.querySelector('input[data-field="totalAmount"]');
     if (totalInput) {
-      totalInput.value = total.toFixed(2);
+      totalInput.value = formatCurrency(total.toFixed(2));
     }
   }
 }
@@ -568,7 +611,7 @@ function wireUI() {
   const display = document.getElementById('display_win');
   if (display) {
     display.addEventListener('input', () => {
-      const lines = display.value.split(/\r?\n+/);
+      const lines = (display.value || '').split(/\r?\n+/);
       state.clear();
       lines.forEach(line => {
         const idx = line.indexOf('=');
@@ -632,6 +675,15 @@ async function onPdf() {
         return '';
       }
     };
+    
+    // DEBUG: Log the data being passed to PDF
+    console.log('=== PDF Data Debug ===');
+    console.log('Raw stateData:', stateData.currentBookingState);
+    console.log('Currency values:', {
+      hourlyRate: invoiceState.get('hourlyRate'),
+      flatRate: invoiceState.get('flatRate'), 
+      totalAmount: invoiceState.get('totalAmount')
+    });
     
     await pdfRender.render(invoiceState, settings);
     setStatus('PDF generated successfully!');
