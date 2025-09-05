@@ -279,9 +279,9 @@ html, body {
 }
 
 .leedz-grass {
-  z-index:900;
+  z-index:0;
   position: absolute;
-  top: -49px;
+  top: -48px;
   left: 0;
   width: 100%;
   height: auto;
