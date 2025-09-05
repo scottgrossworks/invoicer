@@ -170,27 +170,40 @@ body {
 
 .button-group {
   display: flex;
-  gap: 12px;
-  justify-content: flex-end;
+  justify-content: space-evenly;
+  align-items: center;
   margin-top: 32px;
   padding-top: 24px;
-  border-top: 1px solid #e5e5e5;
+  width: 100%;
 }
+
+
+
 
 .btn {
   padding: 10px 20px;
-  border: none;
+  margin:0 5px;
+  border: 1px solid transparent;
   border-radius: 6px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600 !important;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: none;
+  transform: none !important;
+  outline: none;
+  position: static;
+  display: inline-block;
+  box-sizing: border-box;
+  will-change: background-color;
+  text-rendering: optimizeSpeed;
+  backface-visibility: hidden;
+  min-width: 100px;
+  min-height: 40px;
 }
 
 .btn-primary {
   background: var(--LEEDZ_GREEN);
   color: white;
-  font-weight: 600;
 }
 
 .btn-primary:hover {
@@ -220,7 +233,6 @@ body {
 .btn-cornflower {
   background: #6495ed;
   color: white;
-  font-weight: 600;
 }
 
 .btn-cornflower:hover {
@@ -231,7 +243,6 @@ body {
 .btn-coral {
   background: #ff7f50;
   color: white;
-  font-weight: 600;
 }
 
 .btn-coral:hover {
