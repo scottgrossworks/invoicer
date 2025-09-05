@@ -83,6 +83,7 @@ class PDF_template {
     HandlebarsInstance.registerHelper('formatDate', this.formatDate);
     HandlebarsInstance.registerHelper('formatTime', this.formatTime);
     HandlebarsInstance.registerHelper('formatCurrency', this.formatCurrency);
+    HandlebarsInstance.registerHelper('formatDecimalCurrency', this.formatDecimalCurrency);
     HandlebarsInstance.registerHelper('formatAddress', this.formatAddress);
     HandlebarsInstance.registerHelper('ifShouldShowBankInfo', function(settings, options) {
       if (PDF_template.prototype.shouldShowBankInfo(settings)) {
@@ -97,7 +98,7 @@ class PDF_template {
     
     HandlebarsInstance.registerHelper('calculateHourlyRate', (totalAmount, duration) => {
       if (!totalAmount || !duration) return 0;
-      const total = parseFloat(totalAmount.toString().replace(/[$,]/g, ''));
+      const total = parseFloat(totalAmount);
       const hours = parseFloat(duration);
       if (isNaN(total) || isNaN(hours) || hours === 0) return 0;
       return total / hours;
@@ -169,6 +170,18 @@ class PDF_template {
    * @returns {string} Currency formatted string (e.g., "$150.00") or original if invalid
    */
   formatCurrency(amount) {
+    if (amount === null || amount === undefined || amount === '') return '$0';
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount)) return amount; // Return original if not a number
+    return `$${Math.round(parsedAmount)}`;
+  }
+
+  /**
+   * Formats numeric amount as currency with dollar sign and two decimal places
+   * @param {number|string} amount - Numeric amount to format
+   * @returns {string} Currency formatted string (e.g., "$150.00") or original if invalid
+   */
+  formatDecimalCurrency(amount) {
     if (amount === null || amount === undefined || amount === '') return '$0.00';
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount)) return amount; // Return original if not a number
@@ -216,7 +229,13 @@ class PDF_template {
       invoiceDate: new Date().toLocaleDateString()
     };
     
-    // console.log('Template context:', context); // Debug log
+    console.log('=== TEMPLATE CONTEXT DEBUG ===');
+    console.log('bookingData:', context.bookingData);
+    console.log('Currency fields:', {
+      hourlyRate: context.bookingData?.hourlyRate,
+      flatRate: context.bookingData?.flatRate,
+      totalAmount: context.bookingData?.totalAmount
+    });
     
     return this.template(context); // Template already contains only body content
   }

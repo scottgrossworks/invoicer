@@ -10,7 +10,8 @@
         <div class="invoice-details">
           <div class="invoice-title">INVOICE #{{invoiceNumber}}</div>
           <div class="invoice-date">{{invoiceDate}}</div>
-        </div>{{#if settings.bankAccount}}
+        </div>
+        {{#if settings.bankAccount}}
         <div class="bank-info">
           <div class="bank-label">Bank:</div>
           {{#if settings.bankName}}<div class="bank-details">{{settings.bankName}}</div>{{/if}}
@@ -19,13 +20,14 @@
           {{#if settings.bankAccount}}<div class="bank-account">Acct: {{settings.bankAccount}}</div>{{/if}}
           {{#if settings.bankRouting}}<div class="bank-routing">ABA Routing: {{settings.bankRouting}}</div>{{/if}}
           {{#if settings.bankWire}}<div class="bank-wire">WIRE Routing: {{settings.bankWire}}</div>{{/if}}
-        </div>{{/if}}
+        </div>
+        {{/if}}
       </div>
     </div>
 
-    <div class="billing-section">
-      <div class="client-info">
-        <div class="client-name-large">{{clientData.name}}</div>
+      <div class="billing-section">
+        <div class="client-info">
+          <div class="client-name-large">{{clientData.name}}</div>
         {{#if clientData.email}}<div class="client-email-large">{{clientData.email}}</div>{{/if}}
         {{#if clientData.phone}}<div class="client-phone">{{clientData.phone}}</div>{{/if}}
         {{#if clientData.company}}<div class="client-company">{{clientData.company}}</div>{{/if}}
@@ -55,8 +57,14 @@
               <div class="service-location">{{bookingData.location}}</div>
               {{#if bookingData.notes}}<br><div class="service-notes">{{bookingData.notes}}</div>{{/if}}
             </td>
-            <td class="unit-col">{{formatCurrency (or bookingData.hourlyRate bookingData.flatRate (calculateHourlyRate bookingData.totalAmount bookingData.duration))}}</td>
-            <td class="total-col">{{formatCurrency bookingData.totalAmount}}</td>
+            <td class="unit-col">{{formatDecimalCurrency (or bookingData.hourlyRate bookingData.flatRate)}}</td>
+            <td class="total-col">{{formatDecimalCurrency bookingData.totalAmount}}</td>
+          </tr>
+          <tr class="empty-row">
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
           </tr>
           <tr class="empty-row">
             <td></td>
@@ -68,7 +76,7 @@
             <td></td>
             <td></td>
             <td class="total-label">TOTAL</td>
-            <td class="total-amount">{{formatCurrency bookingData.totalAmount}}</td>
+            <td class="total-amount">{{formatDecimalCurrency bookingData.totalAmount}}</td>
           </tr>
         </tbody>
       </table>
