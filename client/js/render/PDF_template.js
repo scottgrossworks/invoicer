@@ -188,7 +188,7 @@ class PDF_template {
    * @param {Object} bookingData - Booking/service data
    * @param {Object} clientData - Client information  
    * @param {Object} settings - Settings and configuration
-   * @returns {Promise<string>} Complete HTML string with CSS for PDF generation
+   * @returns {Promise<string>} HTML string for the body content of the invoice
    * @throws {Error} If template is not ready or failed to load
    */
   async generateInvoiceHTML(bookingData, clientData, settings) {
@@ -210,9 +210,7 @@ class PDF_template {
     
     console.log('Template context:', context); // Debug log
     
-    const htmlString = this.template(context);
-    const bodyMatch = /<body[^>]*>([\s\S]*)<\/body>/i.exec(htmlString);
-    return bodyMatch ? bodyMatch[1] : htmlString;
+    return this.template(context); // Template already contains only body content
   }
 
 }

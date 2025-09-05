@@ -2,6 +2,7 @@
 
 import { StateFactory } from './state.js';
 import { initLogging, log, logError } from './logging.js';
+import PDF_settings from './settings/PDF_settings.js';
 
 import { getDbLayer, getParsers, getRenderer } from './provider_registry.js';
 
@@ -606,7 +607,11 @@ async function onSave() {
 async function onPdf() {
   try {
     setStatus('Rendering PDF...');
-    const renderer = await getRenderer();
+    
+    // Import PDF render class directly (same as pdf_settings_page.js)
+    const { default: PDF_render } = await import(chrome.runtime.getURL('js/render/PDF_render.js'));
+    const pdfRender = new PDF_render();
+    
     const pdfSettings = new PDF_settings();
     const settings = await pdfSettings.load();
 
@@ -628,7 +633,7 @@ async function onPdf() {
       }
     };
     
-    await renderer.render(invoiceState, settings);
+    await pdfRender.render(invoiceState, settings);
     setStatus('PDF generated successfully!');
   } catch (e) {
     logError('PDF render failed:', e);
