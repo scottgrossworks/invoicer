@@ -257,8 +257,47 @@ class PDFSettingsPage {
       const PDF_template = templateModule.default || templateModule.PDF_template;
       const template = new PDF_template();
 
-      // Generate HTML using dynamic data and settings
-      const html = await template.generateInvoiceHTML(dynamicBookingData, dynamicClientData, settings);
+      // Generate HTML body content and CSS
+      const bodyContent = await template.generateInvoiceHTML(dynamicBookingData, dynamicClientData, settings);
+      const cssContent = await template.getInvoiceCSS();
+      
+      // Construct complete HTML document for preview
+      const html = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <title>Invoice Preview</title>
+          <style>
+            /* Force Arial font everywhere, override all defaults */
+            *, *::before, *::after {
+              font-family: Arial, sans-serif !important;
+              font-weight: normal !important;
+              font-style: normal !important;
+            }
+            .company-name, .invoice-title, .total-label, .total-amount, 
+            .bank-label, th, .service-title {
+              font-weight: bold !important;
+              font-style: normal !important;
+            }
+            ${cssContent}
+            /* Remove gaps for better preview */
+            .invoice-header { margin-bottom: 10px !important; }
+            .invoice-details { margin-bottom: 5px !important; }
+            .billing-section { margin: 5px 0 !important; }
+            
+            /* Additional preview styling */
+            body {
+              margin: 20px;
+              background: white;
+            }
+          </style>
+        </head>
+        <body>
+          ${bodyContent}
+        </body>
+        </html>
+      `;
 
       // Open preview in new window
       const previewWindow = window.open('', '_blank', 'width=800,height=1000');

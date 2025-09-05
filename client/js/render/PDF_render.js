@@ -114,29 +114,34 @@ class PDF_render extends RenderLayer {
       });
 
       // DEBUG: Log the HTML structure
+      /*
       console.log('=== jsPDF + html2canvas DEBUG ===');
       console.log('Full HTML length:', html.length);
       console.log('Body content length:', bodyContent.length);
       console.log('CSS content length:', cssContent.length);
       console.log('tempDiv innerHTML length:', tempDiv.innerHTML.length);
       console.log('tempDiv has invoice div:', !!tempDiv.querySelector('.invoice'));
+      */
+
 
       try {
         // Wait a moment for styles to apply
         await new Promise(resolve => setTimeout(resolve, 100));
         
+        /*
         console.log('tempDiv dimensions:', {
           offsetWidth: tempDiv.offsetWidth,
           offsetHeight: tempDiv.offsetHeight,
           scrollWidth: tempDiv.scrollWidth,
           scrollHeight: tempDiv.scrollHeight
         });
+        */
         
         // Capture the HTML as canvas with high quality
         const canvas = await window.html2canvas(tempDiv, {
           scale: 2,
           useCORS: true,
-          allowTaint: true,
+          allowTaint: true, 
           backgroundColor: '#ffffff',
           width: 850,
           height: tempDiv.offsetHeight || 1100,
@@ -145,18 +150,19 @@ class PDF_render extends RenderLayer {
           logging: true
         });
         
+        /*
         console.log('Canvas captured:', {
           width: canvas.width,
           height: canvas.height,
           isEmpty: canvas.width === 0 || canvas.height === 0
         });
-
+        */
         // Create new PDF document (8.5 x 11 inches)
-        console.log('jsPDF available:', !!window.jsPDF, 'jspdf available:', !!window.jspdf);
-        console.log('html2canvas available:', !!window.html2canvas);
+        // console.log('jsPDF available:', !!window.jsPDF, 'jspdf available:', !!window.jspdf);
+        // console.log('html2canvas available:', !!window.html2canvas);
         
-        // jsPDF UMD exports to window.jspdf, not window.jsPDF
-        const jsPDF = window.jspdf?.jsPDF || window.jsPDF?.jsPDF || window.jsPDF;
+        // jsPDF UMD exports to window.jspdf.jsPDF
+        const jsPDF = window.jspdf.jsPDF;
         
         if (!jsPDF) {
           throw new Error('jsPDF library not loaded properly');
@@ -197,7 +203,7 @@ class PDF_render extends RenderLayer {
         
         // Update status
         const message = `PDF invoice generated: ${filename}`;
-        console.log(message);
+        // console.log(message);
         
         // Send success message to sidebar
         if (typeof chrome !== 'undefined' && chrome.runtime) {
@@ -233,14 +239,14 @@ class PDF_render extends RenderLayer {
    * @returns {Promise<void>}
    */
   async loadPDFLibraries() {
-    // Load jsPDF - check both window.jsPDF and window.jspdf
-    if (!window.jsPDF && !window.jspdf) {
-      console.log('Loading jsPDF...');
+    // Load jsPDF
+    if (!window.jspdf) {
+      // console.log('Loading jsPDF...');
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
         script.src = chrome.runtime.getURL('lib/jspdf.umd.min.js');
         script.onload = () => {
-          console.log('jsPDF loaded, window.jsPDF:', !!window.jsPDF, 'window.jspdf:', !!window.jspdf);
+          // console.log('jsPDF loaded, window.jsPDF:', !!window.jsPDF, 'window.jspdf:', !!window.jspdf);
           resolve();
         };
         script.onerror = (e) => {
@@ -253,12 +259,12 @@ class PDF_render extends RenderLayer {
     
     // Load html2canvas
     if (!window.html2canvas) {
-      console.log('Loading html2canvas...');
+      //console.log('Loading html2canvas...');
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
         script.src = chrome.runtime.getURL('lib/html2canvas.min.js');
         script.onload = () => {
-          console.log('html2canvas loaded, window.html2canvas:', !!window.html2canvas);
+          // console.log('html2canvas loaded, window.html2canvas:', !!window.html2canvas);
           resolve();
         };
         script.onerror = (e) => {
