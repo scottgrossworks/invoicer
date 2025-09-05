@@ -279,6 +279,7 @@ html, body {
 }
 
 .leedz-grass {
+  z-index:900;
   position: absolute;
   top: -49px;
   left: 0;
@@ -491,7 +492,7 @@ input.invalid {
 
 .section-header label {
   margin: 0px;
-  font-size: 16px;
+  font-size: 18px;
   color: darkgreen;
   font-weight: 600;
   flex: 1;
