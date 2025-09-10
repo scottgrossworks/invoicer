@@ -20,10 +20,28 @@ class LinkedInParser extends ParserInterface {
         return testUrl && LINKEDIN_PROFILE_REGEX.test(testUrl);
     }
 
-
+    async initialize(state) {
+        // Initialize sub-objects
+        state.Client = state.Client || {};
+        state.Booking = state.Booking || {};
+        state.Config = state.Config || {};
+        
+        // LinkedIn parser - minimal defaults for Client fields only
+        state.Client.name = null;
+        state.Client.email = null;
+        state.Client.phone = null;
+        state.Client.company = null;
+        state.Client.notes = null;
+        state.Booking.source = 'linkedin';
+    }
 
     async parse(state) {
         if (!this.checkPageMatch()) return;
+        
+        // Ensure sub-objects exist (in case parse is called directly without initialize)
+        state.Client = state.Client || {};
+        state.Booking = state.Booking || {};
+        state.Config = state.Config || {};
 
         const data = {};
 
@@ -51,7 +69,7 @@ class LinkedInParser extends ParserInterface {
         // Update state with extracted client data
         Object.entries(data).forEach(([k, v]) => {
             if (v !== null && v !== undefined && v !== '') {
-                state.set(k, v);
+                state.Client[k] = v;
             }
         });
     }

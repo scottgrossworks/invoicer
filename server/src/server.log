@@ -147,3 +147,206 @@
 [2025-09-05T07:04:43.498Z] POST /clients
 [2025-09-05T07:04:43.528Z] POST /bookings
 [2025-09-05T07:46:29.855Z] POST /config
+[2025-09-05T07:55:11.892Z] GET /config
+[2025-09-05T07:57:46.042Z] POST /clients
+[2025-09-05T07:58:37.784Z] GET /config
+[2025-09-05T08:10:06.486Z] POST /clients
+[2025-09-05T08:10:30.965Z] GET /config
+[2025-09-05T08:16:39.263Z] POST /clients
+[2025-09-05T08:25:30.297Z] POST /clients
+[2025-09-05T08:34:08.649Z] POST /clients
+[2025-09-05T08:36:41.769Z] GET /config
+[2025-09-05T08:41:16.452Z] GET /clients
+[2025-09-05T08:44:07.125Z] POST /clients
+[2025-09-05T08:44:07.144Z] POST /bookings
+[2025-09-05T08:44:07.164Z] POST /bookings failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.booking.create()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:187:38[24m
+
+  [2m[90m184[39m [22m
+  [2m[90m185[39m [90m// Booking operations[39m[22m
+  [2m[90m186[39m [36masync[39m [36mcreateBooking[39m[34m([39mdata[34m)[39m [34m{[39m[22m
+[1m[31m→[39m[22m [2m[90m187[39m   [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mbooking[34m.[39m[36mcreate[39m[34m([39m[22m{
+          data: {
+            clientId: "cmf6h7xc20000b6wwsuprza3p",
+            [31mtitle[39m: "Sheraton Universal Hotel, Universal City, CA",
+            [31m~~~~~[39m
+            description: null,
+            address: "Sheraton Universal Hotel, Universal City, CA",
+            startDate: new Date("2025-09-19T02:00:00.000Z"),
+            endDate: new Date("2025-09-19T04:00:00.000Z"),
+            startTime: "7:00 PM",
+            endTime: "9:00 PM",
+            duration: 2,
+            hourlyRate: null,
+            flatRate: null,
+            totalAmount: null,
+            status: "pending",
+            sourceEmail: "gmail",
+            notes: null,
+        [32m?[39m   [32mid[39m[32m?[39m[32m: [39m[32mString[39m,
+        [32m?[39m   [32mlocation[39m[32m?[39m[32m: [39m[32mString | Null[39m,
+        [32m?[39m   [32msource[39m[32m?[39m[32m: [39m[32mString | Null[39m,
+        [32m?[39m   [32mcreatedAt[39m[32m?[39m[32m: [39m[32mDateTime[39m,
+        [32m?[39m   [32mupdatedAt[39m[32m?[39m[32m: [39m[32mDateTime[39m
+          }
+        }[2m)[22m
+
+Unknown argument `[31mtitle[39m`. Available options are listed in [32mgreen[39m.
+    at wn (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createBooking (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:187:12)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:205:18
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:75:7
+[2025-09-05T08:44:21.717Z] Received SIGINT, shutting down gracefully...
+[2025-09-05T08:44:24.881Z] Database connected successfully
+[2025-09-05T08:44:24.886Z] ! Local API running on http://localhost:3000
+[2025-09-05T08:44:28.408Z] POST /clients
+[2025-09-05T08:44:28.440Z] POST /bookings
+[2025-09-05T08:44:28.486Z] POST /bookings failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.booking.create()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:187:38[24m
+
+  [2m[90m184[39m [22m
+  [2m[90m185[39m [90m// Booking operations[39m[22m
+  [2m[90m186[39m [36masync[39m [36mcreateBooking[39m[34m([39mdata[34m)[39m [34m{[39m[22m
+[1m[31m→[39m[22m [2m[90m187[39m   [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mbooking[34m.[39m[36mcreate[39m[34m([39m[22m{
+          data: {
+            clientId: "cmf6h7xc20000b6wwsuprza3p",
+            [31mtitle[39m: "Sheraton Universal Hotel, Universal City, CA",
+            [31m~~~~~[39m
+            description: null,
+            address: "Sheraton Universal Hotel, Universal City, CA",
+            startDate: new Date("2025-09-19T02:00:00.000Z"),
+            endDate: new Date("2025-09-19T04:00:00.000Z"),
+            startTime: "7:00 PM",
+            endTime: "9:00 PM",
+            duration: 2,
+            hourlyRate: null,
+            flatRate: null,
+            totalAmount: null,
+            status: "pending",
+            sourceEmail: "gmail",
+            notes: null,
+        [32m?[39m   [32mid[39m[32m?[39m[32m: [39m[32mString[39m,
+        [32m?[39m   [32mlocation[39m[32m?[39m[32m: [39m[32mString | Null[39m,
+        [32m?[39m   [32msource[39m[32m?[39m[32m: [39m[32mString | Null[39m,
+        [32m?[39m   [32mcreatedAt[39m[32m?[39m[32m: [39m[32mDateTime[39m,
+        [32m?[39m   [32mupdatedAt[39m[32m?[39m[32m: [39m[32mDateTime[39m
+          }
+        }[2m)[22m
+
+Unknown argument `[31mtitle[39m`. Available options are listed in [32mgreen[39m.
+    at wn (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createBooking (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:187:12)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:205:18
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:75:7
+[2025-09-05T08:46:21.674Z] GET /clients
+[2025-09-05T08:46:31.398Z] Database connected successfully
+[2025-09-05T08:46:31.404Z] * Server listen failed: Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at Function.listen (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\application.js:635:24)
+    at C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:329:24
+[2025-09-05T08:46:32.291Z] GET /clients
+[2025-09-05T08:46:40.960Z] Received SIGINT, shutting down gracefully...
+[2025-09-05T08:46:44.769Z] Database connected successfully
+[2025-09-05T08:46:44.774Z] ! Local API running on http://localhost:3000
+[2025-09-05T08:48:01.699Z] POST /clients
+[2025-09-05T08:48:01.722Z] POST /bookings
+[2025-09-05T08:48:10.000Z] POST /clients
+[2025-09-05T08:48:10.018Z] POST /bookings
+[2025-09-05T08:48:16.855Z] GET /config
+[2025-09-05T08:51:41.070Z] POST /clients
+[2025-09-05T08:51:41.091Z] POST /bookings
+[2025-09-05T08:52:39.222Z] GET /config
+[2025-09-05T08:55:01.383Z] POST /clients
+[2025-09-05T08:55:01.398Z] POST /bookings
+[2025-09-05T08:55:04.677Z] GET /config
+[2025-09-05T14:46:16.177Z] GET /config
+[2025-09-08T22:05:16.608Z] POST /clients
+[2025-09-08T22:05:16.638Z] POST /bookings
+[2025-09-08T22:05:21.103Z] GET /config
+[2025-09-08T22:16:06.293Z] POST /clients
+[2025-09-08T22:16:06.312Z] POST /bookings
+[2025-09-08T22:16:10.169Z] GET /config
+[2025-09-08T22:21:13.330Z] POST /clients
+[2025-09-08T22:21:13.352Z] POST /bookings
+[2025-09-08T22:21:14.444Z] GET /config
+[2025-09-08T22:57:37.217Z] POST /clients
+[2025-09-08T22:57:37.241Z] POST /bookings
+[2025-09-08T22:57:40.064Z] GET /config
+[2025-09-08T23:28:55.035Z] POST /clients
+[2025-09-08T23:28:55.059Z] POST /bookings
+[2025-09-08T23:28:56.271Z] GET /config
+[2025-09-08T23:53:47.266Z] GET /config
+[2025-09-09T00:00:02.195Z] POST /clients
+[2025-09-09T00:00:02.228Z] POST /bookings
+[2025-09-09T00:00:03.517Z] GET /config
+[2025-09-09T00:18:55.534Z] POST /config
+[2025-09-09T00:23:35.546Z] POST /clients
+[2025-09-09T00:23:35.564Z] POST /bookings
+[2025-09-09T00:23:37.318Z] GET /config
+[2025-09-09T00:25:44.722Z] POST /clients
+[2025-09-09T00:25:44.748Z] POST /bookings
+[2025-09-09T00:25:49.019Z] GET /config
+[2025-09-09T00:50:53.785Z] POST /clients
+[2025-09-09T00:50:53.811Z] POST /bookings
+[2025-09-09T00:50:55.391Z] GET /config
+[2025-09-09T00:52:10.813Z] POST /config
+[2025-09-09T00:52:48.408Z] POST /config
+[2025-09-09T00:52:58.763Z] POST /config
+[2025-09-09T02:35:28.771Z] POST /clients
+[2025-09-09T02:35:28.801Z] POST /bookings
+[2025-09-09T02:35:34.128Z] GET /config
+[2025-09-09T02:58:27.677Z] POST /clients
+[2025-09-09T02:58:27.701Z] POST /bookings
+[2025-09-09T02:58:29.335Z] GET /config
+[2025-09-09T03:03:46.709Z] GET /config
+[2025-09-09T16:24:29.915Z] GET /config
+[2025-09-10T00:12:30.213Z] POST /clients
+[2025-09-10T00:26:32.842Z] POST /clients
+[2025-09-10T00:26:32.940Z] POST /bookings
+[2025-09-10T00:26:33.060Z] POST /bookings failed: PrismaClientKnownRequestError: 
+[31mInvalid [1m`this.prisma.booking.create()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:187:38[24m
+
+  [2m[90m184[39m [22m
+  [2m[90m185[39m [90m// Booking operations[39m[22m
+  [2m[90m186[39m [36masync[39m [36mcreateBooking[39m[34m([39mdata[34m)[39m [34m{[39m[22m
+[1m[31m→[39m[22m [2m[90m187[39m   [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mbooking[34m.[39m[36mcreate[39m[34m([39m[22m
+Foreign key constraint violated: `foreign key`
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createBooking (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:187:12)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:205:18
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:75:7
+[2025-09-10T00:31:54.546Z] POST /clients
+[2025-09-10T00:31:54.571Z] POST /bookings
+[2025-09-10T00:59:02.457Z] POST /clients
+[2025-09-10T00:59:02.475Z] POST /bookings
+[2025-09-10T01:01:56.561Z] POST /clients
+[2025-09-10T01:01:56.582Z] POST /bookings
+[2025-09-10T01:35:03.143Z] POST /clients
+[2025-09-10T01:35:03.164Z] POST /bookings
+[2025-09-10T01:35:06.546Z] GET /config
+[2025-09-10T01:40:17.963Z] POST /clients
+[2025-09-10T01:40:17.981Z] POST /bookings
+[2025-09-10T01:40:20.028Z] GET /config
+[2025-09-10T02:05:01.872Z] POST /clients
+[2025-09-10T02:05:01.894Z] POST /bookings
+[2025-09-10T02:05:03.694Z] GET /config
+[2025-09-10T02:05:23.001Z] POST /config
+[2025-09-10T03:03:06.332Z] POST /clients
+[2025-09-10T03:03:06.366Z] POST /bookings
+[2025-09-10T03:03:11.160Z] GET /config

@@ -63,7 +63,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ ok: true, data: data });
         });
       } else {
-        console.error('Sending error response to content script');
+        console.error('Sending error response to content script - Status:', response.status, response.statusText);
+        // Get the error response body for debugging
+        response.text().then(errorBody => {
+          console.error('Error response body:', errorBody);
+        });
         sendResponse({ ok: false, status: response.status, statusText: response.statusText });
       }
     })
