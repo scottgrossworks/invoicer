@@ -4,11 +4,12 @@
  */
 
 // Import PDF settings class
-import PDF_settings from '/js/settings/PDF_settings.js';
+import PDF_settings from './PDF_settings.js';
 
 class PDFSettingsPage {
-  constructor() {
-    this.pdfSettings = new PDF_settings();
+  constructor( state ) {
+    this.STATE = state;
+    this.pdfSettings = new PDF_settings(state);
     this.initialize();
   }
 
@@ -26,8 +27,11 @@ class PDFSettingsPage {
    */
   async loadSettings() {
     try {
-      const settings = await this.pdfSettings.load();
-      this.populateForm(settings);
+      // Load Config settings from database - this updates this.STATE.Config directly
+      await this.pdfSettings.load();
+      
+      // Populate form with the updated state config
+      this.populateForm(this.STATE.Config);
     } catch (error) {
       console.error('Failed to load settings:', error);
     }
@@ -43,8 +47,10 @@ class PDFSettingsPage {
     const fields = [
       'companyName', 'companyAddress', 'companyPhone', 'companyEmail', 'logoUrl',
       'bankName', 'bankAddress', 'bankPhone', 'bankAccount', 'bankRouting', 'bankWire',
-      'servicesPerformed', 'contactHandle', 'terms', 'footerText'
+      'servicesPerformed', 'contactHandle', 'terms'
     ];
+    // FIXME FIXME FIXME -- can this be read from the keys of the state object?
+    // instead of hardcoding the field names?
 
     fields.forEach(field => {
       const element = document.getElementById(field);
@@ -158,8 +164,7 @@ class PDFSettingsPage {
 
       // Terms & Footer
       includeTerms: document.getElementById('includeTerms').checked,
-      terms: document.getElementById('terms').value,
-      footerText: document.getElementById('footerText').value
+      terms: document.getElementById('terms').value
     };
   }
 
@@ -169,11 +174,18 @@ class PDFSettingsPage {
   async saveSettings() {
     try {
       const settings = this.collectFormData();
+
+      // state object should have booking and client info from sidebar
+      Object.assign(this.STATE.Config, settings);
+      await this.STATE.save();
+      
+      // Save Config fields to database
       await this.pdfSettings.save(settings);
-      
+
       // Show success message
-      this.showMessage('Settings saved successfully to database!', 'success');
+      this.showMessage('Settings saved successfully to database', 'success');
       
+
     } catch (error) {
       console.error('Failed to save settings:', error);
       this.showMessage('Failed to save settings. Please try again.', 'error');
@@ -185,34 +197,20 @@ class PDFSettingsPage {
    */
   async downloadPdf() {
     try {
-      const settings = this.collectFormData();
-
       // Import PDF render class dynamically
       const { default: PDF_render } = await import(chrome.runtime.getURL('js/render/PDF_render.js'));
       const pdfRender = new PDF_render();
 
-      // Get real booking state from Chrome storage
-      const stateData = await this.getCurrentBookingState();
+      const settings = this.collectFormData();
+
+      // state object should have booking and client info from sidebar
+      Object.assign(this.STATE.Config, settings);
+      await this.STATE.save();
       
-      // Construct a state-like object that prioritizes real data over mock data
-      const invoiceState = {
-        get: (key) => {
-          // Prioritize real state data
-          if (stateData && stateData[key] !== undefined && stateData[key] !== null && stateData[key] !== '') {
-            return stateData[key];
-          }
-          // Fallback to settings or default for description and location if stateData is empty
-          if (key === 'description') return settings.servicesPerformed || '';
-          if (key === 'location') return settings.companyAddress ? settings.companyAddress.split('\n')[0] : '';
-          // Fallback to empty string for other fields if no real data or setting
-          return '';
-        }
-      };
+      // Generate PDF using hierarchical state
+      await pdfRender.render(this.STATE);
 
-      // Generate PDF using the constructed invoiceState and loaded settings
-      await pdfRender.render(invoiceState, settings);
-
-      this.showMessage('PDF downloaded successfully!', 'success');
+      this.showMessage('PDF downloaded successfully', 'success');
 
     } catch (error) {
       console.error('Failed to download PDF:', error);
@@ -225,40 +223,24 @@ class PDFSettingsPage {
    */
   async previewInvoice() {
     try {
-      const settings = this.collectFormData();
 
-      // Get real booking state from Chrome storage
-      const stateData = await this.getCurrentBookingState();
-
-      // Construct dynamic booking data - prioritize real data, then form settings
-      const dynamicBookingData = {
-        description: (stateData?.description) || settings.servicesPerformed || '',
-        location: (stateData?.location) || (settings.companyAddress ? settings.companyAddress.split('\n')[0] : ''),
-        startDate: (stateData?.startDate) || '',
-        startTime: (stateData?.startTime) || '',
-        endTime: (stateData?.endTime) || '',
-        duration: (stateData?.duration) || '',
-        hourlyRate: (stateData?.hourlyRate) || '',
-        totalAmount: (stateData?.totalAmount) || '',
-        notes: (stateData?.notes) || '',
-        flatRate: (stateData?.flatRate) || '',
-      };
-
-      // Construct dynamic client data - prioritize real data, then empty string
-      const dynamicClientData = {
-        name: (stateData?.name) || '',
-        email: (stateData?.email) || '',
-        phone: (stateData?.phone) || '',
-        company: (stateData?.company) || '',
-      };
+      // Get form settings for Config
+      // just in case the user is changing in one window and previewing in another
+      const formConfig = this.collectFormData();
+      console.log('Form Config settings:', formConfig);
+      
+      // update the state
+      Object.assign(this.STATE.Config, formConfig);
+      await this.STATE.save();
 
       // Import template class dynamically with full Chrome extension URL
       const templateModule = await import(chrome.runtime.getURL('js/render/PDF_template.js'));
       const PDF_template = templateModule.default || templateModule.PDF_template;
       const template = new PDF_template();
 
-      // Generate HTML body content and CSS
-      const bodyContent = await template.generateInvoiceHTML(dynamicBookingData, dynamicClientData, settings);
+
+      // Generate HTML body content and CSS using merged state
+      const bodyContent = await template.generateInvoiceHTML( this.STATE );
       const cssContent = await template.getInvoiceCSS();
       
       // Construct complete HTML document for preview
@@ -310,19 +292,6 @@ class PDFSettingsPage {
     }
   }
 
-  /**
-   * Get current booking state from Chrome storage
-   * @returns {Promise<Object|null>} Current booking state or null
-   */
-  async getCurrentBookingState() {
-    try {
-      const result = await chrome.storage.local.get(['currentBookingState']);
-      return result.currentBookingState || null;
-    } catch (error) {
-      console.warn('Could not load current booking state:', error);
-      return null;
-    }
-  }
 
   /**
    * Show status message
@@ -368,7 +337,17 @@ class PDFSettingsPage {
   }
 }
 
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-  new PDFSettingsPage();
+// Export the class for manual instantiation
+export { PDFSettingsPage };
+
+// Auto-initialize when this module is imported (eliminates need for pdf_settings_init.js)
+document.addEventListener('DOMContentLoaded', async () => {
+  // Import State factory
+  const { StateFactory } = await import('../state.js');
+  
+  // Create proper state object using factory
+  const state = await StateFactory.create();
+  
+  // Initialize the settings page
+  new PDFSettingsPage(state);
 });

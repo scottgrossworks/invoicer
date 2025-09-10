@@ -1,13 +1,20 @@
 import Settings from './settings.js';
 
+const PDF_SETTINGS_HTML = 'pdf_settings.html';
+const CONFIG_JSON = 'invoicer_config.json';
+const URL_DEFAULT = 'http://127.0.0.1:3000';
+
+
 /**
  * PDF Settings implementation
  * Handles configuration for PDF invoice generation
  */
 class PDF_settings extends Settings {
-  constructor() {
+  
+  constructor(state) {
     super();
     this.name = 'PDF_settings';
+    this.STATE = state; // Store reference to shared state
   }
 
   /**
@@ -16,8 +23,9 @@ class PDF_settings extends Settings {
    */
   async open() {
     try {
+        
       // Create the settings page URL
-      const settingsUrl = chrome.runtime.getURL('pdf_settings.html');
+      const settingsUrl = chrome.runtime.getURL( PDF_SETTINGS_HTML );
       
       // Open in new tab
       chrome.tabs.create({ 
@@ -32,32 +40,43 @@ class PDF_settings extends Settings {
   }
 
   /**
-   * Load PDF settings from database with fallback to config file
-   * @returns {Promise<Object>} PDF settings object
+   * Load PDF settings from database and update state object directly
+   * @returns {Promise<void>}
    */
   async load() {
     try {
-      // Try to load from database first
-      const configResponse = await fetch(chrome.runtime.getURL('invoicer_config.json'));
+      // Get server baseUrl from config
+      const configResponse = await fetch(chrome.runtime.getURL(CONFIG_JSON));
       const config = await configResponse.json();
-      const serverUrl = config.db?.baseUrl || 'http://127.0.0.1:3000';
+      const serverUrl = config.db?.baseUrl || URL_DEFAULT;
       
       const dbResponse = await fetch(`${serverUrl}/config`);
+      console.log('Database config fetch response status:', dbResponse.status);
       
       if (dbResponse.ok) {
         const dbConfig = await dbResponse.json();
-        console.log('PDF settings loaded from database');
-        return dbConfig;
+        console.log("PDF settings loaded from database");
+        console.log(dbConfig);
+        
+        // Update state object directly with database config
+        Object.assign(this.STATE.Config, dbConfig);
+        await this.STATE.save();
+        
       } else {
-        console.log('No database config found, using minimal defaults');
-        return this.getDefaults();
+        console.log("No DB Config found");
+        if (!this.STATE.Config || !this.STATE.Config.companyName) {
+          console.log("Using empty defaults");
+          Object.assign(this.STATE.Config, this.getDefaults());
+          await this.STATE.save();
+        } else {
+          console.log("Using existing Chrome STATE");
+        }
       }
       
     } catch (error) {
-      console.error('Failed to load PDF settings from database, using minimal defaults:', error);
-      
-      // Fallback: If DB load fails, use minimal defaults
-      return this.getDefaults();
+      console.error('Error loading PDF settings, using defaults:', error);
+      Object.assign(this.STATE.Config, this.getDefaults());
+      await this.STATE.save();
     }
   }
 
@@ -69,11 +88,11 @@ class PDF_settings extends Settings {
   async save(settings) {
     try {
       // Get server baseUrl from config
-      const configResponse = await fetch(chrome.runtime.getURL('invoicer_config.json'));
+      const configResponse = await fetch(chrome.runtime.getURL(CONFIG_JSON));
       const config = await configResponse.json();
-      const serverUrl = config.db?.baseUrl || 'http://127.0.0.1:3000';
-      
-      // Send settings to server
+      const serverUrl = config.db?.baseUrl || URL_DEFAULT;
+            
+      // send to server
       const response = await fetch(`${serverUrl}/config`, {
         method: 'POST',
         headers: {
@@ -89,19 +108,18 @@ class PDF_settings extends Settings {
       const result = await response.json();
       console.log('PDF settings saved to database:', result.id);
       
-      // Also save to Chrome storage as backup/cache
-      await chrome.storage.local.set({ pdfSettings: settings });
+      // Chrome storage already updated above in currentBookingState
       
     } catch (error) {
       console.error('Failed to save PDF settings to database:', error);
       
-      // Fallback: save to Chrome storage only
-      await chrome.storage.local.set({ pdfSettings: settings });
+      // Fallback: Chrome storage already updated above in currentBookingState
       console.log('PDF settings saved to Chrome storage as fallback');
       
       throw error;
     }
   }
+
 
   /**
    * Reset PDF settings to defaults
@@ -123,9 +141,22 @@ class PDF_settings extends Settings {
    */
   getDefaults() {
     return {
-      template: 'modern',
-      // Explicitly set includeTerms to true as it's a checkbox and needs a default
+      companyName: '',
+      companyAddress: '',
+      companyPhone: '',
+      companyEmail: '',
+      logoUrl: '',
+      bankName: '',
+      bankAddress: '',
+      bankPhone: '',
+      bankAccount: '',
+      bankRouting: '',
+      bankWire: '',
+      servicesPerformed: '',
+      contactHandle: '',
       includeTerms: true,
+      terms: '',
+      template: 'modern'
     };
   }
 }

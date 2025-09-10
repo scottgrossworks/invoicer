@@ -15,11 +15,10 @@ class PDF_render extends RenderLayer {
   
    /**
    * Render booking data as PDF invoice
-   * @param {Object} state - Application state containing booking/client data
-   * @param {Object} settings - PDF settings
+   * @param {Object} state - Application state containing booking/client/config data
    * @returns {Promise<void>}
    */
-   async render(state, settings) {
+   async render(state) {
     try {
       console.log('PDF Render starting...');
       
@@ -27,11 +26,21 @@ class PDF_render extends RenderLayer {
       const bookingData = this.extractBookingData(state);
       const clientData = this.extractClientData(state);
       
-      // --- FIX APPLIED HERE ---
-      // The logic below is restructured to correctly build the HTML document.
+      // Extract Config data from state (company info, logo, services, terms, etc.)
+      const configData = this.extractConfigData(state);
+      
+      // Use Config data directly from unified state structure
+      const mergedSettings = configData;
+      
+      /*
+      console.log('PDF Render - Config data:', configData);
+      console.log('PDF Render - Merged settings:', mergedSettings);
+      console.log('PDF Render - State type:', typeof state, 'Has get method:', typeof state?.get);
+      console.log('PDF Render - Raw servicesPerformed from state:', state?.Config?.servicesPerformed || 'NO CONFIG');
+      */
 
-      // 1. Generate the BODY content from the template.
-      const bodyContent = await this.template.generateInvoiceHTML(bookingData, clientData, settings); //
+      // 1. Generate the BODY content from the template using merged settings.
+      const bodyContent = await this.template.generateInvoiceHTML( state );
       
       // 2. Fetch the CSS content separately.
       const cssContent = await this.template.getInvoiceCSS(); //
@@ -128,15 +137,6 @@ class PDF_render extends RenderLayer {
         // Wait a moment for styles to apply
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        /*
-        console.log('tempDiv dimensions:', {
-          offsetWidth: tempDiv.offsetWidth,
-          offsetHeight: tempDiv.offsetHeight,
-          scrollWidth: tempDiv.scrollWidth,
-          scrollHeight: tempDiv.scrollHeight
-        });
-        */
-        
         // Capture the HTML as canvas with high quality
         const canvas = await window.html2canvas(tempDiv, {
           scale: 2,
@@ -150,13 +150,6 @@ class PDF_render extends RenderLayer {
           logging: true
         });
         
-        /*
-        console.log('Canvas captured:', {
-          width: canvas.width,
-          height: canvas.height,
-          isEmpty: canvas.width === 0 || canvas.height === 0
-        });
-        */
         // Create new PDF document (8.5 x 11 inches)
         // console.log('jsPDF available:', !!window.jsPDF, 'jspdf available:', !!window.jspdf);
         // console.log('html2canvas available:', !!window.html2canvas);
@@ -246,7 +239,7 @@ class PDF_render extends RenderLayer {
         const script = document.createElement('script');
         script.src = chrome.runtime.getURL('lib/jspdf.umd.min.js');
         script.onload = () => {
-          // console.log('jsPDF loaded, window.jsPDF:', !!window.jsPDF, 'window.jspdf:', !!window.jspdf);
+          
           resolve();
         };
         script.onerror = (e) => {
@@ -259,12 +252,12 @@ class PDF_render extends RenderLayer {
     
     // Load html2canvas
     if (!window.html2canvas) {
-      //console.log('Loading html2canvas...');
+
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
         script.src = chrome.runtime.getURL('lib/html2canvas.min.js');
         script.onload = () => {
-          // console.log('html2canvas loaded, window.html2canvas:', !!window.html2canvas);
+          
           resolve();
         };
         script.onerror = (e) => {

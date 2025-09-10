@@ -1,7 +1,7 @@
 // gmail_parser.js — extract Gmail thread content and process via LLM
-import { ParserInterface } from './parser_interface.js';
 
-
+// Global CONFIG variable - loaded once when parser initializes
+let CONFIG = null;
 
 /**
  * GmailParser - Extracts booking/invoice data from Gmail threads using LLM processing
@@ -13,10 +13,33 @@ import { ParserInterface } from './parser_interface.js';
  * 4. Parse LLM JSON response and populate state with booking fields
  * 5. Keep raw thread text as fallback data
  */
-class GmailParser extends ParserInterface {
+class GmailParser {
+
+
   constructor() {
-    super();
+    this.STATE = null;
     this.name = 'GmailParser';
+    this._initializeConfig();
+  }
+
+  /**
+   * Initialize global CONFIG - load config.json and validate
+   * Throws error if config file not present or invalid
+   */
+  async _initializeConfig() {
+    if (CONFIG) return; // Already loaded
+
+    try {
+      const configResponse = await fetch(chrome.runtime.getURL('invoicer_config.json'));
+      if (!configResponse.ok) {
+        throw new Error(`Config file not found: ${configResponse.status}`);
+      }
+      CONFIG = await configResponse.json();
+      console.log('Gmail parser config loaded successfully');
+    } catch (error) {
+      console.error('FATAL: Unable to load invoicer_config.json:', error);
+      throw new Error('Gmail parser cannot initialize - config file missing or invalid');
+    }
   }
 
   /**
@@ -30,11 +53,31 @@ class GmailParser extends ParserInterface {
   }
 
   /**
+   * Initialize state with default values for Gmail parser
+   * @param {Object} state - State object to initialize with defaults
+   */
+  async initialize(state) {
+    
+    this.STATE = state;
+    this.STATE.clear();
+  }
+
+
+  /**
    * Main parsing function - extracts booking data from Gmail thread
    * @param {Object} state - State object to populate with extracted data
    */
   async parse(state) {
     try {
+
+      // Update STATE with values from passed state, but keep the State instance
+      if (state) {
+        // Merge hierarchical structure while preserving methods
+        if (state.Client) Object.assign(this.STATE.Client, state.Client);
+        if (state.Booking) Object.assign(this.STATE.Booking, state.Booking);
+        if (state.Config) Object.assign(this.STATE.Config, state.Config);
+      }
+
       // Step 1: Extract email and name using multiple Gmail selector strategies
       const emailData = this._extractEmailAndName();
       
@@ -46,36 +89,65 @@ class GmailParser extends ParserInterface {
         console.log('Page URL:', window.location.href);
         console.log('Page ready state:', document.readyState);
         console.log('Gmail-specific elements found:', document.querySelectorAll('[data-message-id]').length);
-        state.set('parseError', 'No email content could be extracted. Try refreshing the page or opening the email thread.');
+        this.STATE._parseError = 'No email content could be extracted. Try refreshing the page or opening the email thread.';
         return;
       }
 
       // Step 3: Set guaranteed fields first (easy wins for LLM context)
-      if (emailData.email) state.set('email', emailData.email);
-      if (emailData.name) state.set('name', emailData.name);
-      state.set('source', 'gmail');
-      
+      if (emailData.email) this.STATE.Client.email = emailData.email;
+      if (emailData.name) {
+        this.STATE.Client.name = emailData.name;
+        this.STATE.Booking.clientId = emailData.name; // Duplicate name as clientId
+      }
+      this.STATE.Booking.source = 'gmail';
+
       // Step 4: Send to LLM for processing
       const llmResult = await this._sendToLLM(emailData, threadContent);
       if (llmResult) {
-        Object.entries(llmResult).forEach(([key, value]) => {
-          if (value !== null && value !== undefined && value !== '') {
-            state.set(key, value);
-          }
-        });
-        state.set('processingStatus', 'LLM processed successfully');
+        // Update each sub-object separately - but preserve basic email/name
+        if (llmResult.Client) {
+          Object.entries(llmResult.Client).forEach(([key, value]) => {
+            if (value !== null && value !== undefined && value !== '') {
+              this.STATE.Client[key] = value;
+            }
+          });
+        }
+        if (llmResult.Booking) {
+          Object.entries(llmResult.Booking).forEach(([key, value]) => {
+            if (value !== null && value !== undefined && value !== '') {
+              this.STATE.Booking[key] = value;
+            }
+          });
+        }
+        if (llmResult.Config) {
+          Object.entries(llmResult.Config).forEach(([key, value]) => {
+            if (value !== null && value !== undefined && value !== '') {
+              this.STATE.Config[key] = value;
+            }
+          });
+        }
+        this.STATE._processingStatus = 'LLM processed successfully';
       } else {
-        state.set('processingStatus', 'LLM unavailable - raw text only');
+        this.STATE._processingStatus = 'LLM unavailable - basic extraction only';
       }
-      
 
+      // ALWAYS ensure basic email/name persist (even if LLM overwrote them with null)
+      if (emailData.email && !this.STATE.Client.email) this.STATE.Client.email = emailData.email;
+      if (emailData.name && !this.STATE.Client.name) {
+        this.STATE.Client.name = emailData.name;
+        this.STATE.Booking.clientId = emailData.name;
+      }
       
     } catch (error) {
       console.error('Gmail parser error:', error);
       // Set minimal fallback data
-      state.set('source', 'gmail');
-      state.set('parseError', error.message);
+      this.STATE.Booking = this.STATE.Booking || {};
+      this.STATE.Booking.source = 'gmail';
+      this.STATE._parseError = error.message;
     }
+
+    // Return the state object (sidebar will handle saving)
+    return this.STATE;
   }
 
 
@@ -216,31 +288,48 @@ class GmailParser extends ParserInterface {
    */
   async _sendToLLM(emailData, threadContent) {
     try {
-      // Load LLM configuration from extension config file
-      const configResponse = await fetch(chrome.runtime.getURL('invoicer_config.json'));
-      const config = await configResponse.json();
+      // Ensure CONFIG is loaded
+      await this._initializeConfig();
       
-      const llmConfig = config.llm;
+      const llmConfig = CONFIG.llm;
       if (!llmConfig?.baseUrl || !llmConfig?.endpoints?.completions) {
         throw new Error('Invalid LLM configuration');
       }
 
       // Construct structured prompt for booking data extraction
-      const prompt = this._buildLLMPrompt(emailData, threadContent, config.gmailParser);
+      const prompt = this._buildLLMPrompt(emailData, threadContent, CONFIG.gmailParser);
       
       // Send request via background script to avoid CORS issues
       const response = await this._sendLLMRequest(llmConfig, prompt);
 
+      console.log('LLM request sent, processing response...');
+      // console.log('LLM response received:', response);
+      // console.log('Response ok:', response?.ok);
+      // console.log('Response data:', response?.data);
+      // console.log('Content array:', response?.data?.content);
+
       if (!response?.ok) {
+        console.error('LLM request failed:', response?.error || 'Request failed');
         return null;
       }
       
-      const content = response.data?.choices?.[0]?.message?.content;
-      return content ? this._parseLLMResponse(content) : null;
+      // Handle Anthropic API response format - content is directly the text
+      const contentArray = response.data?.content;
+      const firstContent = contentArray?.[0];
+      const textContent = firstContent?.text || firstContent;
+       
+      return textContent ? this._parseLLMResponse(textContent) : null;
       
     } catch (error) {
-      // Gracefully handle LLM failures - don't spam console with errors
-      console.warn('LLM processing unavailable. Falling back to raw text extraction.');
+      // Log detailed error for debugging
+      console.error('LLM processing failed with error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        llmConfigExists: !!CONFIG?.llm,
+        baseUrl: CONFIG?.llm?.baseUrl,
+        endpoints: CONFIG?.llm?.endpoints
+      });
       return null;
     }
   }
@@ -275,7 +364,7 @@ ${threadContent}
    * @param {string} prompt - Prompt to send
    * @returns {Object|null} Response from background script
    */
-  async _sendLLMRequest(llmConfig, prompt) {
+  async _sendLocalLLMRequest(llmConfig, prompt) {
     const llmRequest = {
       url: `${llmConfig.baseUrl}${llmConfig.endpoints.completions}`,
       method: 'POST',
@@ -317,87 +406,151 @@ ${threadContent}
   }
 
   /**
+   * Send LLM request using config endpoints
+   * @param {Object} llmConfig - LLM configuration
+   * @param {string} prompt - Prompt to send
+   * @returns {Object|null} Response from LLM API
+   */
+  async _sendLLMRequest(llmConfig, prompt) {
+    const llmRequest = {
+      url: `${llmConfig.baseUrl}${llmConfig.endpoints.completions}`,
+      method: 'POST',
+      headers: {
+        'x-api-key': llmConfig['api-key'],
+        'anthropic-version': llmConfig['anthropic-version'],
+        'content-type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: {
+        model: llmConfig.provider,
+        max_tokens: llmConfig.max_tokens,
+        messages: [{ role: 'user', content: prompt }]
+      }
+    };
+
+    console.log(`Sending LLM request to ${llmConfig.baseUrl}`);
+
+    return new Promise((resolve) => {
+      try {
+        chrome.runtime.sendMessage(
+          { type: 'leedz_llm_request', request: llmRequest },
+          (response) => {
+            console.log("LLM response received");
+            if (chrome.runtime.lastError) {
+              console.error('Chrome runtime error:', chrome.runtime.lastError.message);
+              resolve(null);
+            } else if (!response) {
+              console.log('No response from background script');
+              resolve(null);
+            } else {
+              console.log('Valid response received');
+              resolve(response);
+            }
+          }
+        );
+      } catch (error) {
+        console.error('Exception sending message:', error);
+        resolve(null);
+      }
+    });
+  }
+
+  /**
    * Parse LLM response and extract JSON data
    * @param {string} content - Raw LLM response content
    * @returns {Object|null} Parsed booking data or null
    */
   _parseLLMResponse(content) {
     try {
+      console.log('_parseLLMResponse called with content:', content?.substring(0, 200));
       const jsonMatch = content.match(/\{[\s\S]*\}/);
+      console.log('JSON match found:', !!jsonMatch);
       if (jsonMatch) {
+        console.log('Matched JSON:', jsonMatch[0].substring(0, 200));
         const parsed = JSON.parse(jsonMatch[0]);
+        console.log('Parsed JSON:', parsed);
         
-        // Map LLM fields to our booking fields
-        const mapped = {};
+        // Map LLM fields to our structured state
+        const mapped = {
+          Client: {},
+          Booking: {},
+          Config: {}
+        };
         
-        // Direct mappings for all expected fields from the updated prompt
-        const fieldsToMap = [
-          'name',
-          'email',
-          'phone',
-          'location',
-          // 'startDate', // Handled below
-          // 'endDate',   // Handled below
-          'startTime',
-          'endTime',
-          'duration',
-          'hourlyRate',
-          'flatRate',
-          'totalAmount',
-          'description',
-          'company', 
-          'notes'    
-        ];
+        // Define field categories
+        const clientFields = ['name', 'email', 'phone', 'company', 'notes'];
+        const bookingFields = ['description', 'location', 'startDate', 'endDate', 
+                             'startTime', 'endTime', 'duration', 'hourlyRate', 
+                             'flatRate', 'totalAmount', 'status', 'source'];
 
-        fieldsToMap.forEach(field => {
-          if (parsed[field] !== undefined && parsed[field] !== null && parsed[field] !== 'Not applicable' && parsed[field] !== 'Not specified') {
-            mapped[field] = parsed[field];
+        // Map fields to appropriate sub-objects
+        Object.entries(parsed).forEach(([field, value]) => {
+          if (value === 'Not applicable' || value === 'Not specified') {
+            value = null;
+          }
+
+          if (value !== undefined && value !== null) {
+            if (clientFields.includes(field)) {
+              mapped.Client[field] = value;
+            } else if (bookingFields.includes(field)) {
+              mapped.Booking[field] = value;
+              // Convert numeric fields
+              if (['hourlyRate', 'flatRate', 'totalAmount', 'duration'].includes(field)) {
+                mapped.Booking[field] = parseFloat(value) || null;
+              }
+            }
           }
         });
+        
+        // Ensure clientId is set from Client.name
+        if (mapped.Client.name) {
+          mapped.Booking.clientId = mapped.Client.name;
+        }
 
         // Handle date mapping: Prioritize startDate/endDate, then parsed.date
         if (parsed.startDate && parsed.startDate !== 'Not applicable' && parsed.startDate !== 'Not specified') {
-          mapped.startDate = parsed.startDate;
+          mapped.Booking.startDate = parsed.startDate;
         }
         if (parsed.endDate && parsed.endDate !== 'Not applicable' && parsed.endDate !== 'Not specified') {
-          mapped.endDate = parsed.endDate;
+          mapped.Booking.endDate = parsed.endDate;
         }
         if (parsed.date && parsed.date !== 'Not applicable' && parsed.date !== 'Not specified') {
-          if (!mapped.startDate) mapped.startDate = parsed.date;
-          if (!mapped.endDate) mapped.endDate = parsed.date; // Auto-complete endDate if not explicitly provided
+          if (!mapped.Booking.startDate) mapped.Booking.startDate = parsed.date;
+          if (!mapped.Booking.endDate) mapped.Booking.endDate = parsed.date; // Auto-complete endDate if not explicitly provided
         }
         
         // Smart time correction based on duration: If duration suggests overnight work
-        if (mapped.startTime && mapped.endTime && mapped.duration) {
-          const duration = parseFloat(mapped.duration);
+        if (mapped.Booking.startTime && mapped.Booking.endTime && mapped.Booking.duration) {
+          const duration = parseFloat(mapped.Booking.duration);
           if (!isNaN(duration)) {
-            const correctedTimes = this._correctTimesWithDuration(mapped.startTime, mapped.endTime, duration);
+            const correctedTimes = this._correctTimesWithDuration(mapped.Booking.startTime, mapped.Booking.endTime, duration);
             if (correctedTimes) {
-              mapped.startTime = correctedTimes.startTime;
-              mapped.endTime = correctedTimes.endTime;
+              mapped.Booking.startTime = correctedTimes.startTime;
+              mapped.Booking.endTime = correctedTimes.endTime;
             }
           }
         }
         
         // Handle potential alternate mappings or consolidations
-        // if (parsed.serviceDate && !mapped.startDate) mapped.startDate = parsed.serviceDate; // Removed as LLM now returns startDate/endDate
-        if (parsed.address && !mapped.location) mapped.location = parsed.address;
-        if (parsed.rate && parsed.rate !== 'Not applicable' && parsed.rate !== 'Not specified' && !mapped.hourlyRate) {
-          mapped.hourlyRate = parsed.rate; // Use parsed.rate if hourlyRate is not set
+        // if (parsed.serviceDate && !mapped.Booking.startDate) mapped.Booking.startDate = parsed.serviceDate; // Removed as LLM now returns startDate/endDate
+        if (parsed.address && !mapped.Booking.location) mapped.Booking.location = parsed.address;
+        if (parsed.rate && parsed.rate !== 'Not applicable' && parsed.rate !== 'Not specified' && !mapped.Booking.hourlyRate) {
+          mapped.Booking.hourlyRate = parsed.rate; // Use parsed.rate if hourlyRate is not set
         }
 
         // Special handling for duration, rates, and amounts to ensure they are numbers
-        if (mapped.duration) mapped.duration = parseFloat(mapped.duration);
-        if (mapped.hourlyRate) mapped.hourlyRate = parseFloat(mapped.hourlyRate);
-        if (mapped.flatRate) mapped.flatRate = parseFloat(mapped.flatRate);
-        if (mapped.totalAmount) mapped.totalAmount = parseFloat(mapped.totalAmount);
+        if (mapped.Booking.duration) mapped.Booking.duration = parseFloat(mapped.Booking.duration);
+        if (mapped.Booking.hourlyRate) mapped.Booking.hourlyRate = parseFloat(mapped.Booking.hourlyRate);
+        if (mapped.Booking.flatRate) mapped.Booking.flatRate = parseFloat(mapped.Booking.flatRate);
+        if (mapped.Booking.totalAmount) mapped.Booking.totalAmount = parseFloat(mapped.Booking.totalAmount);
 
         // Clean up NaN values resulting from parseFloat if original was not a valid number
-        if (isNaN(mapped.duration)) delete mapped.duration;
-        if (isNaN(mapped.hourlyRate)) delete mapped.hourlyRate;
-        if (isNaN(mapped.flatRate)) delete mapped.flatRate;
-        if (isNaN(mapped.totalAmount)) delete mapped.totalAmount;
+        if (isNaN(mapped.Booking.duration)) mapped.Booking.duration = null;
+        if (isNaN(mapped.Booking.hourlyRate)) mapped.Booking.hourlyRate = null;
+        if (isNaN(mapped.Booking.flatRate)) mapped.Booking.flatRate = null;
+        if (isNaN(mapped.Booking.totalAmount)) mapped.Booking.totalAmount = null;
         
+        console.log('Final mapped object:', mapped);
         return mapped;
       }
       return null;
@@ -485,6 +638,104 @@ ${threadContent}
       return null;
     }
   }
+}
+
+// Node.js standalone test function
+async function main() {
+  console.log('=== Gmail Parser Node.js Test ===');
+  
+  // Mock chrome runtime for Node.js  
+  const fs = await import('fs');
+  const path = await import('path');
+  const url = new URL(import.meta.url);
+  const __dirname = path.dirname(url.pathname.replace(/^\/([A-Z]:)/, '$1'));
+  
+  global.chrome = {
+    runtime: {
+      getURL: (path) => {
+        const configPath = `${__dirname}/../../${path}`;
+        console.log('Trying to load config from:', configPath);
+        return `file://${configPath}`;
+      }
+    }
+  };
+  
+  // Mock fetch for Node.js
+  if (typeof fetch === 'undefined') {
+    const { default: nodeFetch } = await import('node-fetch');
+    global.fetch = nodeFetch;
+  }
+  
+  try {
+    // Load config directly in Node.js
+    const configPath = `${__dirname}/../../invoicer_config.json`;
+    const configContent = await fs.promises.readFile(configPath, 'utf8');
+    CONFIG = JSON.parse(configContent);
+    console.log('Config loaded directly from:', configPath);
+    
+    const parser = new GmailParser();
+    
+    console.log('Config loaded:', !!CONFIG);
+    console.log('LLM Config:', {
+      baseUrl: CONFIG?.llm?.baseUrl,
+      endpoints: CONFIG?.llm?.endpoints,
+      hasApiKey: !!CONFIG?.llm?.['api-key']
+    });
+    
+    // Test LLM request directly
+    const testPrompt = "Extract booking info from: 'Meeting with Laura at 2pm tomorrow for 3 hours at $150/hr'";
+    console.log('Testing LLM request...');
+    
+    const llmRequest = {
+      url: `${CONFIG.llm.baseUrl}${CONFIG.llm.endpoints.completions}`,
+      method: 'POST',
+      headers: {
+        'x-api-key': CONFIG.llm['api-key'],
+        'anthropic-version': CONFIG.llm['anthropic-version'],
+        'content-type': 'application/json'
+      },
+      body: {
+        model: CONFIG.llm.provider,
+        max_tokens: CONFIG.llm.max_tokens,
+        messages: [{ role: 'user', content: testPrompt }]
+      }
+    };
+    
+    console.log('Request URL:', llmRequest.url);
+    console.log('Request headers:', llmRequest.headers);
+    console.log('Request body:', JSON.stringify(llmRequest.body, null, 2));
+    
+    // Make direct fetch request
+    const response = await fetch(llmRequest.url, {
+      method: llmRequest.method,
+      headers: llmRequest.headers,
+      body: JSON.stringify(llmRequest.body)
+    });
+    
+    console.log('Response status:', response.status, response.statusText);
+    console.log('Response ok:', response.ok);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Response data:', JSON.stringify(data, null, 2));
+      
+      const content = data?.content?.[0]?.text;
+      console.log('Extracted content:', content);
+    } else {
+      const error = await response.text();
+      console.error('Error response:', error);
+    }
+    
+  } catch (error) {
+    console.error('Test failed:', error);
+  }
+}
+
+// Run main if this file is executed directly in Node.js
+console.log('Module check:', typeof module, typeof require);
+if (typeof process !== 'undefined' && process.argv[1] && process.argv[1].endsWith('gmail_parser.js')) {
+  console.log('Running main...');
+  main().catch(console.error);
 }
 
 export default GmailParser;

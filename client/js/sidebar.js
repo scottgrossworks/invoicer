@@ -1,52 +1,14 @@
 // sidebar.js — LeedzEx Sidebar Control Logic (Simplified for Debugging)
 
-import { StateFactory } from './state.js';
+import { StateFactory, mergePageData } from './state.js';
 import { initLogging, log, logError } from './logging.js';
 import PDF_settings from './settings/PDF_settings.js';
 
-import { getDbLayer, getParsers, getRenderer } from './provider_registry.js';
-
-// Create state instance for this app
-const state = StateFactory.create();
-
-// DEBUG: Monitor state changes to catch corruption
-const originalSet = state.set;
-const originalClear = state.clear;
-let stateChangeCounter = 0;
-
-state.set = function(key, value) {
-  const beforeState = JSON.stringify(state.toObject());
-  const result = originalSet.call(state, key, value);
-  const afterState = JSON.stringify(state.toObject());
-
-  stateChangeCounter++;
-  console.log(`=== STATE CHANGE #${stateChangeCounter} ===`);
-  console.log(`Key: ${key}, Value: ${value}`);
-  console.log(`Before: ${beforeState}`);
-  console.log(`After: ${afterState}`);
-
-  // Check for data loss
-  if (key !== '_parserTimestamp' && key !== 'totalAmount' && beforeState !== '{}' && afterState === '{}') {
-    console.error('WARNING: State was cleared during set operation!');
-    console.trace('State clear trace:');
-  }
-
-  return result;
-};
-
-state.clear = function() {
-  const beforeState = JSON.stringify(state.toObject());
-  const result = originalClear.call(state);
-
-  stateChangeCounter++;
-  console.log(`=== STATE CLEAR #${stateChangeCounter} ===`);
-  console.log(`Before clear: ${beforeState}`);
-  console.log(`After clear: ${JSON.stringify(state.toObject())}`);
-
-  return result;
-};
+import { getDbLayer, getParsers } from './provider_registry.js';
 
 
+const PDF_SETTINGS_JS = './settings/PDF_settings.js';
+const PDF_RENDER_JS = 'js/render/PDF_render.js';
 
 // Debug check to confirm script execution
 log('sidebar.js executing. Checking environment...');
@@ -61,7 +23,7 @@ initLogging();
 //////////////////// END LOGGING  /////////////////////
 
 
-
+let STATE = null;
 
 
 
@@ -71,12 +33,37 @@ initLogging();
 //
 //
 */
-document.addEventListener('DOMContentLoaded', () => {
-  wireUI();
-  reloadParsers();
-});  // CLOSED the DOMContentLoaded listener
+document.addEventListener('DOMContentLoaded', async () => {
+  await initializeApp();
+});
 
-// log('sidebar.js script loaded');
+async function initializeApp() {
+  try {
+    // Initialize state with persistence
+    STATE = await StateFactory.create();
+    
+    // Listen for storage changes from settings page
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName === 'local' && changes.currentBookingState) {
+        // Reload state from storage and update display
+        STATE.load().then(() => {
+          updateFormFromState( STATE );
+        });
+      }
+    });
+    
+    // Wire up UI
+    wireUI();
+    
+    // Initialize parser and reload
+    await reloadParsers();
+  } catch (error) {
+    console.error('Failed to initialize app:', error);
+    log('Initialization failed');
+  }
+}
+
+log('Leedz Extension loaded');
 
 
 
@@ -91,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function reloadParsers() {
   try {
     showLoadingSpinner();
-    setStatus('Detecting page type...');
+    log('Detecting page type...');
 
     // Get current tab URL and tabId
     const { url, tabId } = await new Promise(resolve => {
@@ -100,7 +87,7 @@ async function reloadParsers() {
 
     if (!url || !tabId) {
       log('Cannot auto-detect page data');
-      setStatus('No page detected');
+      log('No page detected');
       return;
     }
 
@@ -110,17 +97,24 @@ async function reloadParsers() {
     let matched = false;
     for (const p of parsers) {
       try {
-        log(`Checking: ${p.name || 'unnamed'}`);
+        // log(`Checking: ${p.name || 'unnamed'}`);
         // Check if parser matches this URL
         if (p.checkPageMatch && await p.checkPageMatch(url)) {
-          setStatus(`Parsing with ${p.name || 'parser'}...`);
+          log(`Initializing ${p.name || 'parser'}...`);
+          
+          // Initialize state with parser defaults
+          if (p.initialize) {
+            await p.initialize( STATE );
+          }
+          
           log(`Parser ${p.name} matched! Parsing...`);
 
           // Wrap the async chrome.tabs.sendMessage in a Promise to make it awaitable
           await new Promise((resolve, reject) => {
             chrome.tabs.sendMessage(tabId, {
               type: 'leedz_parse_page',
-              parser: p.name
+              parser: p.name,
+              state: STATE.toObject()
             }, (response) => {
               if (response?.ok && response?.data) {
                 log(`Parser ${p.name} completed successfully`);
@@ -132,46 +126,19 @@ async function reloadParsers() {
 
                 // Store parser data with timestamp for tracking
                 const parserTimestamp = Date.now();
-                state.set('_parserTimestamp', parserTimestamp);
+                STATE._parserTimestamp = parserTimestamp;
 
-                Object.entries(response.data).forEach(([k, v]) => {
-                  if (v !== null && v !== undefined && v !== '') {
-                    state.set(k, v);
-                    //console.log(`State set for ${k}: ${v}`);
-                  }
-                });
+                // Merge parsed data into state's sub-objects
+                mergePageData(STATE, response.data);
 
-                // DEBUG: Log state immediately after parser completion
-                // console.log('=== STATE AFTER PARSER COMPLETION ===');
-                // console.log('State object:', JSON.stringify(state.toObject(), null, 2));
-                // console.log('Parser timestamp stored:', parserTimestamp);
-
-                updateFormFromState();
-
-                              // Save current state to Chrome storage for settings page access - moved here to ensure state is fully updated
-              const stateToSave = state.toObject();
-              //console.log('=== ABOUT TO SAVE TO CHROME STORAGE ===');
-              //console.log('State being saved to Chrome storage:', JSON.stringify(stateToSave, null, 2));
-
-              chrome.storage.local.set({ 'currentBookingState': stateToSave }, () => {
-                if (chrome.runtime.lastError) {
-                  console.error('Chrome storage save error:', chrome.runtime.lastError);
-                } else {
-                  // console.log('=== CHROME STORAGE SAVE COMPLETED ===');
-                  console.log('Data saved to Chrome storage successfully');
-
-                  // Verify what was actually saved
-                  chrome.storage.local.get(['currentBookingState'], (result) => {
-                    //console.log('=== CHROME STORAGE VERIFICATION ===');
-                    console.log('Data retrieved from Chrome storage:', JSON.stringify(result.currentBookingState, null, 2));
-                  });
-                }
-                resolve(); // Resolve the promise after Chrome storage operation
-              });
+                updateFormFromState( STATE );
+                
+                // State automatically saves itself
+                resolve();
 
               } else {
                 logError(`Parser ${p.name} failed:`, response?.error || 'Unknown error');
-                setStatus('Parse failed');
+                log('Parse failed');
                 resolve(); // Still resolve even on failure
               }
             });
@@ -188,19 +155,15 @@ async function reloadParsers() {
     }
 
     if (!matched) {
-      setStatus('No matching parser found for this page');
+      log('No matching parser found for this page');
     }
   } catch (error) {
     logError('Error in reloadParsers:', error);
-    setStatus('Parser error');
+    log('Parser error');
   } finally {
     hideLoadingSpinner();
   }
 }
-
-
-
-
 
 
 
@@ -243,35 +206,88 @@ function populateBookingTable() {
   const tbody = document.getElementById('booking_tbody');
   if (!tbody) return;
 
-  // DEBUG: Log state at start of table population
-  console.log('=== POPULATE BOOKING TABLE STARTED ===');
-  const stateObj = state.toObject ? state.toObject() : {};
-  console.log('State object in populateBookingTable:', JSON.stringify(stateObj, null, 2));
-
+  
   // Clear existing rows
   tbody.innerHTML = '';
 
-  // Valid Client fields
-  const clientFields = ['name', 'email', 'phone', 'company'];
 
-  // Valid Booking fields
-  const bookingFields = ['description', 'location',
-    'startDate', 'startTime', 'endDate', 'endTime', 'duration',
-    'hourlyRate', 'flatRate', 'totalAmount', 'notes'];
+  // FIXME FIXME FIXME
+  // can these be taken directly from the state object keys?
+  // they MUST be in sync with them for sure
+  // Define all fields that should appear in the form
+  const allFields = [
+    // Client fields
+    'name', 'email', 'phone', 'company', 'notes',
+    // Booking fields  
+    'description', 'location', 'startDate', 'endDate', 'startTime', 'endTime', 
+    'duration', 'hourlyRate', 'flatRate', 'totalAmount'
+  ];
 
-  const allFields = [...clientFields, ...bookingFields];
-  // log('stateObj at start of populateBookingTable:', stateObj);
-  
-    // Auto-complete endDate to match startDate if endDate is missing
-  if (stateObj.startDate && !stateObj.endDate) {
-    state.set('endDate', stateObj.startDate);
-    stateObj.endDate = stateObj.startDate; // Update local copy for display
+  // Populate table rows with booking and client data
+  allFields.forEach(field => {
+    const row = document.createElement('tr');
+
+    // Field name cell
+    const nameCell = document.createElement('td');
+    nameCell.className = 'field-name';
+    nameCell.textContent = field;
+
+    // Field value cell with input
+    const valueCell = document.createElement('td');
+    valueCell.className = 'field-value';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.setAttribute('data-field', field);
+    
+    // Convert time fields to 12-hour format and date fields to readable format for display
+    let displayValue = STATE.Booking[field] || STATE.Client[field] || '';
+    if ((field === 'startTime' || field === 'endTime') && displayValue) {
+      displayValue = convertTo12Hour(displayValue);
+      //log(`  After convertTo12Hour for ${field}: ${displayValue}`);
+    }
+    if ((field === 'startDate' || field === 'endDate') && displayValue) {
+      displayValue = formatDateForDisplay(displayValue);
+    }
+
+    input.value = displayValue;
+
+    // Add event listener to sync changes back to state on input
+    input.addEventListener('input', (event) => {
+      syncFormFieldToState(field, event.target.value);
+    });
+
+    // Add Enter key listener to commit and format the value
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault(); // Prevent form submission
+        commitAndFormatField(field, event.target);
+      }
+    });
+
+    // Add blur listener to commit and format when user leaves field
+    input.addEventListener('blur', (event) => {
+      commitAndFormatField(field, event.target);
+    });
+    valueCell.appendChild(input);
+    row.appendChild(nameCell);
+    row.appendChild(valueCell);
+    tbody.appendChild(row);
+  });
+
+
+  // START AND END TIMES
+  // Auto-complete endDate to match startDate if endDate is missing
+  if (STATE.Booking.startDate && !STATE.Booking.endDate) {
+    STATE.Booking.endDate = STATE.Booking.startDate;
   }
-  
+
+
+  // DURATION
   // Calculate duration before displaying if startTime and endTime are available
   let duration;
-  const startTime = stateObj.startTime;
-  const endTime = stateObj.endTime;
+  const startTime = STATE.Booking.startTime;
+  const endTime = STATE.Booking.endTime;
 
   if (startTime && endTime) {
     const [startHours, startMinutes] = startTime.split(':').map(Number);
@@ -287,133 +303,19 @@ function populateBookingTable() {
     }
 
     const durationHours = (duration / 60).toFixed(1);
-    state.set('duration', durationHours);
-    stateObj.duration = durationHours; // Update local copy for display
+    const durationNum = parseFloat(durationHours);
+    STATE.Booking.duration = durationNum;
   }
   
   // Calculate totalAmount before displaying if hourlyRate and duration are available
-  const hourlyRate = parseFloat(stateObj.hourlyRate);
-  const calculatedDuration = parseFloat(stateObj.duration);
+  const hourlyRate = parseFloat(STATE.Booking.hourlyRate);
+  const calculatedDuration = parseFloat(STATE.Booking.duration);
   if (!isNaN(hourlyRate) && !isNaN(calculatedDuration) && hourlyRate > 0 && calculatedDuration > 0) {
     const total = hourlyRate * calculatedDuration;
-    state.set('totalAmount', total.toFixed(2));
-    stateObj.totalAmount = total.toFixed(2); // Update local copy for display
+    STATE.Booking.totalAmount = total.toFixed(2);
   }
   
-  // Create table rows for all fields
-  allFields.forEach(field => {
-    const row = document.createElement('tr');
-    
-    // Field name cell
-    const nameCell = document.createElement('td');
-    nameCell.className = 'field-name';
-    nameCell.textContent = field;
-    
-    // Field value cell with input
-    const valueCell = document.createElement('td');
-    valueCell.className = 'field-value';
-    
-    const input = document.createElement('input');
-    input.type = 'text';
-    
-    // Convert time fields to 12-hour format for display
-    let displayValue = stateObj[field] || '';
-    //log(`Field: ${field}, stateObj[field]: ${stateObj[field]}, initial displayValue: ${displayValue}`);
-    if ((field === 'startTime' || field === 'endTime') && displayValue) {
-      displayValue = convertTo12Hour(displayValue);
-      //log(`  After convertTo12Hour for ${field}: ${displayValue}`);
-    }
-    // Pretty-print ISO-like dates for display only
-    if ((field === 'startDate' || field === 'endDate') && displayValue) {
-      displayValue = formatDateForDisplay(displayValue);
-      //log(`  After formatDateForDisplay for ${field}: ${displayValue}`);
-    }
-    
-    // Add 'hours' suffix to duration for display
-    if (field === 'duration' && displayValue) {
-      displayValue = `${displayValue} hours`;
-    }
-    
-    // Define formatCurrency function - ALWAYS display with $ prefix
-    function formatCurrency(value) {
-      if (!value || value === '' || value === null || value === undefined) {
-        return '$0';
-      }
-      
-      const strValue = String(value).trim();
-      
-      // If already has $, return as is
-      if (strValue.startsWith('$')) {
-        return strValue;
-      }
-      
-      // Add $ prefix to any non-empty value
-      return `$${strValue}`;
-    }
-
-    // Ensure currency fields display with a '$' prefix
-    if (field === 'hourlyRate' || field === 'flatRate' || field === 'totalAmount') {
-      displayValue = formatCurrency(displayValue);
-    }
-    
-    input.value = displayValue;
-    input.setAttribute('data-field', field);
-    
-
-    // Handle Enter key to commit changes and format currency
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const fieldName = e.target.getAttribute('data-field');
-        const value = e.target.value.trim();
-
-        // Remove 'hours' suffix from duration before storing
-        let processedValue = value;
-        if (fieldName === 'duration' && processedValue) {
-          processedValue = processedValue.replace(/\s*hours?\s*$/i, '').trim();
-        }
-
-        // Ensure currency fields display with a '$' prefix
-        if (fieldName === 'hourlyRate' || fieldName === 'flatRate' || fieldName === 'totalAmount') {
-          processedValue = formatCurrency(processedValue);
-          e.target.value = processedValue; // Update display immediately
-        }
-
-        // Add 'hours' suffix to duration for display
-        if (fieldName === 'duration' && processedValue) {
-          e.target.value = `${processedValue} hours`;
-        }
-
-        // Update state only on Enter
-        if (processedValue) {
-          state.set(fieldName, processedValue);
-        } else {
-          state.set(fieldName, null);
-        }
-
-        // Handle auto-calculations
-        handleFieldCalculations(fieldName, processedValue);
-
-        e.target.blur(); // Remove focus to show the value is committed
-      }
-    });
-
-    // Handle blur for currency formatting (but don't update state)
-    input.addEventListener('blur', (e) => {
-      const fieldName = e.target.getAttribute('data-field');
-      if (fieldName === 'hourlyRate' || fieldName === 'flatRate' || fieldName === 'totalAmount') {
-        const value = e.target.value.trim();
-        if (value && !value.startsWith('$')) {
-          e.target.value = formatCurrency(value);
-        }
-      }
-    });
-    
-    valueCell.appendChild(input);
-    row.appendChild(nameCell);
-    row.appendChild(valueCell);
-    tbody.appendChild(row);
-  });
+  // Note: First loop already handled all fields
 }
 
 
@@ -481,8 +383,8 @@ function convertTo24Hour(time12) {
  * Updates the state and refreshes the duration input field.
  */
 function calculateDuration() {
-  const startTime = state.get('startTime');
-  const endTime = state.get('endTime');
+  const startTime = STATE.Booking.startTime;
+  const endTime = STATE.Booking.endTime;
   
   if (!startTime || !endTime) return;
   
@@ -505,9 +407,9 @@ function calculateDuration() {
   
   // Convert back to hours (with decimal)
   const durationHours = (duration / 60).toFixed(1);
-  
-  state.set('duration', durationHours);
-  
+
+  STATE.Booking.duration = durationHours;
+
   // Update the duration input field if it exists
   const durationInput = document.querySelector('input[data-field="duration"]');
   if (durationInput) {
@@ -523,17 +425,17 @@ function calculateDuration() {
  * Updates the state and refreshes the totalAmount input field.
  */
 function calculateTotalAmount() {
-  const hourlyRate = parseFloat(state.get('hourlyRate'));
-  const duration = parseFloat(state.get('duration'));
-  
+  const hourlyRate = parseFloat(STATE.Booking.hourlyRate);
+  const duration = parseFloat(STATE.Booking.duration);
+
   if (!isNaN(hourlyRate) && !isNaN(duration) && hourlyRate > 0 && duration > 0) {
     const total = hourlyRate * duration;
-    state.set('totalAmount', total.toFixed(2));
+    STATE.Booking.totalAmount = total; // Store as number
     
     // Update the totalAmount input field if it exists
     const totalInput = document.querySelector('input[data-field="totalAmount"]');
     if (totalInput) {
-      totalInput.value = formatCurrency(total.toFixed(2));
+      totalInput.value = formatCurrency(total.toFixed(2)); // Format for display
     }
   }
 }
@@ -542,14 +444,9 @@ function calculateTotalAmount() {
  * Update the display table from current state.
  * Populates the booking table with all fields and values.
  */
-function updateFormFromState() {
-  console.log('=== UPDATE FORM FROM STATE CALLED ===');
-  console.log('State before form update:', JSON.stringify(state.toObject(), null, 2));
-
-  hideLoadingSpinner();
+function updateFormFromState( state ) {
+  STATE = state;
   populateBookingTable();
-
-  console.log('State after form update:', JSON.stringify(state.toObject(), null, 2));
 }
 
 /**
@@ -563,7 +460,7 @@ function handleFieldCalculations(fieldName, value) {
     const endDateInput = document.querySelector('input[data-field="endDate"]');
     if (endDateInput && !endDateInput.value.trim()) {
       endDateInput.value = value;
-      state.set('endDate', value);
+      STATE.Booking.endDate = value;
     }
   }
 
@@ -589,6 +486,133 @@ function formatDateForDisplay(value) {
   return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
+function parseDisplayDateToISO(displayValue) {
+  if (!displayValue) return displayValue;
+  const s = String(displayValue).trim();
+  
+  // If it's already in ISO format, return as-is
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(s)) {
+    return s;
+  }
+  
+  // Try to parse the display format back to ISO
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return s;
+  
+  // Convert to ISO format with local timezone
+  return d.toISOString().slice(0, 19) + getTimezoneOffset();
+}
+
+function getTimezoneOffset() {
+  const offset = new Date().getTimezoneOffset();
+  const hours = Math.floor(Math.abs(offset) / 60).toString().padStart(2, '0');
+  const minutes = (Math.abs(offset) % 60).toString().padStart(2, '0');
+  const sign = offset <= 0 ? '+' : '-';
+  return `${sign}${hours}:${minutes}`;
+}
+
+/**
+ * Commit and format field value when user presses Enter or leaves field
+ * @param {string} fieldName - The field being committed
+ * @param {HTMLInputElement} inputElement - The input element
+ */
+function commitAndFormatField(fieldName, inputElement) {
+  const rawValue = inputElement.value.trim();
+  
+  // Sync to state first
+  syncFormFieldToState(fieldName, rawValue);
+  
+  // Format and update display based on field type
+  let formattedValue = rawValue;
+  
+  // Format currency fields
+  if (['hourlyRate', 'flatRate', 'totalAmount'].includes(fieldName) && rawValue) {
+    const numericValue = parseFloat(rawValue.replace(/[$,]/g, ''));
+    if (!isNaN(numericValue)) {
+      formattedValue = `$${numericValue.toFixed(2)}`;
+    }
+  }
+  
+  // Format time fields to 12-hour format
+  if (['startTime', 'endTime'].includes(fieldName) && rawValue) {
+    const timeValue = convertTo24Hour(rawValue);
+    if (timeValue) {
+      formattedValue = convertTo12Hour(timeValue);
+    }
+  }
+  
+  // Format date fields
+  if (['startDate', 'endDate'].includes(fieldName) && rawValue) {
+    const isoDate = parseDisplayDateToISO(rawValue);
+    if (isoDate) {
+      formattedValue = formatDateForDisplay(isoDate);
+    }
+  }
+  
+  // Update the input display and exit edit mode
+  inputElement.value = formattedValue;
+  inputElement.blur(); // Exit edit mode
+}
+
+function syncFormFieldToState(fieldName, displayValue) {
+  // Convert display formats back to canonical formats
+  let canonicalValue = displayValue;
+  
+  // Handle date fields - convert from display format to ISO format
+  if ((fieldName === 'startDate' || fieldName === 'endDate') && displayValue) {
+    canonicalValue = parseDisplayDateToISO(displayValue);
+  }
+  
+  // Handle time fields - convert from 12-hour to 24-hour format
+  if ((fieldName === 'startTime' || fieldName === 'endTime') && displayValue) {
+    canonicalValue = convertTo24Hour(displayValue);
+  }
+  
+  // Update state based on field category
+  const clientFields = ['name', 'email', 'phone', 'company', 'notes'];
+  const bookingFields = ['description', 'location', 'startDate', 'endDate', 'startTime', 'endTime', 'duration', 'hourlyRate', 'flatRate', 'totalAmount'];
+  
+  if (clientFields.includes(fieldName)) {
+    STATE.Client[fieldName] = canonicalValue;
+  } else if (bookingFields.includes(fieldName)) {
+    STATE.Booking[fieldName] = canonicalValue;
+  }
+  
+  // Trigger automatic calculations
+  handleFieldCalculations(fieldName, canonicalValue);
+}
+
+// DEBUG ONLY - Test function for round-trip date conversion 
+function testDateConversion() {
+  const testISO = "2025-09-18T19:00:00-07:00";
+  console.log("Original ISO:", testISO);
+  
+  const displayFormat = formatDateForDisplay(testISO);
+  console.log("Display format:", displayFormat);
+  
+  const backToISO = parseDisplayDateToISO(displayFormat);
+  console.log("Back to ISO:", backToISO);
+  
+  console.log("Round-trip successful:", testISO.slice(0, 10) === backToISO.slice(0, 10));
+}
+
+// Define formatCurrency function - ALWAYS display with $ prefix
+function formatCurrency(value) {
+  if (value === null || value === undefined || value === '') {
+    return '$0';
+  }
+
+  const strValue = String(value).trim();
+
+  // If already has $, return as is
+  if (strValue.startsWith('$')) {
+    return strValue;
+  }
+
+  // Add $ prefix to any non-empty value
+  return `$${strValue}`;
+}
+
 
 //
 // Reload button
@@ -605,25 +629,20 @@ reloadBtn.addEventListener('click', () => {
 const settingsBtn = document.getElementById('settingsBtn');
 settingsBtn.addEventListener('click', async () => {
   try {
+
+    // save the current state
+    await STATE.save();
+    
     // Dynamic import of PDF settings
-    const { default: PDF_settings } = await import('./settings/PDF_settings.js');
-    const pdfSettings = new PDF_settings();
+    const { default: PDF_settings } = await import(PDF_SETTINGS_JS);
+    const pdfSettings = new PDF_settings( STATE );
     await pdfSettings.open();
+
   } catch (error) {
     console.error('Failed to open settings:', error);
   }
 });
 
-
-
-// FOOTER
-/**
-const footer = document.getElementsByClassName('leedz-grass');
-footer[0].addEventListener('click', () => {
-  // COLLAPSE THE FOOTER?
-  toggleFooter(); // Call to collapse the footer
-});
-*/
 
 
 
@@ -634,26 +653,15 @@ footer[0].addEventListener('click', () => {
  * Also updates the status bar to indicate the reset.
  */
 function clearForm() {
-  console.log('=== CLEAR FORM CALLED ===');
-  console.log('State before clear:', JSON.stringify(state.toObject(), null, 2));
-  console.log('Clear timestamp:', new Date().toISOString());
 
-  state.clear();
-  updateFormFromState(); // Re-render UI with empty state
-  setStatus('Cleared');
+  STATE.clear();
+  updateFormFromState( STATE ); // Re-render UI with empty state
+  log('Cleared');
 
-  console.log('State after clear:', JSON.stringify(state.toObject(), null, 2));
+  //console.log('State after clear:', JSON.stringify(state.toObject(), null, 2));
 }
 
-/**
- * REDIRECTS TO FOOTER
- * @param {string} text - Status message to show
- */
-function setStatus(text) {
-  // const s = document.getElementById('statusText');
-  // if (s) s.textContent = text;
-  log(text);
-}
+
 
 /**
  * Wire UI event handlers for Reload, Cancel, Save, and the editable display window.
@@ -668,224 +676,91 @@ function wireUI() {
 
   const pdfBtn = document.getElementById('pdfBtn');
   if (pdfBtn) pdfBtn.addEventListener('click', () => onPdf());
-
-
-  /**
-  // Add grass toggle functionality
-  const grassToggle = document.getElementById('grass-toggle');
-  if (grassToggle) {
-    console.log('Grass element found, adding click listener...');
-    grassToggle.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      toggleFooter();
-    });
-
-  } else {
-    console.error('Grass toggle element not found!');
-  }
-*/
-
-
-  const display = document.getElementById('display_win');
-  if (display) {
-    // Remove problematic display_win input listener
-    // const display = document.getElementById('display_win');
-    // if (display) {
-    //   display.addEventListener('input', () => {
-    //     console.log('=== DISPLAY_WIN INPUT DETECTED ===');
-    //     console.log('This should NOT be clearing the state from parser data!');
-    //     console.log('Display content:', display.value);
-    //
-    //     const lines = (display.value || '').split(/\r?\n+/);
-    //     console.log('Parsed lines:', lines);
-    //
-    //     // Only clear state if display is actually empty (user manually cleared it)
-    //     if (display.value.trim() === '') {
-    //       console.log('Display is empty, clearing state');
-    //       state.clear();
-    //     } else {
-    //       // Don't clear state for parser data - just update from display
-    //       lines.forEach(line => {
-    //         const idx = line.indexOf('=');
-    //         if (idx > 0) {
-    //           const key = line.slice(0, idx).trim();
-    //           const val = line.slice(idx + 1).trim();
-    //           if (key) state.set(key, val);
-    //         }
-    //       });
-    //     }
-    //   });
-    // }
-  }
 }
+
+
+
 
 /**
  * Save the current state via the configured DB layer.
- * Updates the status bar to reflect progress and result.
+ * 
  */
 async function onSave() {
   try {
-    // DEBUG: Log current timestamp and state before any operations
-    console.log('=== SAVE FUNCTION STARTED ===');
-    console.log('Save timestamp:', new Date().toISOString());
-    const currentStateBefore = state.toObject();
-    console.log('Current state before Chrome storage sync:', JSON.stringify(currentStateBefore, null, 2));
-
-    // Check for parser timestamp to verify data integrity
-    const parserTimestamp = state.get('_parserTimestamp');
-    const saveTimestamp = Date.now();
-    console.log('Parser timestamp:', parserTimestamp);
-    console.log('Save timestamp:', saveTimestamp);
-    console.log('Time difference (ms):', parserTimestamp ? saveTimestamp - parserTimestamp : 'No parser timestamp found');
-
-    // If state is empty, try to restore from Chrome storage first
-    if (Object.keys(currentStateBefore).length === 0 || !currentStateBefore.name || !currentStateBefore.email) {
-      console.log('=== STATE IS EMPTY - ATTEMPTING RECOVERY ===');
-      console.log('Trying to restore from Chrome storage...');
-
-      try {
-        const chromeData = await chrome.storage.local.get(['currentBookingState']);
-        if (chromeData.currentBookingState && Object.keys(chromeData.currentBookingState).length > 0) {
-          console.log('Found data in Chrome storage:', JSON.stringify(chromeData.currentBookingState, null, 2));
-
-          // Restore state from Chrome storage
-          state.fromObject(chromeData.currentBookingState);
-          console.log('State restored from Chrome storage');
-
-          // Re-log the state after recovery
-          console.log('State after recovery:', JSON.stringify(state.toObject(), null, 2));
-        } else {
-          console.log('No data found in Chrome storage');
-        }
-      } catch (storageError) {
-        console.error('Failed to read from Chrome storage:', storageError);
-      }
-    }
-
+       
     // Ensure current state is saved to Chrome storage for PDF settings page
-    await chrome.storage.local.set({ 'currentBookingState': state.toObject() });
+    await STATE.save();
 
-    // DEBUG: Log what we're sending to database
-    console.log('=== DATABASE SAVE DEBUG ===');
-    const stateData = state.toObject();
-    console.log('State object being saved:', JSON.stringify(stateData, null, 2));
+    // CLEAN THE DATA
+    //
+    const stateData = STATE.toObject();
+    // console.log('State object *before* cleaning (raw state.toObject()):', JSON.stringify(stateData, null, 2));
 
-    // Validate critical fields
-    const criticalFields = ['name', 'email'];
-    const recommendedFields = ['location']; // 'description' is now optional and can be null/empty
-    const missingCritical = criticalFields.filter(field => !stateData[field]);
-    const missingRecommended = recommendedFields.filter(field => !stateData[field]);
+    // Flatten hierarchical state to flat structure for DB save
+    const flatStateData = {
+      ...stateData.Client,
+      ...stateData.Booking,
+      ...stateData.Config
+    };
 
-    if (missingCritical.length > 0) {
-      const errorMsg = `Missing required fields: ${missingCritical.join(', ')}`;
-      console.error('CRITICAL ERROR:', errorMsg);
-      console.log('Available fields:', Object.keys(stateData));
-      setStatus(`Save failed: ${errorMsg}`);
-      return; // Don't proceed with save
-    }
-
-    if (missingRecommended.length > 0) {
-      console.warn('WARNING: Missing recommended fields:', missingRecommended);
-      console.log('Available fields:', Object.keys(stateData));
-    }
+    // Remove clientId from flattened data - let DB save function use the created client.id
+    delete flatStateData.clientId;
 
     // Ensure all values are converted to empty strings if they are null or undefined
     const cleanedStateData = {};
-    for (const key in stateData) {
-      cleanedStateData[key] = stateData[key] === null || stateData[key] === undefined ? '' : stateData[key];
+    for (const key in flatStateData) {
+      let value = flatStateData[key];
+
+      // Special handling for currency fields: remove '$' and convert to number
+      if (key === 'hourlyRate' || key === 'flatRate' || key === 'totalAmount' || key === 'duration') {
+        if (typeof value === 'string') {
+          value = value.replace('$', '').trim();
+        }
+        value = parseFloat(value);
+        // If conversion results in NaN, set to null to match nullable number schema
+        if (isNaN(value)) {
+          value = null;
+        }
+      } else if (value === null || value === undefined) {
+        value = ''; // Convert other null/undefined to empty strings
+      }
+      cleanedStateData[key] = value;
     }
 
-    setStatus('Saving...');
+    // console.log('State object *after* cleaning (passed to db.save()):', JSON.stringify(cleanedStateData, null, 2));
+
+    log('Saving...');
     const db = await getDbLayer();
     await db.save(cleanedStateData); // Pass the cleaned state data
-    setStatus('Saved');
+    log('Saved');
 
-    console.log('=== SAVE FUNCTION COMPLETED SUCCESSFULLY ===');
   } catch (e) {
     logError('Save failed:', e);
-    console.error('=== SAVE FUNCTION FAILED ===');
     console.error('Error details:', e);
-    console.error('State at time of failure:', JSON.stringify(state.toObject(), null, 2));
-    setStatus('Save failed');
-  }
-}
-
-
-
-
-async function onPdf() {
-  try {
-    setStatus('Rendering PDF...');
-    
-    // Import PDF render class directly (same as pdf_settings_page.js)
-    const { default: PDF_render } = await import(chrome.runtime.getURL('js/render/PDF_render.js'));
-    const pdfRender = new PDF_render();
-    
-    const pdfSettings = new PDF_settings();
-    const settings = await pdfSettings.load();
-
-    // DEBUG: Log Chrome storage read operation
-    console.log('=== PDF FUNCTION: READING FROM CHROME STORAGE ===');
-
-    // Get real booking state from Chrome storage
-    const stateData = await chrome.storage.local.get(['currentBookingState']);
-    console.log('PDF function - Chrome storage data retrieved:', JSON.stringify(stateData.currentBookingState, null, 2));
-
-    // DEBUG: Compare with main state
-    console.log('PDF function - Main state comparison:', JSON.stringify(state.toObject(), null, 2));
-
-    // Construct a state-like object that prioritizes real data over mock data
-    const invoiceState = {
-      get: (key) => {
-        // Prioritize real state data
-        if (stateData.currentBookingState && stateData.currentBookingState[key] !== undefined && stateData.currentBookingState[key] !== null && stateData.currentBookingState[key] !== '') {
-          return stateData.currentBookingState[key];
-        }
-        // Fallback to settings or default for description and location if stateData is empty
-        if (key === 'description') return settings.servicesPerformed || '';
-        if (key === 'location') return settings.companyAddress ? settings.companyAddress.split('\n')[0] : '';
-        // Fallback to empty string for other fields if no real data or setting
-        return '';
-      }
-    };
-    
-    // DEBUG: Log the data being passed to PDF
-    console.log('=== PDF Data Debug ===');
-    console.log('Raw stateData:', stateData.currentBookingState);
-    console.log('Currency values:', {
-      hourlyRate: invoiceState.get('hourlyRate'),
-      flatRate: invoiceState.get('flatRate'), 
-      totalAmount: invoiceState.get('totalAmount'),
-      // Add unitPrice for PDF rendering (can be hourlyRate or flatRate)
-      unitPrice: invoiceState.get('hourlyRate') || invoiceState.get('flatRate') || ''
-    });
-    
-    await pdfRender.render(invoiceState, settings);
-    setStatus('PDF generated successfully!');
-  } catch (e) {
-    logError('PDF render failed:', e);
-    setStatus('PDF render failed');
-  }
-}
-
+    if (e.response && e.response.errors) {
+      console.error('Validation errors:', e.response.errors); 
+    }
+    console.error('State at time of failure:', JSON.stringify(STATE.toObject(), null, 2));
+  }};
 
 
 
 /**
- * Toggle footer between collapsed and expanded states
- 
-function toggleFooter() {
-  console.log('Grass clicked! Toggling footer...');
-  const footer = document.getElementById('footer');
-  if (footer) {
-    footer.classList.toggle('expanded');
-    console.log('Footer classes:', footer.className);
-  } else {
-    console.error('Footer element not found!');
+ * FIXME FIXME FIXME
+ * Comment this function
+ */
+async function onPdf() {
+  try {
+    log('Rendering PDF...');
+    
+    // Import PDF render class directly (same as pdf_settings_page.js)
+    const { default: PDF_render } = await import(chrome.runtime.getURL(PDF_RENDER_JS));
+    const pdfRender = new PDF_render();
+    await pdfRender.render( STATE );
+
+    log('PDF generated successfully!');
+  } catch (e) {
+    logError('PDF render failed:', e);
+    log('PDF render failed');
   }
 }
-
-*/
-
-

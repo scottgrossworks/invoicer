@@ -12,6 +12,7 @@ class PDF_template {
     this.templatePromise = this._initTemplate(); // Call an async initializer
   }
 
+  // Initializes the template by loading Handlebars and registering helpers
   async _initTemplate() {
     try {
       await this.loadTemplate();
@@ -73,8 +74,6 @@ class PDF_template {
 
 
 
-  
-
   /**
    * Registers custom Handlebars helpers for template rendering
    * Includes formatters for dates, times, currency, addresses and conditional helpers
@@ -85,17 +84,35 @@ class PDF_template {
     HandlebarsInstance.registerHelper('formatCurrency', this.formatCurrency);
     HandlebarsInstance.registerHelper('formatDecimalCurrency', this.formatDecimalCurrency);
     HandlebarsInstance.registerHelper('formatAddress', this.formatAddress);
-    HandlebarsInstance.registerHelper('ifShouldShowBankInfo', function(settings, options) {
-      if (PDF_template.prototype.shouldShowBankInfo(settings)) {
+    HandlebarsInstance.registerHelper('ifShouldShowBankInfo', function(Config, options) {
+      if (PDF_template.prototype.shouldShowBankInfo(Config)) {
         return options.fn(this);
       } else {
         return options.inverse(this);
       }
     });
+    /**
+     * Custom Handlebars helper: Logical OR operator
+     * 
+     * Provides JavaScript || functionality within Handlebars templates.
+     * Returns the first truthy value from the provided arguments.
+     * 
+     * Template usage examples:
+     * - {{or bookingData.hourlyRate bookingData.flatRate}} - Show hourly rate OR flat rate (whichever exists)
+     * - {{or bookingData.description settings.servicesPerformed}} - Show description OR fallback to default service
+     * - {{#if (or settings.bankAccount settings.bankName)}} - Conditional rendering if ANY bank field exists
+     * 
+     * @param {*} value1 - First value to check
+     * @param {*} value2 - Second value to check  
+     * @param {*} value3 - Third value to check (optional)
+     * @returns {*} First truthy value, or last value if all are falsy
+     */
     HandlebarsInstance.registerHelper('or', function (value1, value2, value3) {
+      // console.log('OR helper called with:', { value1, value2, value3, result: value1 || value2 || value3 });
       return value1 || value2 || value3;
     });
     
+    // Calculates hourly rate from total amount and duration
     HandlebarsInstance.registerHelper('calculateHourlyRate', (totalAmount, duration) => {
       if (!totalAmount || !duration) return 0;
       const total = parseFloat(totalAmount);
@@ -182,10 +199,14 @@ class PDF_template {
    * @returns {string} Currency formatted string (e.g., "$150.00") or original if invalid
    */
   formatDecimalCurrency(amount) {
+    // console.log('formatDecimalCurrency called with:', { amount, type: typeof amount });
     if (amount === null || amount === undefined || amount === '') return '$0.00';
     const parsedAmount = parseFloat(amount);
+    // console.log('parseFloat result:', { parsedAmount, isNaN: isNaN(parsedAmount) });
     if (isNaN(parsedAmount)) return amount; // Return original if not a number
-    return `$${parsedAmount.toFixed(2)}`;
+    const result = `$${parsedAmount.toFixed(2)}`;
+    // console.log('formatDecimalCurrency result:', result);
+    return result;
   }
 
   /**
@@ -193,26 +214,19 @@ class PDF_template {
    * @param {Object} settings - Settings object
    * @returns {boolean} True if bank info should be shown
    */
-  shouldShowBankInfo(settings) {
-    return (settings.bankName && settings.bankName.trim() !== '') &&
-           (settings.bankAccount && settings.bankAccount.trim() !== '') &&
-           (settings.bankRouting && settings.bankRouting.trim() !== '') &&
-           (settings.bankWire && settings.bankWire.trim() !== '');
+  shouldShowBankInfo(Config) {
+    return (Config.bankName && Config.bankName.trim() !== '') &&
+           (Config.bankAccount && Config.bankAccount.trim() !== '') &&
+           (Config.bankRouting && Config.bankRouting.trim() !== '') &&
+           (Config.bankWire && Config.bankWire.trim() !== '');
   }
 
 
 
 
 
-  /**
-   * Generates complete HTML invoice using Handlebars template and context data
-   * @param {Object} bookingData - Booking/service data
-   * @param {Object} clientData - Client information  
-   * @param {Object} settings - Settings and configuration
-   * @returns {Promise<string>} HTML string for the body content of the invoice
-   * @throws {Error} If template is not ready or failed to load
-   */
-  async generateInvoiceHTML(bookingData, clientData, settings) {
+  // Generates HTML invoice content using Handlebars template and state data
+  async generateInvoiceHTML( state ) {
     // Ensure template is loaded before using it
     await this.templatePromise;
     
@@ -220,23 +234,29 @@ class PDF_template {
       throw new Error('Template not ready or failed to load');
     }
 
-    // Create context object with all data for template
+    this.STATE = state;
+    
+    // Create context object with proper structure
     const context = {
-      bookingData: bookingData || {},
-      clientData: clientData || {},
-      settings: settings || {},
+      bookingData: this.STATE.Booking || {},
+      clientData: this.STATE.Client || {},
+      Config: this.STATE.Config || {},
       invoiceNumber: this.generateInvoiceNumber(),
       invoiceDate: new Date().toLocaleDateString()
     };
     
-    console.log('=== TEMPLATE CONTEXT DEBUG ===');
-    console.log('bookingData:', context.bookingData);
-    console.log('Currency fields:', {
-      hourlyRate: context.bookingData?.hourlyRate,
-      flatRate: context.bookingData?.flatRate,
-      totalAmount: context.bookingData?.totalAmount
-    });
     
+    
+    // Verify key data fields are present
+    /*
+    console.log('=== KEY FIELDS VERIFICATION ===');
+    console.log('Client Name:', context.clientData?.name || 'MISSING');
+    console.log('Booking Description:', context.bookingData?.description || 'MISSING');
+    console.log('Config Company Name:', context.Config?.companyName || 'MISSING');
+    console.log('Services Performed:', context.Config?.servicesPerformed || 'MISSING');
+    console.log('Total Amount:', context.bookingData?.totalAmount || 'MISSING');
+    */
+
     return this.template(context); // Template already contains only body content
   }
 

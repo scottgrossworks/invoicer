@@ -86,10 +86,14 @@
 }
 
 .client-company,
-.client-address,
-.client-location {
+.client-email,
+.client-phone {
+  font-size:15px;
   margin-bottom: 2px;
 }
+
+
+
 
 .service-table {
   width: 100%;
@@ -136,7 +140,8 @@
   font-weight: bold;
 }
 
-.service-title {
+.service-title, 
+.service-description {
   font-weight: bold;
   margin-bottom: 4px;
 }
@@ -211,7 +216,36 @@
   margin-bottom: 4px;
 }
 
-.client-email-large {
-  font-size: 16px; /* Much larger for better visibility */
-  margin-bottom: 2px;
+
+
+/* Company logo styles */
+.company-logo {
+  max-height: 90px;
+  width:auto;
+  margin-bottom: 10px;
+}
+
+/* Terms section styles */
+.terms-section {
+  margin: 20px 0;
+  padding: 15px;
+  border-top: 1px solid #ddd;
+}
+
+.terms-title {
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.terms-content {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* Footer text styles */
+.footer-text {
+  font-size: 12px;
+  margin-top: 8px;
+  color: #666;
 }

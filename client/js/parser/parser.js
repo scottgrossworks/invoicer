@@ -25,6 +25,14 @@ class PortalParser {
     }
 
     /**
+     * Initialize state with default values for this parser
+     * @param {StateFactory.create()} state 
+     */
+    initialize(state) {
+        throw new Error("initialize() must be implemented by subclass");
+    }
+
+    /**
      * Parse the current page into the provided state
      * @param {StateFactory.create()} state 
      */

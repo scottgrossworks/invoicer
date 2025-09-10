@@ -50,7 +50,7 @@ html, body {
 
 .app-label {
   position: absolute;
-  top: -12px;
+  top: 0px;
   background-color: darkgreen;
   color: white;
   font-size: 12px;
@@ -58,8 +58,9 @@ html, body {
   border-radius: 8px;
   font-weight: 500;
   text-transform: lowercase;
-  z-index: 10;
-  margin-top:2px; 
+  z-index: 900;
+  margin-top:28px;
+  margin-left: 70px; 
 }
 
 .leedz-logo {
@@ -138,7 +139,7 @@ html, body {
   width: 100%;
   border-collapse: collapse;
   font-family: "Circular", Helvetica Neue, Helvetica, Arial, sans-serif;
-  font-size: 12px;
+  font-size: small;
 }
 
 .booking-table th {
@@ -161,8 +162,10 @@ html, body {
 }
 
 .booking-table .field-name {
+  align-content: baseline;
+  font-size:small;
   font-weight: bold;
-  width: 30%;
+  width: 25%;
   color: #333;
 }
 
