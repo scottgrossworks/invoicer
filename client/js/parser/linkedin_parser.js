@@ -3,9 +3,9 @@
 // LinkedIn profile regex: matches LinkedIn profile URLs
 const LINKEDIN_PROFILE_REGEX = /linkedin\.com\/in\//i;
 
-import { ParserInterface } from './parser_interface.js';
+import { PortalParser } from './parser.js';
 
-class LinkedInParser extends ParserInterface {
+class LinkedInParser extends PortalParser {
 
     constructor() {
         super();

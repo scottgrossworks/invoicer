@@ -1,5 +1,7 @@
 // gmail_parser.js — extract Gmail thread content and process via LLM
 
+import { PortalParser } from './parser.js';
+
 // Global CONFIG variable - loaded once when parser initializes
 let CONFIG = null;
 
@@ -13,13 +15,13 @@ let CONFIG = null;
  * 4. Parse LLM JSON response and populate state with booking fields
  * 5. Keep raw thread text as fallback data
  */
-class GmailParser {
-
+class GmailParser extends PortalParser {
 
   constructor() {
+    super();
     this.STATE = null;
     this.name = 'GmailParser';
-    this._initializeConfig();
+    // Don't initialize config in constructor - it's async and should be done when needed
   }
 
   /**
@@ -732,8 +734,7 @@ async function main() {
 }
 
 // Run main if this file is executed directly in Node.js
-console.log('Module check:', typeof module, typeof require);
-if (typeof process !== 'undefined' && process.argv[1] && process.argv[1].endsWith('gmail_parser.js')) {
+if (typeof process !== 'undefined' && typeof module !== 'undefined' && process.argv[1] && process.argv[1].endsWith('gmail_parser.js')) {
   console.log('Running main...');
   main().catch(console.error);
 }

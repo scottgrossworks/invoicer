@@ -50,6 +50,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
             const { default: GmailParser } = await import(chrome.runtime.getURL('js/parser/gmail_parser.js'));
             parser = new GmailParser();
             break;
+          case 'GCalParser':
+            const { default: GCalParser } = await import(chrome.runtime.getURL('js/parser/gcal_parser.js'));
+            parser = new GCalParser();
+            break;
           case 'XParser':
             const { default: XParser } = await import(chrome.runtime.getURL('js/parser/x_parser.js'));
             parser = new XParser();
@@ -84,7 +88,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
     return true; // keep port open for async reply
   
   } else {
-    console.log("Received Msg [" + message.type + "] " + message.body);
+    console.log("Received Msg [" + msg.type + "] " + (msg.body || 'no body'));
   }
   return false; // close port
 });
