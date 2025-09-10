@@ -1,7 +1,10 @@
 // x_parser.js - Minimal viable X/Twitter parser
 
-class XParser {
+import { PortalParser } from './parser.js';
+
+class XParser extends PortalParser {
     constructor() {
+        super();
         this.name = 'XParser';
     }
 

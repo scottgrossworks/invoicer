@@ -110,4 +110,4 @@ function pruneShortLines(blob, minChars = 5) {
   return lines.filter(line => line.trim().length >= minChars).join('\n');
 }
 
-
+export { PortalParser };

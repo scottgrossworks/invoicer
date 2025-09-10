@@ -49,6 +49,15 @@
       "all_frames": false
     },
     {
+      "matches": ["https://calendar.google.com/*"],
+      "js": [
+        "js/content.js"
+      ],
+      "css": ["css/leedz_layout.css"],
+      "run_at": "document_end",
+      "all_frames": false
+    },
+    {
       "matches": ["https://x.com/*", "https://twitter.com/*"],
       "js": [
         "js/content.js"
