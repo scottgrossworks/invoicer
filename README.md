@@ -53,7 +53,7 @@ KEY COMPONENTS
    - `GET /stats` - Retrieves system-wide statistics.
 
 3. Chrome Extension Features:
-   - **LLM Integration:** Extracts structured data (booking, client info) from email content using a configurable system prompt.
+   - **Gmail Email Chain Parsing:** Advanced LLM-powered parsing that extracts structured booking and client data from Gmail email threads and conversations using configurable system prompts.
    - **Google Calendar Parsing:** Advanced parser that extracts booking information from Google Calendar events with intelligent time/date processing.
    - **PDF Generation:** Creates professional PDF invoices from booking data and user-defined settings using Handlebars templates.
    - **Settings Management:** Allows users to configure invoice details (company info, bank info, terms) with persistence to the database and local caching.
@@ -88,19 +88,26 @@ CURRENT STATUS - FULLY FUNCTIONAL
 - API server fully functional with all CRUD operations and configuration management
 - PDF generation with hierarchical state structure
 - State management architecture correctly implemented
-- LLM email parsing from Gmail working correctly
+- Gmail email chain parsing with LLM integration working correctly
 - Google Calendar event parsing with smart date/time extraction
 - **MCP Server Integration**: Claude Desktop can now interact directly with the invoicing system via Model Context Protocol
 
 **Recent Major Additions**:
 
-**1. Google Calendar Parser Enhancement**:
+**1. Gmail Email Chain Parser**:
+- LLM-powered extraction of booking and client information from Gmail email threads
+- Configurable system prompts for different types of email content
+- Handles complex email conversations and extracts structured data
+- Integration with LM Studio for local AI processing
+- Smart parsing of dates, times, and contact information from email text
+
+**2. Google Calendar Parser Enhancement**:
 - Advanced parsing of Google Calendar events
 - Intelligent extraction of booking details from calendar entries
 - Smart time/date processing with timezone awareness
 - Automatic client information extraction from calendar attendees
 
-**2. Claude Desktop MCP Server Integration**:
+**3. Claude Desktop MCP Server Integration**:
 - Full MCP (Model Context Protocol) server implementation at `server/mcp/mcp_server.js`
 - Natural language interface for database operations via Claude Desktop
 - Supports creating clients, managing bookings, and generating statistics
@@ -150,7 +157,7 @@ This system represents a comprehensive, modern approach to business software tha
 
 2. **Robust Backend Services**: Express.js API with comprehensive error handling, timeout management, and database abstraction
 
-3. **Intelligent Data Extraction**: Advanced parsing capabilities for Gmail emails and Google Calendar events with smart time/date interpretation
+3. **Intelligent Data Extraction**: Advanced parsing capabilities for Gmail email chains and Google Calendar events with LLM-powered content extraction and smart time/date interpretation
 
 4. **Professional PDF Generation**: Handlebars-based templating system for customizable invoice generation
 
