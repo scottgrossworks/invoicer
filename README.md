@@ -54,6 +54,7 @@ KEY COMPONENTS
 
 3. Chrome Extension Features:
    - **LLM Integration:** Extracts structured data (booking, client info) from email content using a configurable system prompt.
+   - **Google Calendar Parsing:** Advanced parser that extracts booking information from Google Calendar events with intelligent time/date processing.
    - **PDF Generation:** Creates professional PDF invoices from booking data and user-defined settings using Handlebars templates.
    - **Settings Management:** Allows users to configure invoice details (company info, bank info, terms) with persistence to the database and local caching.
    - **Date/Time/Currency Formatting:** Ensures consistent and user-friendly display of dates, times, and monetary values.
@@ -75,32 +76,44 @@ TECHNICAL STACK
 - Backend: Node.js, Express.js, JavaScript
 - Database: SQLite with Prisma ORM
 - Frontend (Extension): HTML, CSS, JavaScript, Handlebars.js, html2pdf.js
-- AI Integration: LM Studio (for LLM inference on client-side)
+- AI Integration: LM Studio (for LLM inference on client-side), Claude Desktop MCP Server integration
 - Configuration: JSON-based configuration files
 
-CURRENT STATUS - CRITICAL ISSUE
---------------------------------
-**BROKEN STATE**: LLM response processing is currently BROKEN after state management refactoring.
-
-**Timeline of Issues**:
-- Application was fully functional with working LLM email parsing for hours
-- State management was refactored to hierarchical Client/Booking/Config structure for proper PDF rendering with company data
-- This refactoring broke the LLM response processing chain
-- Multiple attempts to fix response parsing have failed
-- Current symptom: LLM returns valid responses but content extraction fails, leading to empty forms
+CURRENT STATUS - FULLY FUNCTIONAL
+---------------------------------
+**SYSTEM STATUS**: All core functionality is working correctly.
 
 **What's Working**:
 - Database schema fully defined (Client, Booking, Config models)
 - API server fully functional with all CRUD operations and configuration management
 - PDF generation with hierarchical state structure
-- State management architecture is correctly implemented
+- State management architecture correctly implemented
+- LLM email parsing from Gmail working correctly
+- Google Calendar event parsing with smart date/time extraction
+- **MCP Server Integration**: Claude Desktop can now interact directly with the invoicing system via Model Context Protocol
 
-**What's Broken**:
-- LLM response content extraction and parsing
-- Gmail parser fails to populate booking/client data from valid LLM responses
-- Forms remain empty despite successful LLM API calls
+**Recent Major Additions**:
 
-**Root Cause**: State management changes disrupted the LLM response processing flow. The response structure from Anthropic API is not being correctly parsed.
+**1. Google Calendar Parser Enhancement**:
+- Advanced parsing of Google Calendar events
+- Intelligent extraction of booking details from calendar entries
+- Smart time/date processing with timezone awareness
+- Automatic client information extraction from calendar attendees
+
+**2. Claude Desktop MCP Server Integration**:
+- Full MCP (Model Context Protocol) server implementation at `server/mcp/mcp_server.js`
+- Natural language interface for database operations via Claude Desktop
+- Supports creating clients, managing bookings, and generating statistics
+- JSON-RPC protocol compliance with proper error handling
+- Configuration at `server/mcp/mcp_server_config.json`
+- Integrates with existing API server (localhost:3000)
+
+**MCP Server Capabilities**:
+- Create and manage clients with natural language commands
+- Add and update bookings through conversational interface
+- Generate system statistics and reports
+- Automatic translation of natural language to API calls
+- Comprehensive logging and error handling
 
 CHALLENGES ADDRESSED
 -------------------
@@ -114,12 +127,33 @@ CHALLENGES ADDRESSED
 
 5. Dynamic Module Loading: Resolved complex dynamic import issues within the Chrome extension context for Handlebars and other modules.
 
+6. **Google Calendar Date/Time Parsing**: Implemented sophisticated parsing logic to extract booking information from calendar events with varying date/time formats and timezone handling.
+
+7. **MCP Protocol Implementation**: Built complete JSON-RPC 2.0 compliant MCP server with proper error handling, protocol version negotiation, and Claude Desktop integration.
+
+8. **Git Secret Management**: Resolved GitHub push protection issues by implementing proper .gitignore patterns for configuration files containing API keys.
+
 NEXT STEPS
 ----------
-- Full end-to-end testing of client-server interaction, especially for PDF settings save/load.
-- Further refinement of LLM prompts for improved data extraction accuracy.
-- User interface enhancements for a more polished experience.
-- Consider implementing authentication/authorization for multi-user support.
-- Explore additional features like recurring bookings or custom invoice templates.
+- Further refinement of LLM prompts for improved data extraction accuracy
+- User interface enhancements for a more polished experience
+- Consider implementing authentication/authorization for multi-user support
+- Explore additional features like recurring bookings or custom invoice templates
+- Expand MCP server capabilities with more advanced natural language processing
+- Add calendar integration for automatic booking synchronization
 
-This system now represents a comprehensive, modern approach to business software, combining robust backend services with a user-friendly, AI-augmented client-side experience for invoicing and booking management.
+SYSTEM ARCHITECTURE HIGHLIGHTS
+------------------------------
+This system represents a comprehensive, modern approach to business software that combines:
+
+1. **Multi-Modal AI Integration**: Both LM Studio for client-side processing and Claude Desktop MCP server for natural language database operations
+
+2. **Robust Backend Services**: Express.js API with comprehensive error handling, timeout management, and database abstraction
+
+3. **Intelligent Data Extraction**: Advanced parsing capabilities for Gmail emails and Google Calendar events with smart time/date interpretation
+
+4. **Professional PDF Generation**: Handlebars-based templating system for customizable invoice generation
+
+5. **Modern Development Practices**: OOP architecture, database abstraction layers, configuration management, and comprehensive logging
+
+The integration of MCP server capabilities makes this one of the first invoicing systems that can be managed entirely through natural language conversations with Claude Desktop, while maintaining full programmatic access through traditional REST APIs.
