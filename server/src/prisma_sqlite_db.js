@@ -184,6 +184,30 @@ class Prisma_Sqlite_DB extends Leedz_DB {
 
   // Booking operations
   async createBooking(data) {
+    // Check for duplicate: same client, same date, same location
+    if (data.clientId && data.startDate && data.location) {
+      const existing = await this.prisma.booking.findFirst({
+        where: {
+          clientId: data.clientId,
+          startDate: data.startDate,
+          location: data.location
+        }
+      });
+      
+      if (existing) {
+        // Update existing booking (overwrite)
+        return await this.prisma.booking.update({
+          where: { id: existing.id },
+          data: {
+            ...data,
+            startDate: data.startDate || null,
+            endDate: data.endDate || null,
+          }
+        });
+      }
+    }
+    
+    // Create new booking
     return await this.prisma.booking.create({
       data: {
         ...data,

@@ -2,13 +2,19 @@
   "mcp": {
     "name": "leedz-invoicer-mcp",
     "version": "1.0.0",
-    "protocolVersion": "2024-11-05"
+    "protocolVersion": "2025-06-18"
   },
   "llm": {
-    "url": "http://localhost:1234/v1/chat/completions",
-    "model": "liquid/lfm2-1.2b",
+    "api-key": "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",
+    "provider": "claude-opus-4-1-20250805",
+    "baseUrl": "https://api.anthropic.com",
+    "anthropic-version": "2023-06-01",
+    "max_tokens": 1024,
+    "endpoints": {
+      "models": "/v1/models",
+      "completions": "/v1/messages"
+    },
     "temperature": 0.1,
-    "maxTokens": 500,
     "systemPrompt": "Convert user requests to JSON API calls. RESPOND WITH VALID JSON ONLY.\n\nACTIONABLE requests (database operations) → {\"actionable\": true, \"method\": \"POST|GET|PUT|DELETE\", \"endpoint\": \"/path\", \"data\": {...}, \"description\": \"what this does\"}\n\nNON-ACTIONABLE requests (greetings, questions) → {\"actionable\": false, \"response\": \"brief reply\"}\n\nENDPOINTS:\n- POST /clients (create client: name required, email/phone optional)\n- GET /clients (list clients)\n- DELETE /clients (delete client: use ?name=NAME&email=EMAIL or ?id=ID)\n- POST /bookings (create booking: clientId, title required)\n- GET /bookings (list bookings)\n- GET /stats (system statistics)\n\nEXAMPLES:\n\"Hi\" → {\"actionable\": false, \"response\": \"Hello! Ready to help.\"}\n\"Add client Scott Gross email scottgrossworks@gmail.com phone 310 980 1421\" → {\"actionable\": true, \"method\": \"POST\", \"endpoint\": \"/clients\", \"data\": {\"name\": \"Scott Gross\", \"email\": \"scottgrossworks@gmail.com\", \"phone\": \"310 980 1421\"}, \"description\": \"Creating client Scott Gross\"}\n\"Delete client John Doe\" → {\"actionable\": true, \"method\": \"DELETE\", \"endpoint\": \"/clients?name=John Doe\", \"data\": {}, \"description\": \"Deleting client John Doe\"}\n\nRESPOND WITH JSON ONLY. NO EXPLANATIONS."
   },
   "database": {
