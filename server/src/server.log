@@ -354,3 +354,6 @@ Foreign key constraint violated: `foreign key`
 [2025-09-11T00:40:09.700Z] ! Local API running on http://localhost:3000
 [2025-09-11T00:40:12.656Z] POST /clients
 [2025-09-11T00:40:12.734Z] POST /bookings
+[2025-09-11T00:44:14.278Z] POST /clients
+[2025-09-11T00:44:14.303Z] POST /bookings
+[2025-09-11T03:52:02.288Z] GET /bookings
