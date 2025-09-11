@@ -332,7 +332,7 @@ class GCalParser extends PortalParser {
   }
 
   _buildLLMPrompt(description) {
-    const systemPrompt = CONFIG.gcalParser?.systemPrompt || CONFIG.gmailParser?.systemPrompt || 'Extract booking information from the following text and output JSON.';
+    const systemPrompt = CONFIG.gcalParser?.systemPrompt || 'Extract booking information from the following text and output JSON.';
     return `${systemPrompt}\n\nEvent Description:\n${description}`;
   }
 
