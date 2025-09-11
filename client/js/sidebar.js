@@ -10,6 +10,34 @@ import { getDbLayer, getParsers } from './provider_registry.js';
 const PDF_SETTINGS_JS = './settings/PDF_settings.js';
 const PDF_RENDER_JS = 'js/render/PDF_render.js';
 
+// Toast notification function
+function showToast(message, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 16px;
+    border-radius: 4px;
+    color: white;
+    font-weight: 500;
+    z-index: 10000;
+    max-width: 300px;
+    word-wrap: break-word;
+    ${type === 'error' ? 'background-color: #dc3545;' : 'background-color: #28a745;'}
+  `;
+  document.body.appendChild(toast);
+  
+  // Auto-remove after 4 seconds
+  setTimeout(() => {
+    if (toast.parentNode) {
+      toast.parentNode.removeChild(toast);
+    }
+  }, 4000);
+}
+
 // Debug check to confirm script execution
 log('sidebar.js executing. Checking environment...');
 log('Document body:', document.body ? 'Present' : 'Missing');
@@ -731,8 +759,16 @@ async function onSave() {
 
     log('Saving...');
     const db = await getDbLayer();
-    await db.save(cleanedStateData); // Pass the cleaned state data
-    log('Saved');
+    const result = await db.save(cleanedStateData); // Pass the cleaned state data
+    
+    // Check if save failed due to server unavailable
+    if (result && result.error === 'Server not running') {
+      logError('Save failed: Database server is not available');
+      showToast('Database server is not available. You can still generate and preview invoices.', 'error');
+    } else {
+      log('Saved');
+      showToast('Data saved successfully', 'success');
+    }
 
   } catch (e) {
     logError('Save failed:', e);
