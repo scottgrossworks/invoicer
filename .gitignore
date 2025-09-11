@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+server/node_modules/
+
+# Environment and config files
+client/invoicer_config.json
+client/invoicer_config-local.json
+client/js/parser/anthropic-api-key.txt
+server/mcp/mcp_server_config.json
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.lock
+
+# Build outputs
+dist/
+build/
