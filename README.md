@@ -1,166 +1,280 @@
-LEEDZ INVOICER SYSTEM - PROJECT STATUS SUMMARY
-================================================
+# LEEDZ INVOICER - TECHNICAL IMPLEMENTATION GUIDE
 
-PROJECT OVERVIEW
-----------------
-The Leedz Invoicer System is a platform for managing client bookings and generating invoices. It integrates a Chrome extension for data extraction and PDF generation with a robust backend API for data persistence and configuration management.
+## SYSTEM OVERVIEW
 
-CORE ARCHITECTURE
------------------
-The system follows a three-tier architecture with clear separation of concerns:
+The Leedz Invoicer is a three-tier invoicing and booking management system consisting of:
+1. SQLite database with Prisma ORM
+2. Express.js REST API server 
+3. Chrome extension with LLM integration and PDF generation
 
-1. DATABASE LAYER (SQLite + Prisma)
-   - SQLite database for data persistence.
-   - Prisma ORM for type-safe database operations.
-   - Schema defines Client, Booking, and Config models.
-   - Database abstraction through Leedz_DB interface for future extensibility.
+## ARCHITECTURE
 
-2. API LAYER (Express.js + JavaScript)
-   - RESTful HTTP API server running on port 3000.
-   - Handles CRUD operations for clients, bookings, and configuration settings.
-   - Implements statistics endpoints for business intelligence.
-   - Uses OOP architecture with Client and Booking classes for business logic.
-   - Configuration externalized to server_config.json.
-   - Enhanced with `asyncRoute` middleware for consistent error handling and timeout management.
+### Database Layer
+- **Technology**: SQLite with Prisma ORM
+- **Models**: Client, Booking, Config
+- **Interface**: `Leedz_DB` abstraction with `Prisma_Sqlite_DB` implementation
+- **Location**: `server/prisma/schema.prisma`
 
-3. CLIENT-SIDE EXTENSION (Chrome Extension + JavaScript)
-   - Chrome extension for interacting with web pages (e.g., Gmail, LinkedIn).
-   - Features LLM integration for intelligent data extraction from emails.
-   - Provides a user interface for manual booking entry and PDF settings management.
-   - Generates customizable PDF invoices using Handlebars templates and `html2pdf.js`.
+### API Server
+- **Technology**: Node.js Express.js
+- **Port**: 3000
+- **Architecture**: OOP with `Client` and `Booking` business logic classes
+- **Error Handling**: `asyncRoute` middleware with timeout management
+- **Configuration**: `server/server_config.json`
 
-KEY COMPONENTS
---------------
-1. Database Models:
-   - Client: id, name, email, phone, company, notes, createdAt, updatedAt
-   - Booking: id, clientId, description, location, startDate, endDate, startTime, endTime, duration, hourlyRate, flatRate, totalAmount, status, source, notes, createdAt, updatedAt
-   - Config: id, companyName, companyAddress, companyPhone, companyEmail, logoUrl, bankName, bankAddress, bankPhone, bankAccount, bankRouting, bankWire, servicesPerformed, contactHandle, includeTerms, terms, footerText, createdAt, updatedAt
+### Chrome Extension
+- **Technology**: Vanilla JavaScript, Handlebars templating
+- **Content Scripts**: Gmail and Google Calendar integration
+- **PDF Generation**: html2pdf.js with Handlebars templates
+- **LLM Integration**: LM Studio local inference
 
-2. API Endpoints (Refactored and Streamlined):
-   - `POST /clients` - Creates a new client.
-   - `GET /clients` - Retrieves clients with optional filters.
-   - `GET /clients/:id` - Retrieves a specific client by ID.
-   - `DELETE /clients/:id` - Deletes a client by ID.
-   - `GET /clients/stats` - Retrieves aggregate statistics for all clients.
-   - `GET /clients/:id/stats` - Retrieves statistics for a specific client.
-   - `POST /bookings` - Creates a new booking.
-   - `GET /bookings` - Retrieves bookings with optional filters.
-   - `GET /bookings/:id` - Retrieves a specific booking by ID.
-   - `PUT /bookings/:id` - Updates an existing booking.
-   - `DELETE /bookings/:id` - Deletes a booking by ID.
-   - `POST /config` - Uploads and saves client configuration to database.
-   - `GET /config` - Retrieves the latest configuration from the database.
-   - `GET /stats` - Retrieves system-wide statistics.
+### MCP Server Integration
+- **Protocol**: JSON-RPC 2.0 Model Context Protocol
+- **Implementation**: `server/mcp/mcp_server.js`
+- **Configuration**: `server/mcp/mcp_server_config.json`
+- **Client**: Claude Desktop integration
 
-3. Chrome Extension Features:
-   - **Gmail Email Chain Parsing:** Advanced LLM-powered parsing that extracts structured booking and client data from Gmail email threads and conversations using configurable system prompts.
-   - **Google Calendar Parsing:** Advanced parser that extracts booking information from Google Calendar events with intelligent time/date processing.
-   - **PDF Generation:** Creates professional PDF invoices from booking data and user-defined settings using Handlebars templates.
-   - **Settings Management:** Allows users to configure invoice details (company info, bank info, terms) with persistence to the database and local caching.
-   - **Date/Time/Currency Formatting:** Ensures consistent and user-friendly display of dates, times, and monetary values.
+## DATA MODELS
 
-ARCHITECTURAL DECISIONS
------------------------
-1. OOP Refactoring: Transformed monolithic server logic into modular classes with clear separation of concerns. Client and Booking classes encapsulate business logic and validation.
+### Client
+```javascript
+{
+  id: String (UUID),
+  name: String (required),
+  email: String,
+  phone: String,
+  company: String,
+  notes: String,
+  createdAt: DateTime,
+  updatedAt: DateTime
+}
+```
 
-2. Database Abstraction: Implemented Leedz_DB interface with Prisma_Sqlite_DB concrete implementation, allowing future database migrations without changing application logic.
+### Booking  
+```javascript
+{
+  id: String (UUID),
+  clientId: String (foreign key),
+  description: String,
+  location: String,
+  startDate: DateTime,
+  endDate: DateTime,
+  startTime: String,
+  endTime: String,
+  duration: Float,
+  hourlyRate: Float,
+  flatRate: Float,
+  totalAmount: Float,
+  status: String,
+  source: String,
+  notes: String,
+  createdAt: DateTime,
+  updatedAt: DateTime
+}
+```
 
-3. Configuration Management: Externalized all server configuration to `server_config.json`. Client-side `invoicer_config.json` now serves as defaults/fallbacks for PDF settings, with primary storage handled by the server API and database.
+### Config
+```javascript
+{
+  id: String (UUID),
+  companyName: String,
+  companyAddress: String,
+  companyPhone: String,
+  companyEmail: String,
+  logoUrl: String,
+  bankName: String,
+  bankAddress: String,
+  bankPhone: String,
+  bankAccount: String,
+  bankRouting: String,
+  bankWire: String,
+  servicesPerformed: String,
+  contactHandle: String,
+  includeTerms: Boolean,
+  terms: String,
+  footerText: String,
+  createdAt: DateTime,
+  updatedAt: DateTime
+}
+```
 
-4. Robust API Endpoints: Implemented `asyncRoute` middleware for all API endpoints to centralize timeout handling, retry logic, and standardized error responses.
+## API ENDPOINTS
 
-5. Persistent Client Settings: Client PDF settings are now stored in the database via the `/config` API endpoints, ensuring persistence across sessions and browser reloads.
+### Client Operations
+- `POST /clients` - Create client
+- `GET /clients` - List clients with optional filters
+- `GET /clients/:id` - Get specific client
+- `DELETE /clients/:id` - Delete client
+- `GET /clients/stats` - Aggregate client statistics
+- `GET /clients/:id/stats` - Client-specific statistics
 
-TECHNICAL STACK
----------------
-- Backend: Node.js, Express.js, JavaScript
-- Database: SQLite with Prisma ORM
-- Frontend (Extension): HTML, CSS, JavaScript, Handlebars.js, html2pdf.js
-- AI Integration: LM Studio (for LLM inference on client-side), Claude Desktop MCP Server integration
-- Configuration: JSON-based configuration files
+### Booking Operations
+- `POST /bookings` - Create booking
+- `GET /bookings` - List bookings with optional filters  
+- `GET /bookings/:id` - Get specific booking
+- `PUT /bookings/:id` - Update booking
+- `DELETE /bookings/:id` - Delete booking
 
-CURRENT STATUS - FULLY FUNCTIONAL
----------------------------------
-**SYSTEM STATUS**: All core functionality is working correctly.
+### Configuration
+- `POST /config` - Save configuration to database
+- `GET /config` - Retrieve latest configuration
+- `GET /stats` - System-wide statistics
 
-**What's Working**:
-- Database schema fully defined (Client, Booking, Config models)
-- API server fully functional with all CRUD operations and configuration management
-- PDF generation with hierarchical state structure
-- State management architecture correctly implemented
-- Gmail email chain parsing with LLM integration working correctly
-- Google Calendar event parsing with smart date/time extraction
-- **MCP Server Integration**: Claude Desktop can now interact directly with the invoicing system via Model Context Protocol
+## CHROME EXTENSION IMPLEMENTATION
 
-**Recent Major Additions**:
+### Content Script Architecture
+- **Gmail Parser**: `client/js/parser/gmail_parser.js`
+- **Calendar Parser**: `client/js/parser/gcal_parser.js`
+- **Main UI**: `client/js/sidebar.js`
+- **Database Interface**: `client/js/db/DB_local_prisma_sqlite.js`
 
-**1. Gmail Email Chain Parser**:
-- LLM-powered extraction of booking and client information from Gmail email threads
-- Configurable system prompts for different types of email content
-- Handles complex email conversations and extracts structured data
-- Integration with LM Studio for local AI processing
-- Smart parsing of dates, times, and contact information from email text
+### Gmail Email Chain Parsing
+```javascript
+// LLM integration with configurable prompts
+const response = await fetch('http://localhost:1234/v1/chat/completions', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    model: 'model',
+    messages: [{ role: 'user', content: systemPrompt + emailContent }]
+  })
+});
+```
 
-**2. Google Calendar Parser Enhancement**:
-- Advanced parsing of Google Calendar events
-- Intelligent extraction of booking details from calendar entries
-- Smart time/date processing with timezone awareness
-- Automatic client information extraction from calendar attendees
+### Google Calendar Event Parsing
+- Extracts event details from calendar DOM elements
+- Parses attendee information for client data
+- Handles timezone conversion and date formatting
+- Maps calendar events to booking structure
 
-**3. Claude Desktop MCP Server Integration**:
-- Full MCP (Model Context Protocol) server implementation at `server/mcp/mcp_server.js`
-- Natural language interface for database operations via Claude Desktop
-- Supports creating clients, managing bookings, and generating statistics
-- JSON-RPC protocol compliance with proper error handling
-- Configuration at `server/mcp/mcp_server_config.json`
-- Integrates with existing API server (localhost:3000)
+### PDF Generation Pipeline
+1. Handlebars template compilation
+2. Data binding with booking and config data
+3. HTML rendering with html2pdf.js
+4. PDF output with custom styling
 
-**MCP Server Capabilities**:
-- Create and manage clients with natural language commands
-- Add and update bookings through conversational interface
-- Generate system statistics and reports
-- Automatic translation of natural language to API calls
-- Comprehensive logging and error handling
+## MCP SERVER IMPLEMENTATION
 
-CHALLENGES ADDRESSED
--------------------
-1. Server-side Redundancy: Eliminated duplicate retry/timeout logic and standardized error handling across all API endpoints.
+### Protocol Compliance
+- JSON-RPC 2.0 specification
+- Protocol version: `2025-06-18`
+- Supports `initialize`, `tools/list`, `tools/call`, `prompts/list`, `resources/list`
 
-2. Client-side Data Persistence: Implemented database-backed storage for PDF settings, overcoming browser extension limitations for direct file saving.
+### Natural Language Processing
+```javascript
+// Translates natural language to API calls using Claude API
+const action = await translateWithClaude(userMessage);
+const result = await executeHttpRequest(action);
+```
 
-3. LLM Time Interpretation: Developed smart correction logic in the Gmail parser to accurately interpret ambiguous time data from LLM responses based on duration context.
+### Configuration Structure
+```json
+{
+  "mcp": {
+    "name": "leedz-invoicer-mcp",
+    "version": "1.0.0", 
+    "protocolVersion": "2025-06-18"
+  },
+  "llm": {
+    "provider": "claude-opus-4-1-20250805",
+    "baseUrl": "https://api.anthropic.com",
+    "max_tokens": 1024
+  },
+  "database": {
+    "apiUrl": "http://localhost:3000"
+  }
+}
+```
 
-4. PDF Generation Refactoring: Transitioned from programmatic HTML generation to a Handlebars templating engine for improved maintainability and flexibility in PDF output.
+## DEVELOPMENT SETUP
 
-5. Dynamic Module Loading: Resolved complex dynamic import issues within the Chrome extension context for Handlebars and other modules.
+### Server Setup
+```bash
+cd server/
+npm install
+npm run db:generate
+npm run db:migrate
+npm run dev  # Development with ts-node
+# OR
+npm run build && npm start  # Production
+```
 
-6. **Google Calendar Date/Time Parsing**: Implemented sophisticated parsing logic to extract booking information from calendar events with varying date/time formats and timezone handling.
+### MCP Server
+```bash
+cd server/
+npm run mcp  # Runs dist/mcp_server.js
+```
 
-7. **MCP Protocol Implementation**: Built complete JSON-RPC 2.0 compliant MCP server with proper error handling, protocol version negotiation, and Claude Desktop integration.
+### Chrome Extension
+1. Load unpacked extension from `client/` directory
+2. No build process required - direct file serving
 
-8. **Git Secret Management**: Resolved GitHub push protection issues by implementing proper .gitignore patterns for configuration files containing API keys.
+### Claude Desktop MCP Configuration
+```json
+{
+  "mcpServers": {
+    "leedz-invoicer": {
+      "command": "C:\\Program Files\\nodejs\\node.exe",
+      "args": ["C:\\path\\to\\server\\mcp\\mcp_server.js"]
+    }
+  }
+}
+```
 
-NEXT STEPS
-----------
-- Further refinement of LLM prompts for improved data extraction accuracy
-- User interface enhancements for a more polished experience
-- Consider implementing authentication/authorization for multi-user support
-- Explore additional features like recurring bookings or custom invoice templates
-- Expand MCP server capabilities with more advanced natural language processing
-- Add calendar integration for automatic booking synchronization
+## TECHNICAL DECISIONS
 
-SYSTEM ARCHITECTURE HIGHLIGHTS
-------------------------------
-This system represents a comprehensive, modern approach to business software that combines:
+### Database Abstraction
+- `DatabaseFactory` pattern for multiple database implementations
+- `Leedz_DB` interface ensures implementation independence
+- Prisma client wrapped in abstraction layer
 
-1. **Multi-Modal AI Integration**: Both LM Studio for client-side processing and Claude Desktop MCP server for natural language database operations
+### Error Handling Strategy
+- `asyncRoute` middleware centralizes timeout and error management
+- Standardized error responses across all endpoints
+- Comprehensive logging with file rotation
 
-2. **Robust Backend Services**: Express.js API with comprehensive error handling, timeout management, and database abstraction
+### Configuration Management
+- Server configuration externalized to JSON files
+- Client settings stored in database for persistence
+- Environment-specific configuration support
 
-3. **Intelligent Data Extraction**: Advanced parsing capabilities for Gmail email chains and Google Calendar events with LLM-powered content extraction and smart time/date interpretation
+### LLM Integration Architecture
+- Local inference via LM Studio for privacy
+- Configurable system prompts for different parsing contexts
+- Fallback handling for LLM service unavailability
 
-4. **Professional PDF Generation**: Handlebars-based templating system for customizable invoice generation
+## DEPLOYMENT CONSIDERATIONS
 
-5. **Modern Development Practices**: OOP architecture, database abstraction layers, configuration management, and comprehensive logging
+### Security
+- API keys managed through configuration files (excluded from git)
+- No authentication implemented (single-user system)
+- CORS enabled for Chrome extension integration
 
-The integration of MCP server capabilities makes this one of the first invoicing systems that can be managed entirely through natural language conversations with Claude Desktop, while maintaining full programmatic access through traditional REST APIs.
+### Performance
+- SQLite suitable for single-user scenarios
+- Connection pooling handled by Prisma
+- Timeout management prevents hanging requests
+
+### Monitoring
+- Comprehensive logging to files
+- Error tracking through standardized middleware
+- Statistics endpoints for system monitoring
+
+## EXTENSION POINTS
+
+### Adding New Parsers
+1. Implement parser in `client/js/parser/`
+2. Follow existing pattern for data extraction
+3. Map extracted data to Client/Booking models
+
+### Database Migration
+1. Modify `Leedz_DB` interface
+2. Update `Prisma_Sqlite_DB` implementation  
+3. Create new `DatabaseFactory` implementations
+
+### MCP Server Enhancement
+1. Add new method handlers in `processJsonRpcRequest`
+2. Extend system prompt for new capabilities
+3. Implement corresponding API integrations
+
+This system demonstrates practical implementation of LLM integration, protocol compliance, and modular architecture suitable for small business invoicing workflows.
