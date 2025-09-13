@@ -187,12 +187,6 @@ class GCalParser extends PortalParser {
         const endDate = dateTimeRangeMatch[3]?.trim();   // "August 17, 2025"
         const endTime = dateTimeRangeMatch[4]?.trim();   // "2:00pm"
         
-        console.log('Multi-day event with times detected:');
-        console.log('Start date:', startDate);
-        console.log('Start time:', startTime);
-        console.log('End date:', endDate);
-        console.log('End time:', endTime);
-        
         const result = {
           startDate,
           endDate,
@@ -200,7 +194,6 @@ class GCalParser extends PortalParser {
           endTime
         };
         
-        console.log('Multi-day parsed result:', result);
         return result;
       }
       
@@ -208,10 +201,6 @@ class GCalParser extends PortalParser {
       const parts = dateTimeString.split('⋅');
       const datePart = parts[0]?.trim(); // "Sunday, August 24"
       const timePart = parts[1]?.trim(); // "2:30 – 4:30pm"
-      
-      console.log('Same-day event detected:');
-      console.log('Date part:', datePart);
-      console.log('Time part:', timePart);
       
       // For same-day events, both start and end date are the same
       const startDate = datePart;
@@ -233,7 +222,7 @@ class GCalParser extends PortalParser {
           startTime = `${startTimeRaw}${period}`;
           endTime = `${endTimeRaw}${period}`;
           
-          console.log('Extracted times:', { startTime, endTime });
+          // console.log('Extracted times:', { startTime, endTime });
         } else {
           // Fallback: try to extract any time patterns
           const allTimes = timePart.match(/\d{1,2}:\d{2}\s*(?:am|pm)?/gi);
@@ -251,7 +240,6 @@ class GCalParser extends PortalParser {
         endTime
       };
       
-      console.log('Same-day parsed result:', result);
       return result;
       
     } catch (error) {
@@ -296,7 +284,7 @@ class GCalParser extends PortalParser {
 
   async _sendToLLM(combinedText) {
       try {
-        console.log("=== LLM Processing Start ===");
+        // console.log("=== LLM Processing Start ===");
         await this._initializeConfig();
         const llmConfig = CONFIG.llm;
         if (!llmConfig?.baseUrl || !llmConfig?.endpoints?.completions) {
@@ -304,10 +292,10 @@ class GCalParser extends PortalParser {
         }
 
         const prompt = this._buildLLMPrompt(combinedText);
-        console.log("Built LLM prompt:", prompt.substring(0, 300) + "...");
+        // console.log("Built LLM prompt:", prompt.substring(0, 300) + "...");
         
         const response = await this._sendLLMRequest(llmConfig, prompt);
-        console.log("Raw LLM response:", response);
+        // console.log("Raw LLM response:", response);
 
         if (!response?.ok) {
           console.error('LLM request failed:', response?.error || 'Request failed');
@@ -317,11 +305,11 @@ class GCalParser extends PortalParser {
         const contentArray = response.data?.content;
         const firstContent = contentArray?.[0];
         const textContent = firstContent?.text || firstContent;
-        console.log("Extracted LLM text content:", textContent);
+        // console.log("Extracted LLM text content:", textContent);
 
         const parsedResult = textContent ? this._parseLLMResponse(textContent) : null;
         console.log("Final parsed LLM result:", parsedResult);
-        console.log("=== LLM Processing End ===");
+        // console.log("=== LLM Processing End ===");
         
         return parsedResult;
 
@@ -375,8 +363,7 @@ class GCalParser extends PortalParser {
 
   _parseLLMResponse(content) {
     try {
-      console.log('_parseLLMResponse called with content:', content);
-      
+            
       // Handle markdown code blocks: ```json {...} ```
       let jsonText = content;
       
@@ -385,7 +372,6 @@ class GCalParser extends PortalParser {
       
       // Extract JSON object
       const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
-      console.log('JSON match found:', !!jsonMatch);
       
       if (jsonMatch) {
         console.log('Matched JSON text:', jsonMatch[0]);
@@ -404,14 +390,9 @@ class GCalParser extends PortalParser {
   }
 
   async waitUntilReady() {
-    console.log('GCal waitUntilReady: Starting...');
     try {
       await PortalParser.waitForElement('[role="dialog"]', 10000);
-      console.log('✓ Modal dialog found');
-
       await PortalParser.waitForElement('[role="dialog"] #rAECCd', 5000);
-      console.log('✓ Modal content (title) is ready');
-
       return true;
 
     } catch (error) {

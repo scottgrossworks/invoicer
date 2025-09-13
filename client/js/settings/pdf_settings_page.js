@@ -4,7 +4,10 @@
  */
 
 // Import PDF settings class
+import Config from '../db/Config.js';
 import PDF_settings from './PDF_settings.js';
+
+
 
 class PDFSettingsPage {
   constructor( state ) {
@@ -31,7 +34,9 @@ class PDFSettingsPage {
       await this.pdfSettings.load();
       
       // Populate form with the updated state config
-      this.populateForm(this.STATE.Config);
+      const settings = this.pdfSettings.getSettings();
+      this.populateForm( settings );
+
     } catch (error) {
       console.error('Failed to load settings:', error);
     }
@@ -44,14 +49,16 @@ class PDFSettingsPage {
    * @param {Object} settings - Settings object
    */
   populateForm(settings) {
-    const fields = [
+
+    // fields of form correspond to Config keys
+    const fields = Object.keys(this.STATE.Config);
+    /* Should include: 
       'companyName', 'companyAddress', 'companyPhone', 'companyEmail', 'logoUrl',
       'bankName', 'bankAddress', 'bankPhone', 'bankAccount', 'bankRouting', 'bankWire',
       'servicesPerformed', 'contactHandle', 'terms'
-    ];
-    // FIXME FIXME FIXME -- can this be read from the keys of the state object?
-    // instead of hardcoding the field names?
+    */
 
+    // add placeholders 
     fields.forEach(field => {
       const element = document.getElementById(field);
       if (element && settings[field] !== null && settings[field] !== undefined && settings[field] !== '') {
@@ -67,6 +74,9 @@ class PDFSettingsPage {
       includeTermsElement.checked = settings.includeTerms === true || settings.includeTerms === 'true';
     }
   }
+
+
+  
 
   /**
    * Setup collapsible sections
@@ -172,23 +182,26 @@ class PDFSettingsPage {
    * Save current settings
    */
   async saveSettings() {
-    try {
-      const settings = this.collectFormData();
-
-      // state object should have booking and client info from sidebar
-      Object.assign(this.STATE.Config, settings);
-      await this.STATE.save();
-      
-      // Save Config fields to database
+    
+    const settings = this.collectFormData();
+    
+    let result = Config.validate(settings);
+    if (! result.isValid) {
+      this.showMessage("Invalid Form Input", 'error');
+      console.error('Validation failed:', result.errors.join(', '));
+      return;1
+    }
+    
+    // settings have been validated  
+    try { 
       await this.pdfSettings.save(settings);
 
       // Show success message
-      this.showMessage('Settings saved successfully to database', 'success');
+      this.showMessage('Settings saved', 'success');
       
-
     } catch (error) {
       console.error('Failed to save settings:', error);
-      this.showMessage('Failed to save settings. Please try again.', 'error');
+      this.showMessage('Save failed: ' + error.message, 'error');
     }
   }
 
@@ -202,11 +215,22 @@ class PDFSettingsPage {
       const pdfRender = new PDF_render();
 
       const settings = this.collectFormData();
+      
+      // validate first
+      let result = Config.validate(settings);
+      if (! result.isValid) {
+        this.showMessage("Invalid Form Input", 'error');
+        console.error('Validation failed:', result.errors.join(', '));
+        return;
+      }
+
+      // save data
+      await this.pdfSettings.save(settings);
 
       // state object should have booking and client info from sidebar
-      Object.assign(this.STATE.Config, settings);
-      await this.STATE.save();
-      
+      // this.STATE should reflect the changes we just saved
+      // it should still have the Booking and Client data from the sidebar
+
       // Generate PDF using hierarchical state
       await pdfRender.render(this.STATE);
 
@@ -229,9 +253,7 @@ class PDFSettingsPage {
       const formConfig = this.collectFormData();
       console.log('Form Config settings:', formConfig);
       
-      // update the state
-      Object.assign(this.STATE.Config, formConfig);
-      await this.STATE.save();
+      await this.pdfSettings.save(formConfig);
 
       // Import template class dynamically with full Chrome extension URL
       const templateModule = await import(chrome.runtime.getURL('js/render/PDF_template.js'));
@@ -340,14 +362,5 @@ class PDFSettingsPage {
 // Export the class for manual instantiation
 export { PDFSettingsPage };
 
-// Auto-initialize when this module is imported (eliminates need for pdf_settings_init.js)
-document.addEventListener('DOMContentLoaded', async () => {
-  // Import State factory
-  const { StateFactory } = await import('../state.js');
-  
-  // Create proper state object using factory
-  const state = await StateFactory.create();
-  
-  // Initialize the settings page
-  new PDFSettingsPage(state);
-});
+
+

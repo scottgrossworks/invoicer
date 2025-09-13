@@ -2,7 +2,7 @@
 
 import { StateFactory, mergePageData } from './state.js';
 import { initLogging, log, logError } from './logging.js';
-import PDF_settings from './settings/PDF_settings.js';
+
 
 import { getDbLayer, getParsers } from './provider_registry.js';
 
@@ -73,10 +73,15 @@ async function initializeApp() {
     // Listen for storage changes from settings page
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName === 'local' && changes.currentBookingState) {
-        // Reload state from storage and update display
-        STATE.load().then(() => {
-          updateFormFromState( STATE );
-        });
+        try {
+          // Reload state from storage and update display
+          STATE.load().then(() => {
+            updateFormFromState( STATE );
+          });
+        } catch (error) {
+          // DO NOT BLOW UP - just log the error
+          log("Loading error: " + error.message);
+        }
       }
     });
     
@@ -238,18 +243,11 @@ function populateBookingTable() {
   // Clear existing rows
   tbody.innerHTML = '';
 
+  const bookingKeys = Object.keys(STATE.Booking);
+  const clientKeys = Object.keys(STATE.Client);
 
-  // FIXME FIXME FIXME
-  // can these be taken directly from the state object keys?
-  // they MUST be in sync with them for sure
-  // Define all fields that should appear in the form
-  const allFields = [
-    // Client fields
-    'name', 'email', 'phone', 'company', 'notes',
-    // Booking fields  
-    'description', 'location', 'startDate', 'endDate', 'startTime', 'endTime', 
-    'duration', 'hourlyRate', 'flatRate', 'totalAmount'
-  ];
+  // merge these two arrays
+  const allFields = [...bookingKeys, ...clientKeys];
 
   // Populate table rows with booking and client data
   allFields.forEach(field => {
@@ -271,8 +269,9 @@ function populateBookingTable() {
     // Convert time fields to 12-hour format and date fields to readable format for display
     let displayValue = STATE.Booking[field] || STATE.Client[field] || '';
     if ((field === 'startTime' || field === 'endTime') && displayValue) {
+      console.log(`DEBUG: Before conversion - ${field}: ${displayValue}`);
       displayValue = convertTo12Hour(displayValue);
-      //log(`  After convertTo12Hour for ${field}: ${displayValue}`);
+      console.log(`DEBUG: After convertTo12Hour for ${field}: ${displayValue}`);
     }
     if ((field === 'startDate' || field === 'endDate') && displayValue) {
       displayValue = formatDateForDisplay(displayValue);
@@ -359,8 +358,15 @@ function populateBookingTable() {
 function convertTo12Hour(time24) {
   if (!time24) return time24;
   const t = String(time24).trim();
-  // If already in 12-hour format with AM/PM, return as-is
-  if (/\b(AM|PM)\b/i.test(t)) return t;
+  
+  // DEBUG: Log the conversion process
+  console.log(`convertTo12Hour input: "${t}"`);
+  
+  // If already in 12-hour format with AM/PM, normalize and return
+  if (/(AM|PM)/i.test(t)) {
+    // Normalize spacing and case
+    return t.replace(/\s*(AM|PM)/i, (match, ampm) => ` ${ampm.toUpperCase()}`);
+  }
   if (!t.includes(':')) return t;
   
   const [hours, minutes] = t.split(':');
@@ -368,10 +374,14 @@ function convertTo12Hour(time24) {
   const min = (minutes || '00').replace(/\s*(AM|PM)/i, '');
   if (isNaN(hour)) return t;
   
-  if (hour === 0) return `12:${min} AM`;
-  if (hour < 12) return `${hour}:${min} AM`;
-  if (hour === 12) return `12:${min} PM`;
-  return `${hour - 12}:${min} PM`;
+  let result;
+  if (hour === 0) result = `12:${min} AM`;
+  else if (hour < 12) result = `${hour}:${min} AM`;
+  else if (hour === 12) result = `12:${min} PM`;
+  else result = `${hour - 12}:${min} PM`;
+  
+  console.log(`convertTo12Hour output: "${result}"`);
+  return result;
 }
 
 
@@ -582,6 +592,10 @@ function commitAndFormatField(fieldName, inputElement) {
   inputElement.blur(); // Exit edit mode
 }
 
+
+//
+//
+//
 function syncFormFieldToState(fieldName, displayValue) {
   // Convert display formats back to canonical formats
   let canonicalValue = displayValue;
@@ -589,17 +603,18 @@ function syncFormFieldToState(fieldName, displayValue) {
   // Handle date fields - convert from display format to ISO format
   if ((fieldName === 'startDate' || fieldName === 'endDate') && displayValue) {
     canonicalValue = parseDisplayDateToISO(displayValue);
-  }
-  
+
   // Handle time fields - convert from 12-hour to 24-hour format
-  if ((fieldName === 'startTime' || fieldName === 'endTime') && displayValue) {
+  } else if ((fieldName === 'startTime' || fieldName === 'endTime') && displayValue) {
     canonicalValue = convertTo24Hour(displayValue);
   }
-  
-  // Update state based on field category
-  const clientFields = ['name', 'email', 'phone', 'company', 'notes'];
-  const bookingFields = ['description', 'location', 'startDate', 'endDate', 'startTime', 'endTime', 'duration', 'hourlyRate', 'flatRate', 'totalAmount'];
-  
+
+  // COPY INTO STATE
+  // const clientFields = ['name', 'email', 'phone', 'company', 'notes'];
+  // const bookingFields = ['description', 'location', 'startDate', 'endDate', 'startTime', 'endTime', 'duration', 'hourlyRate', 'flatRate', 'totalAmount'];
+  const clientFields = Object.keys(STATE.Client);
+  const bookingFields = Object.keys(STATE.Booking);
+
   if (clientFields.includes(fieldName)) {
     STATE.Client[fieldName] = canonicalValue;
   } else if (bookingFields.includes(fieldName)) {
@@ -610,7 +625,11 @@ function syncFormFieldToState(fieldName, displayValue) {
   handleFieldCalculations(fieldName, canonicalValue);
 }
 
+
+
+//
 // DEBUG ONLY - Test function for round-trip date conversion 
+//
 function testDateConversion() {
   const testISO = "2025-09-18T19:00:00-07:00";
   console.log("Original ISO:", testISO);
@@ -651,6 +670,9 @@ reloadBtn.addEventListener('click', () => {
   reloadParsers();
 });
 
+
+
+
 //
 // Settings button
 //
@@ -658,8 +680,10 @@ const settingsBtn = document.getElementById('settingsBtn');
 settingsBtn.addEventListener('click', async () => {
   try {
 
-    // save the current state
-    await STATE.save();
+    // save the current state (only if it has valid client data)
+    if (STATE.Client.name && STATE.Client.name.trim() !== '') {
+      await STATE.save();
+    }
     
     // Dynamic import of PDF settings
     const { default: PDF_settings } = await import(PDF_SETTINGS_JS);
@@ -718,75 +742,37 @@ async function onSave() {
        
     // Ensure current state is saved to Chrome storage for PDF settings page
     await STATE.save();
-
-    // CLEAN THE DATA
-    //
-    const stateData = STATE.toObject();
-    // console.log('State object *before* cleaning (raw state.toObject()):', JSON.stringify(stateData, null, 2));
-
-    // Flatten hierarchical state to flat structure for DB save
-    const flatStateData = {
-      ...stateData.Client,
-      ...stateData.Booking,
-      ...stateData.Config
-    };
-
-    // Remove clientId from flattened data - let DB save function use the created client.id
-    delete flatStateData.clientId;
-
-    // Ensure all values are converted to empty strings if they are null or undefined
-    const cleanedStateData = {};
-    for (const key in flatStateData) {
-      let value = flatStateData[key];
-
-      // Special handling for currency fields: remove '$' and convert to number
-      if (key === 'hourlyRate' || key === 'flatRate' || key === 'totalAmount' || key === 'duration') {
-        if (typeof value === 'string') {
-          value = value.replace('$', '').trim();
-        }
-        value = parseFloat(value);
-        // If conversion results in NaN, set to null to match nullable number schema
-        if (isNaN(value)) {
-          value = null;
-        }
-      } else if (value === null || value === undefined) {
-        value = ''; // Convert other null/undefined to empty strings
-      }
-      cleanedStateData[key] = value;
-    }
-
-    // console.log('State object *after* cleaning (passed to db.save()):', JSON.stringify(cleanedStateData, null, 2));
-
-    log('Saving...');
-    const db = await getDbLayer();
-    const result = await db.save(cleanedStateData); // Pass the cleaned state data
-    
-    // Check if save failed due to server unavailable
-    if (result && result.error === 'Server not running') {
-      logError('Save failed: Database server is not available');
-      showToast('Database server is not available. You can still generate and preview invoices.', 'error');
-    } else {
-      log('Saved');
+    // show a toast on failure
+    if (STATE.status == 'saved' ) {
+      console.log("8888888888 THIS SHOULD NOT SHOW 8888888888888");
       showToast('Data saved successfully', 'success');
+    } else {
+      showToast('Database server is not available. You can still generate and preview invoices.', 'error');
     }
 
   } catch (e) {
     logError('Save failed:', e);
+    showToast('Save failed. You can still generate and preview invoices.', 'error');
     console.error('Error details:', e);
-    if (e.response && e.response.errors) {
-      console.error('Validation errors:', e.response.errors); 
-    }
     console.error('State at time of failure:', JSON.stringify(STATE.toObject(), null, 2));
-  }};
+  }
+};
 
 
 
 /**
- * FIXME FIXME FIXME
- * Comment this function
+ * RENDER THE PDF
+ * 
+ * load the State from storage to get the Config settings
+ * like company name, logo, address, etc.
+ * 
  */
 async function onPdf() {
   try {
+
+    log("Updating state...");
+    await STATE.load(); // Reload state from storage to ensure latest settings
+
     log('Rendering PDF...');
     
     // Import PDF render class directly (same as pdf_settings_page.js)
@@ -797,6 +783,8 @@ async function onPdf() {
     log('PDF generated successfully!');
   } catch (e) {
     logError('PDF render failed:', e);
+    
     log('PDF render failed');
+    showToast('PDF Render failed', 'error');
   }
 }

@@ -1,7 +1,15 @@
 /**
  * state.js - Simple state management for invoice data
  * Directly exposes Client/Booking/Config objects with storage persistence
+ * 
+ * 
+ * Bring the DB layer into the state object -- use to save not only to 
+ * chrome storage but also to a DB layer if configured
  */
+
+import { getDbLayer } from './provider_registry.js';
+
+
 
 class State {
   constructor() {
@@ -9,7 +17,7 @@ class State {
     this.Booking = {};
     this.Config = {};
     this.storageKey = 'currentBookingState';
-    this.autoSave = true;
+    this.status = 'new';
 
     // Load existing state from Chrome storage
     this.load();
@@ -27,9 +35,8 @@ class State {
     this.Booking = {};
     // DO NOT CLEAR CONFIG DATA 
     // this.Config = {};
-    if (this.autoSave) {
-      this.save();
-    }
+
+    this.status = 'clear';
   }
 
   /**
@@ -49,14 +56,16 @@ class State {
    * @param {Object} obj - Object to load from
    */
   fromObject(obj) {
-    this.autoSave = false;
+
     this.clear();
     
-    if (obj.Client || obj.Booking || obj.Config) {
+    // if (obj.Client || obj.Booking || obj.Config) {
       // Hierarchical format
       Object.assign(this.Client, obj.Client || {});
       Object.assign(this.Booking, obj.Booking || {});
       Object.assign(this.Config, obj.Config || {});
+      
+      /*
     } else {
       // Legacy flat format - categorize fields
       Object.entries(obj).forEach(([key, value]) => {
@@ -75,27 +84,103 @@ class State {
         }
       });
     }
-    
-    this.autoSave = true;
-    this.save();
+    */
+
   }
+
+
+
+  /**
+   * Save to Database layer if configured, else to local storage
+   */
+  async save() {
+   
+    try {
+      this.saveLocal();
+    } catch (error) {
+      console.warn('Failed to save state locally:', error);
+    }
+
+    // now try DB
+    const dbLayer = await getDbLayer();
+    if (!dbLayer) {
+      this.status='local';
+      console.warn("No DB layer configured, Cannot save");
+      // No DB layer configured, skip DB save
+      return;
+    }
+    // save the state to the DB layer
+    // may include Client, Booking and Config data
+    await dbLayer.save(this);
+    this.status = 'saved';
+  }
+
+
+
+  /**
+   * Load STATE from chrome storage - that will be most recent copy
+   * If Config not found, load from DB
+   * if there's nothing in the DB, let the caller assign its own defaults
+   */
+  async load() {
+
+    await this.loadLocal();
+
+    // If no Config data found load from DB
+    if ( !this.Config || !this.Config.companyName ) {
+      
+      const dbLayer = await getDbLayer();
+      if (!dbLayer) {
+        throw new Error("No DB Layer configured");
+      }
+
+      const dbConfig = await dbLayer.load();
+      if (dbConfig) {
+        Object.assign(this.Config, dbConfig);
+        
+        
+        // TRY TO SAVE STATE --> DB
+        try {
+          await this.save();
+        } catch (error) {
+          // DO NOT FAIL
+          console.log("Save failed, is the DB configured?");
+        }
+
+
+      } else {
+        // throw up to caller so they can handle defaults
+        throw new Error("No Config found in DB");
+      }
+    }
+
+
+
+    this.status = 'loaded';
+  }
+
+
+
+
 
   /**
    * Save state to Chrome storage
    */
-  async save() {
+  async saveLocal() {
     try {
       const data = this.toObject();
       await chrome.storage.local.set({ [this.storageKey]: data });
     } catch (error) {
       console.warn('Failed to save state to storage:', error);
     }
+    this.status='saved';
   }
+
 
   /**
    * Load state from Chrome storage
    */
-  async load() {
+  async loadLocal() {
     try {
       const result = await chrome.storage.local.get(this.storageKey);
       if (result[this.storageKey]) {
@@ -107,7 +192,9 @@ class State {
     } catch (error) {
       console.warn('Failed to load state from storage:', error);
     }
+    this.status = 'loaded';
   }
+
 }
 
 /**
@@ -176,46 +263,4 @@ export function mergePageData(state, parsedData) {
   }
 }
 
-/**
- * Validate state data against schema
- * @returns {Object} Validation result with isValid and errors
- */
-export function validateState(state) {
-  const errors = [];
-  const data = state.toObject();
 
-  // Required Client fields
-  if (!data.Client?.name) {
-    errors.push('Client name is required');
-  }
-
-  // Required Booking fields
-  if (!data.Booking?.clientId) {
-    errors.push('Booking clientId is required');
-  }
-
-  // Numeric field validations
-  if (data.Booking?.hourlyRate && isNaN(parseFloat(data.Booking.hourlyRate))) {
-    errors.push('Hourly rate must be a number');
-  }
-  if (data.Booking?.flatRate && isNaN(parseFloat(data.Booking.flatRate))) {
-    errors.push('Flat rate must be a number');
-  }
-  if (data.Booking?.duration && isNaN(parseFloat(data.Booking.duration))) {
-    errors.push('Duration must be a number');
-  }
-
-  // Date validations
-  if (data.Booking?.startDate && data.Booking?.endDate) {
-    const start = new Date(data.Booking.startDate);
-    const end = new Date(data.Booking.endDate);
-    if (start > end) {
-      errors.push('Start date cannot be after end date');
-    }
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-}

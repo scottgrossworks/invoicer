@@ -1,4 +1,3 @@
-const { CreateClientData, ClientEntity } = require('./leedz_db');
 
 class Client {
   constructor(data) {
@@ -27,18 +26,27 @@ class Client {
 
   // Validation methods
   static validate(data) {
+
+    console.log("VALIDATING CLIENT");
+    console.log(data);
+
     const errors = [];
 
-    if (!data.name || data.name.trim() === '') {
-      errors.push('Name is required');
-    }
+    try {
 
-    if (data.email && !this.isValidEmail(data.email)) {
-      errors.push('Invalid email format');
-    }
+        if (!data.name || data.name.trim() === '') {
+          errors.push('Name is required');
+        }
 
-    if (data.phone && !this.isValidPhone(data.phone)) {
-      errors.push('Invalid phone format');
+        if (data.email && !this.isValidEmail(data.email)) {
+          errors.push('Invalid email format');
+        }
+
+        if (data.phone && !this.isValidPhone(data.phone)) {
+          errors.push('Invalid phone format');
+        }
+    } catch (error) {
+      errors.push( error.message );
     }
 
     return {
@@ -105,9 +113,6 @@ class Client {
   }
 }
 
-module.exports = {
-  Client
-};
 // Add JSON export for client-side usage
 Client.prototype.toJSON = function() {
   return {
@@ -121,3 +126,5 @@ Client.prototype.toJSON = function() {
     updatedAt: this.updatedAt
   };
 };
+
+export default Client;

@@ -1,8 +1,8 @@
 import Settings from './settings.js';
+import Config from '../db/Config.js';
 
 const PDF_SETTINGS_HTML = 'pdf_settings.html';
-const CONFIG_JSON = 'invoicer_config.json';
-const URL_DEFAULT = 'http://127.0.0.1:3000';
+
 
 
 /**
@@ -44,78 +44,33 @@ class PDF_settings extends Settings {
    * @returns {Promise<void>}
    */
   async load() {
+
     try {
-      // Get server baseUrl from config
-      const configResponse = await fetch(chrome.runtime.getURL(CONFIG_JSON));
-      const config = await configResponse.json();
-      const serverUrl = config.db?.baseUrl || URL_DEFAULT;
-      
-      const dbResponse = await fetch(`${serverUrl}/config`);
-      console.log('Database config fetch response status:', dbResponse.status);
-      
-      if (dbResponse.ok) {
-        const dbConfig = await dbResponse.json();
-        console.log("PDF settings loaded from database");
-        console.log(dbConfig);
-        
-        // Update state object directly with database config
-        Object.assign(this.STATE.Config, dbConfig);
-        await this.STATE.save();
-        
-      } else {
-        console.log("No DB Config found");
-        if (!this.STATE.Config || !this.STATE.Config.companyName) {
-          console.log("Using empty defaults");
-          Object.assign(this.STATE.Config, this.getDefaults());
-          await this.STATE.save();
-        } else {
-          console.log("Using existing Chrome STATE");
-        }
-      }
-      
+      await this.STATE.load();
     } catch (error) {
       console.error('Error loading PDF settings, using defaults:', error);
       Object.assign(this.STATE.Config, this.getDefaults());
       await this.STATE.save();
     }
+      
   }
 
   /**
-   * Save PDF settings to database via server API
+   * Save PDF settings to database
    * @param {Object} settings - PDF settings to save
    * @returns {Promise<void>}
    */
-  async save(settings) {
+  async save( settings ) {
     try {
-      // Get server baseUrl from config
-      const configResponse = await fetch(chrome.runtime.getURL(CONFIG_JSON));
-      const config = await configResponse.json();
-      const serverUrl = config.db?.baseUrl || URL_DEFAULT;
-            
-      // send to server
-      const response = await fetch(`${serverUrl}/config`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(settings)
-      });
       
-      if (!response.ok) {
-        throw new Error(`Server responded with status: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      console.log('PDF settings saved to database:', result.id);
-      
-      // Chrome storage already updated above in currentBookingState
-      
+      Object.assign(this.STATE.Config, settings);
+
+      await this.STATE.save(); // Save entire state, including Config
+
+      console.log('PDF settings saved to database');
+
     } catch (error) {
       console.error('Failed to save PDF settings to database:', error);
-      
-      // Fallback: Chrome storage already updated above in currentBookingState
-      console.log('PDF settings saved to Chrome storage as fallback');
-      
       throw error;
     }
   }
@@ -125,9 +80,12 @@ class PDF_settings extends Settings {
    * Reset PDF settings to defaults
    * @returns {Promise<void>}
    */
-  async reset() {
+    async reset() {
     try {
-      await this.save(this.getDefaults());
+
+      Object.assign(this.STATE.Config, this.getDefaults());
+      await this.STATE.save();
+     
       console.log('PDF settings reset to defaults');
     } catch (error) {
       console.error('Failed to reset PDF settings:', error);
@@ -135,29 +93,20 @@ class PDF_settings extends Settings {
     }
   }
 
+
+  /**
+   * return the current Config state object
+   */
+  getSettings() {
+    return this.STATE.Config;
+  }
+
   /**
    * Get default PDF settings (empty object to rely on HTML placeholders)
    * @returns {Object} Empty default settings
    */
   getDefaults() {
-    return {
-      companyName: '',
-      companyAddress: '',
-      companyPhone: '',
-      companyEmail: '',
-      logoUrl: '',
-      bankName: '',
-      bankAddress: '',
-      bankPhone: '',
-      bankAccount: '',
-      bankRouting: '',
-      bankWire: '',
-      servicesPerformed: '',
-      contactHandle: '',
-      includeTerms: true,
-      terms: '',
-      template: 'modern'
-    };
+    return Config.getDefaults();
   }
 }
 

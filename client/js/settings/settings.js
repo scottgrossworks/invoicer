@@ -39,6 +39,22 @@ class Settings {
   async reset() {
     throw new Error('Settings.reset() must be implemented by subclass');
   }
+
+  /**
+   * Open-ended method to get settings object
+   * 
+   * @returns {Object} Current settings object
+   */
+  getSettings() {
+    throw new Error('Settings.getSettings() must be implemented by subclass');
+  }
+
+  /**
+   * get the default settings values
+   */
+  getDefaults() {
+    throw new Error('Settings.getDefaults() must be implemented by subclass');
+  } 
 }
 
 export default Settings;

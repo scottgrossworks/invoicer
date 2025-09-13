@@ -1,4 +1,4 @@
-const { CreateBookingData, BookingEntity } = require('./leedz_db');
+
 
 class Booking {
   constructor(data) {
@@ -124,6 +124,13 @@ class Booking {
   }
 
   // Data transformation
+  // toCreateData is for creating new records
+  // and toInterface is for returning data to the client/UI
+  // so toCreateData omits id, createdAt, updatedAt
+  // while toInterface includes all fields
+  // both methods convert undefined to null for optional fields
+  // are they used?
+  //
   toCreateData() {
     return {
       clientId: this.clientId,

@@ -50,7 +50,7 @@ export async function loadConfig() {
  * Factory function that reads the database provider configuration and instantiates
  * the appropriate database layer class. Currently only supports local SQLite via Prisma.
  * 
- * @returns {Promise<DB_Local_PragmaSqlite>} Database layer instance for CRUD operations
+ * @returns {Promise<DB_Local_PrismaSqlite>} Database layer instance for CRUD operations
  * @throws {Error} If unknown database provider is specified in config
  * 
  * Used by: 
@@ -64,7 +64,7 @@ export async function getDbLayer() {
   const provider = cfg?.db?.provider || 'local_prisma_sqlite';
   if (provider === 'local_prisma_sqlite') {
     const module = await import('./db/DB_local_prisma_sqlite.js');
-    return new module.DB_Local_PragmaSqlite(cfg.db.baseUrl);
+    return new module.DB_Local_PrismaSqlite(cfg.db.baseUrl);
   }
   throw new Error('Unknown DB provider: ' + provider);
 }

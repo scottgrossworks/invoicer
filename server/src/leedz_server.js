@@ -165,6 +165,27 @@ app.delete("/clients/:id", asyncRoute(async (req, res) => {
   res.status(200).json({ success: true, message: `Client ${client.name} deleted successfully` });
 }, "DELETE /clients/:id"));
 
+/**
+ * PUT /clients/:id
+ * Updates a client in the database by ID
+ */
+app.put("/clients/:id", asyncRoute(async (req, res) => {
+  const { id } = req.params;
+  const updateData = req.body;
+  
+  const existingClient = await db.getClient(id);
+  if (!existingClient) {
+    return res.status(404).json({ error: "Client not found" });
+  }
+
+  const updatedClient = await db.updateClient(id, updateData);
+  if (!updatedClient) {
+    return res.status(500).json({ error: "Failed to update client" });
+  }
+
+  res.status(200).json(updatedClient);
+}, "PUT /clients/:id"));
+
 // CLIENT STATISTICS ENDPOINTS
 
 /**

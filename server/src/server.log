@@ -357,3 +357,141 @@ Foreign key constraint violated: `foreign key`
 [2025-09-11T00:44:14.278Z] POST /clients
 [2025-09-11T00:44:14.303Z] POST /bookings
 [2025-09-11T03:52:02.288Z] GET /bookings
+[2025-09-11T04:19:48.459Z] GET /stats
+[2025-09-12T05:39:08.761Z] GET /style.css
+[2025-09-12T05:39:39.024Z] GET /style.css
+[2025-09-12T05:39:45.255Z] GET /style.css
+[2025-09-12T17:04:42.039Z] GET /style.css
+[2025-09-12T19:00:30.237Z] Received SIGINT, shutting down gracefully...
+[2025-09-12T19:00:34.130Z] Database connected successfully
+[2025-09-12T19:00:34.136Z] ! Local API running on http://localhost:3000
+[2025-09-12T19:20:04.535Z] GET /clients
+[2025-09-12T19:31:18.465Z] GET /clients
+[2025-09-12T19:32:41.976Z] PUT /clients
+[2025-09-12T19:35:05.515Z] GET /clients
+[2025-09-12T19:41:00.497Z] PUT /clients/cmfeom2zh0000cj5okoohwjx6
+[2025-09-12T19:41:22.387Z] Received SIGINT, shutting down gracefully...
+[2025-09-12T19:49:41.774Z] Database connected successfully
+[2025-09-12T19:49:41.779Z] ! Local API running on http://localhost:3000
+[2025-09-12T19:51:23.415Z] PUT /clients/cmfeom2zh0000cj5okoohwjx6
+[2025-09-12T19:53:09.191Z] PUT /clients/cmfeom2zh0000cj5okoohwjx6
+[2025-09-12T20:16:22.721Z] GET /clients
+[2025-09-12T20:17:12.041Z] PUT /clients/cmfde9zsd001811exnjah0j35
+[2025-09-12T20:19:04.759Z] GET /bookings
+[2025-09-12T21:26:39.393Z] DELETE /bookings/cmf6hpgju0005b6wwccfws01l
+[2025-09-12T21:27:01.210Z] DELETE /bookings/cmf6leb3w000111exwoy90dso
+[2025-09-12T21:27:06.731Z] DELETE /bookings/cmf6lehic000311exmcq0ff9k
+[2025-09-12T21:27:12.519Z] DELETE /bookings/cmf6lj0di000511exzugsxa6z
+[2025-09-12T21:27:21.022Z] DELETE /bookings/cmf6lnaxj000711exhmwkkt9s
+[2025-09-12T21:27:32.544Z] DELETE /bookings/cmfbo74rs000911ex3spgkyg7
+[2025-09-12T21:27:37.092Z] DELETE /bookings/cmfbol224000b11exuolf45bs
+[2025-09-12T21:27:43.689Z] DELETE /bookings/cmfbormz5000d11ex95jc26tb
+[2025-09-12T21:27:52.011Z] DELETE /bookings/cmfbq2g2s000f11ex1acknpp7
+[2025-09-12T21:27:56.609Z] DELETE /bookings/cmfbr6p08000h11ex5etngqr9
+[2025-09-12T21:28:01.132Z] DELETE /bookings/cmfbsapq1000j11exi1n2cu0p
+[2025-09-12T21:28:14.219Z] DELETE /bookings/cmfbt509l000l11ex911td2au
+[2025-09-12T21:28:21.108Z] DELETE /bookings/cmfbt7rxr000n11exjpcgf8jc
+[2025-09-12T21:28:25.589Z] DELETE /bookings/cmfbu44ch000p11exmfle54jx
+[2025-09-12T21:28:32.047Z] DELETE /bookings/cmfbyo64l000t11exyp7x1czj
+[2025-09-12T21:28:37.108Z] DELETE /bookings/cmfd8vjyl000x11exhtmhw409
+[2025-09-12T21:28:43.789Z] DELETE /bookings/cmfd9ug25000z11ex00oyjrq0
+[2025-09-12T21:28:49.156Z] DELETE /bookings/cmfd9y6ej001111exhgxsszr8
+[2025-09-12T21:28:59.184Z] DELETE /bookings/cmfdb4r9a001311exgzztlc3l
+[2025-09-12T21:29:04.214Z] DELETE /bookings/cmfdbbi67001511exg77ckl0v
+[2025-09-12T21:29:09.683Z] DELETE /bookings/cmfdc7b5z001711exig3z46im
+[2025-09-12T21:29:16.328Z] DELETE /bookings/cmfeor9ey0004cj5o5gydp5n4
+[2025-09-12T21:29:20.838Z] GET /bookings
+[2025-09-12T21:29:28.626Z] DELETE /bookings/cmf6h7xcr0002b6wwy7lw7yy1
+[2025-09-12T21:29:34.570Z] PUT /bookings/cmfeom30q0002cj5odc7asn4v
+[2025-09-12T21:29:39.863Z] PUT /bookings/cmfeom30q0002cj5odc7asn4v
+[2025-09-12T21:29:44.210Z] GET /bookings
+[2025-09-12T22:32:10.528Z] PUT /bookings/cmfeom30q0002cj5odc7asn4v
+[2025-09-12T22:32:22.062Z] PUT /bookings/cmfeom30q0002cj5odc7asn4v
+[2025-09-12T22:32:27.104Z] PUT /bookings/cmfeom30q0002cj5odc7asn4v
+[2025-09-12T22:32:36.960Z] PUT /bookings/cmfeom30q0002cj5odc7asn4v
+[2025-09-12T22:32:44.107Z] POST /bookings
+[2025-09-12T22:32:44.131Z] POST /bookings failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.booking.create()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:211:38[24m
+
+  [2m[90m208[39m [34m}[39m[22m
+  [2m[90m209[39m [22m
+  [2m[90m210[39m [90m// Create new booking[39m[22m
+[1m[31m→[39m[22m [2m[90m211[39m [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mbooking[34m.[39m[36mcreate[39m[34m([39m[22m{
+        data: {
+          clientId: "Amber Moore",
+          location: "28678 The Old Rd, Valencia, CA 91355, USA",
+          [31mdate[39m: "2025-08-24",
+          [31m~~~~[39m
+          startTime: "14:30",
+          endTime: "16:30",
+          rate: 350,
+          rateType: "flat",
+          description: "Sweet 16 Party",
+          startDate: null,
+          endDate: null,
+      [32m?[39m   [32mid[39m[32m?[39m[32m: [39m[32mString[39m,
+      [32m?[39m   [32mduration[39m[32m?[39m[32m: [39m[32mFloat | Null[39m,
+      [32m?[39m   [32mhourlyRate[39m[32m?[39m[32m: [39m[32mFloat | Null[39m,
+      [32m?[39m   [32mflatRate[39m[32m?[39m[32m: [39m[32mFloat | Null[39m,
+      [32m?[39m   [32mtotalAmount[39m[32m?[39m[32m: [39m[32mFloat | Null[39m,
+      [32m?[39m   [32mstatus[39m[32m?[39m[32m: [39m[32mString[39m,
+      [32m?[39m   [32msource[39m[32m?[39m[32m: [39m[32mString | Null[39m,
+      [32m?[39m   [32mnotes[39m[32m?[39m[32m: [39m[32mString | Null[39m,
+      [32m?[39m   [32mcreatedAt[39m[32m?[39m[32m: [39m[32mDateTime[39m,
+      [32m?[39m   [32mupdatedAt[39m[32m?[39m[32m: [39m[32mDateTime[39m
+        }
+      }[2m)[22m
+
+Unknown argument `[31mdate[39m`. Did you mean `[32mendDate[39m`? Available options are listed in [32mgreen[39m.
+    at wn (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createBooking (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:211:12)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:226:18
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:75:7
+[2025-09-12T22:32:56.260Z] POST /bookings
+[2025-09-12T22:33:01.337Z] DELETE /bookings/cmfeom30q0002cj5odc7asn4v
+[2025-09-12T22:33:08.936Z] PUT /bookings/cmfhey4060003vmpq5r8go4ch
+[2025-09-12T22:33:13.331Z] GET /bookings
+[2025-09-12T23:12:27.242Z] GET /stats
+[2025-09-12T23:13:02.233Z] GET /stats
+[2025-09-12T23:16:20.657Z] POST /clients
+[2025-09-12T23:16:20.685Z] POST /bookings
+[2025-09-12T23:17:03.290Z] GET /config
+[2025-09-13T03:31:32.519Z] GET /config
+[2025-09-13T03:31:32.546Z] POST /clients
+[2025-09-13T03:31:32.562Z] POST /clients
+[2025-09-13T03:31:32.564Z] POST /clients
+[2025-09-13T03:31:32.572Z] GET /config
+[2025-09-13T03:31:32.574Z] GET /config
+[2025-09-13T03:31:32.576Z] POST /clients
+[2025-09-13T03:31:32.586Z] POST /clients
+[2025-09-13T03:31:32.594Z] POST /clients
+[2025-09-13T03:33:29.301Z] POST /clients
+[2025-09-13T19:23:36.147Z] GET /config
+[2025-09-13T19:23:36.162Z] GET /config
+[2025-09-13T19:23:36.237Z] GET /config
+[2025-09-13T19:23:43.648Z] POST /clients
+[2025-09-13T19:23:43.668Z] POST /clients failed: PrismaClientKnownRequestError: 
+[31mInvalid [1m`this.prisma.client.create()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:65:39[24m
+
+  [2m[90m62[39m   [34m}[39m[34m)[39m[34m;[39m[22m
+  [2m[90m63[39m [34m}[39m [36melse[39m [34m{[39m[22m
+  [2m[90m64[39m   [90m// Create new client[39m[22m
+[1m[31m→[39m[22m [2m[90m65[39m   [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mclient[34m.[39m[36mcreate[39m[34m([39m[22m
+Unique constraint failed on the fields: (`email`)
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createClient (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:65:14)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:116:18
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:75:7
+[2025-09-13T19:25:22.454Z] Received SIGINT, shutting down gracefully...
+[2025-09-13T19:25:24.441Z] Database connected successfully
+[2025-09-13T19:25:24.445Z] ! Local API running on http://localhost:3000
+[2025-09-13T19:34:20.435Z] Received SIGINT, shutting down gracefully...
