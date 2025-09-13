@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(cat:*)",
+      "Bash(sed:*)",
+      "Read(//c/Users/Scott/AppData/Roaming/Claude/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
