@@ -1,6 +1,6 @@
 LEEDZ INVOICER SYSTEM - PROJECT STATUS SUMMARY
 ================================================
-CLAUDE: [API_KEY_REMOVED]
+CLAUDE: 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
 PROJECT OVERVIEW
 ----------------
 The Leedz Invoicer System is a platform for managing client bookings and generating invoices. It integrates a Chrome extension for data extraction and PDF generation with a robust backend API for data persistence and configuration management.
