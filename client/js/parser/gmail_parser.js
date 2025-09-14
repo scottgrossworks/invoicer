@@ -1,10 +1,3 @@
-// gmail_parser.js — extract Gmail thread content and process via LLM
-
-import { PortalParser } from './parser.js';
-
-// Global CONFIG variable - loaded once when parser initializes
-let CONFIG = null;
-
 /**
  * GmailParser - Extracts booking/invoice data from Gmail threads using LLM processing
  * 
@@ -15,6 +8,16 @@ let CONFIG = null;
  * 4. Parse LLM JSON response and populate state with booking fields
  * 5. Keep raw thread text as fallback data
  */
+
+import Booking from '../db/Booking.js';
+import Client from '../db/Client.js';
+
+import { PortalParser } from './parser.js';
+
+// Global CONFIG variable - loaded once when parser initializes
+let CONFIG = null;
+
+
 class GmailParser extends PortalParser {
 
   constructor() {
@@ -80,6 +83,10 @@ class GmailParser extends PortalParser {
         if (state.Config) Object.assign(this.STATE.Config, state.Config);
       }
 
+      // NECESSARY?  should we implement here?
+      // await this.waitUntilReady();
+
+      // NAME AND EMAIL
       // Step 1: Extract email and name using multiple Gmail selector strategies
       const emailData = this._extractEmailAndName();
       
@@ -87,11 +94,7 @@ class GmailParser extends PortalParser {
       const threadContent = this._extractThreadContent();
       
       if (!threadContent?.trim()) {
-        console.warn('No thread content found - this may indicate Gmail DOM changes or the page is not fully loaded');
-        console.log('Page URL:', window.location.href);
-        console.log('Page ready state:', document.readyState);
-        console.log('Gmail-specific elements found:', document.querySelectorAll('[data-message-id]').length);
-        this.STATE._parseError = 'No email content could be extracted. Try refreshing the page or opening the email thread.';
+        console.warn('No email content could be extracted. Try refreshing the page or opening the email thread.');
         return;
       }
 
@@ -103,35 +106,21 @@ class GmailParser extends PortalParser {
       }
       this.STATE.Booking.source = 'gmail';
 
+
+      // SEND TO LLM
       // Step 4: Send to LLM for processing
       const llmResult = await this._sendToLLM(emailData, threadContent);
+
       if (llmResult) {
-        // Update each sub-object separately - but preserve basic email/name
-        if (llmResult.Client) {
-          Object.entries(llmResult.Client).forEach(([key, value]) => {
-            if (value !== null && value !== undefined && value !== '') {
-              this.STATE.Client[key] = value;
-            }
-          });
-        }
-        if (llmResult.Booking) {
-          Object.entries(llmResult.Booking).forEach(([key, value]) => {
-            if (value !== null && value !== undefined && value !== '') {
-              this.STATE.Booking[key] = value;
-            }
-          });
-        }
-        if (llmResult.Config) {
-          Object.entries(llmResult.Config).forEach(([key, value]) => {
-            if (value !== null && value !== undefined && value !== '') {
-              this.STATE.Config[key] = value;
-            }
-          });
-        }
-        this.STATE._processingStatus = 'LLM processed successfully';
+        console.log('LLM processed successfully');
+        _conservativeUpdate( llmResult );
       } else {
-        this.STATE._processingStatus = 'LLM unavailable - basic extraction only';
+        console.warn('LLM unavailable - basic extraction only');
       }
+
+
+
+      // CHECKING
 
       // ALWAYS ensure basic email/name persist (even if LLM overwrote them with null)
       if (emailData.email && !this.STATE.Client.email) this.STATE.Client.email = emailData.email;
@@ -140,12 +129,47 @@ class GmailParser extends PortalParser {
         this.STATE.Booking.clientId = emailData.name;
       }
       
+
+      // SAME DAY
+      // Auto-complete endDate to match startDate if endDate is missing
+      if (this.STATE.Booking.startDate && ! this.STATE.Booking.endDate) {
+        this.STATE.Booking.endDate = this.STATE.Booking.startDate;
+      }
+
+      // DURATION
+      // Calculate duration procedurally if startTime and endTime are available
+      if (this.STATE.Booking.startTime && this.STATE.Booking.endTime) {
+        let duration = this._calculateDuration(this.STATE.Booking.startTime, this.STATE.Booking.endTime);
+        if (duration) this.STATE.Booking.duration = duration;
+      }
+
+      // RATES
+      // if there is a flatRate -- totalAmount = flatRate
+      // else if there is an hourlyRate
+      // totalAmount = hourlyRate * duration
+      // 
+      if (this.STATE.Booking.flatRate) {
+        // user may ++totalAmount later -- this is just a default
+        this.STATE.Booking.totalAmount = this.STATE.Booking.flatRate;
+      
+      } else if (this.STATE.Booking.hourlyRate && ! this.STATE.Booking.totalAmount) {
+
+        // Calculate totalAmount before displaying if hourlyRate and duration are available
+        const hourlyRate = parseFloat(this.STATE.Booking.hourlyRate);
+        const calculatedDuration = parseFloat(this.STATE.Booking.duration);
+        if (!isNaN(hourlyRate) && !isNaN(calculatedDuration) && hourlyRate > 0 && calculatedDuration > 0) {
+          const total = hourlyRate * calculatedDuration;
+          this.STATE.Booking.totalAmount = total.toFixed(2);
+        }
+      } 
+
+      
+
     } catch (error) {
       console.error('Gmail parser error:', error);
       // Set minimal fallback data
       this.STATE.Booking = this.STATE.Booking || {};
       this.STATE.Booking.source = 'gmail';
-      this.STATE._parseError = error.message;
     }
 
     // Return the state object (sidebar will handle saving)
@@ -279,6 +303,31 @@ class GmailParser extends PortalParser {
   }
 
 
+
+  /**
+   * Conservatively updates the state with new LLM results.
+   * Only fills in fields that are currently empty or whitespace or null.
+   * @param {*} llmResult 
+   */
+  _conservativeUpdate(llmResult) {
+      const updateIfEmpty = (obj, prop, llmValue) => {
+          obj[prop] = (llmValue && !obj[prop]) ? llmValue : obj[prop];
+      };
+
+      // Client fields
+      updateIfEmpty(this.STATE.Client, 'name', llmResult.name);
+      updateIfEmpty(this.STATE.Client, 'email', llmResult.email);
+      updateIfEmpty(this.STATE.Client, 'phone', llmResult.phone);
+      updateIfEmpty(this.STATE.Client, 'company', llmResult.company);
+      updateIfEmpty(this.STATE.Client, 'notes', llmResult.notes);
+
+      // Booking fields
+      updateIfEmpty(this.STATE.Booking, 'hourlyRate', llmResult.hourlyRate);
+      updateIfEmpty(this.STATE.Booking, 'flatRate', llmResult.flatRate);
+      updateIfEmpty(this.STATE.Booking, 'totalAmount', llmResult.totalAmount);
+      updateIfEmpty(this.STATE.Booking, 'duration', llmResult.duration);
+      this.STATE.Booking.source = 'Gmail'; // Always set source to gmail
+  }
 
 
   
@@ -479,11 +528,16 @@ ${threadContent}
           Config: {}
         };
         
-        // Define field categories
+        
+        /*
         const clientFields = ['name', 'email', 'phone', 'company', 'notes'];
         const bookingFields = ['description', 'location', 'startDate', 'endDate', 
                              'startTime', 'endTime', 'duration', 'hourlyRate', 
                              'flatRate', 'totalAmount', 'status', 'source'];
+        */
+        const clientFields = Client.getFieldNames();
+        const bookingFields = Booking.getFieldNames();
+
 
         // Map fields to appropriate sub-objects
         Object.entries(parsed).forEach(([field, value]) => {
@@ -639,6 +693,38 @@ ${threadContent}
       console.warn('Error correcting times:', error);
       return null;
     }
+  }
+
+  /**
+   * Calculate duration as the difference between startTime and endTime
+   * @param {string} startTime - Start time (12-hour or 24-hour format)
+   * @param {string} endTime - End time (12-hour or 24-hour format)
+   * @returns {string|null} Duration in hours as string, or null if invalid
+   */
+  _calculateDuration(startTime, endTime) {
+    // DURATION
+    // Calculate duration before displaying if startTime and endTime are available
+    let duration;
+
+    if (startTime && endTime) {
+      const [startHours, startMinutes] = startTime.split(':').map(Number);
+      const [endHours, endMinutes] = endTime.split(':').map(Number);
+
+      const startTotalMinutes = startHours * 60 + (startMinutes || 0);
+      const endTotalMinutes = endHours * 60 + (endMinutes || 0);
+
+      if (endTotalMinutes < startTotalMinutes) {
+        duration = (24 * 60 - startTotalMinutes) + endTotalMinutes;
+      } else {
+        duration = endTotalMinutes - startTotalMinutes;
+      }
+
+      const durationHours = (duration / 60).toFixed(1);
+      const durationNum = parseFloat(durationHours);
+      return durationNum.toString();
+    }
+
+    return null;
   }
 }
 

@@ -167,6 +167,7 @@ html, body {
   font-weight: bold;
   width: 25%;
   color: #333;
+  vertical-align: bottom;
 }
 
 .booking-table .field-value {

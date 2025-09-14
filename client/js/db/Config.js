@@ -17,7 +17,7 @@ class Config {
         this.contactHandle = data.contactHandle || '';
         this.includeTerms = data.includeTerms !== undefined ? data.includeTerms : true;
         this.terms = data.terms || '';
-        this.template = data.template || 'modern';
+        this.template = data.template || 'modern';  // IGNORE
     }
 
 
@@ -41,8 +41,30 @@ class Config {
             errors};
     }
 
+  /**
+   * Return just the fields which user can modify
+   * @returns field names[]
+   */
+static getFieldNames() {
+    const fields = [
+      'companyName',
+      'companyAddress',
+      'companyPhone',
+      'companyEmail',
+      'logoUrl',
+      'bankAccount',
+      'bankRouting',
+      'bankWire',
+      'servicesPerformed',
+      'contactHandle',
+      'includeTerms',
+      'terms'
+    ];
 
-    
+    return fields;
+  }
+
+
   /**
    * Get default PDF settings (empty object to rely on HTML placeholders)
    * @returns {Object} Empty default settings

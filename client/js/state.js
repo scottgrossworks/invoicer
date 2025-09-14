@@ -12,7 +12,7 @@ import { getDbLayer } from './provider_registry.js';
 
 
 class State {
-  constructor() {
+  constructor( loadData ) {
     this.Client = {};
     this.Booking = {};
     this.Config = {};
@@ -20,7 +20,7 @@ class State {
     this.status = 'new';
 
     // Load existing state from Chrome storage
-    this.load();
+    if (loadData) this.load();
   }
 
 
@@ -125,13 +125,15 @@ class State {
   async load() {
 
     await this.loadLocal();
+    this.status = 'local';
 
     // If no Config data found load from DB
     if ( !this.Config || !this.Config.companyName ) {
       
       const dbLayer = await getDbLayer();
       if (!dbLayer) {
-        throw new Error("No DB Layer configured");
+        console.warn("No DB Layer configured");
+        return;
       }
 
       const dbConfig = await dbLayer.load();
@@ -144,18 +146,17 @@ class State {
           await this.save();
         } catch (error) {
           // DO NOT FAIL
-          console.log("Save failed, is the DB configured?");
+          console.warn("Save failed, is the DB configured?");
+          return;
         }
 
-
       } else {
-        // throw up to caller so they can handle defaults
-        throw new Error("No Config found in DB");
+        console.warn("No Config found in DB");
+        return;
       }
     }
 
-
-
+    // SUCCESS
     this.status = 'loaded';
   }
 
@@ -202,7 +203,14 @@ class State {
  */
 export class StateFactory {
   static async create() {
-    const state = new State();
+    const state = new State( true );
+    return state;
+  }
+
+  // used by content.js to create an instance for the parser without
+  // re-loading everything
+  static async create_blank() {
+    const state = new State( false );
     return state;
   }
 }

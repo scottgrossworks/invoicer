@@ -51,6 +51,7 @@ cleanFloat(value) {
     try {
     
       console.log("SAVING!");
+      state.status = 'local';
 
       // CLIENT
       //
@@ -163,6 +164,10 @@ cleanFloat(value) {
         throw new Error(`Config save failed: ${configRes.status} ${errorText}`);
       }
 
+
+      // SUCCESS!
+      state.status = 'saved';
+
       
     } catch (error) {
       
@@ -189,25 +194,30 @@ async load() {
       // Get server baseUrl from config
       const configResponse = await fetch(chrome.runtime.getURL(CONFIG_JSON));
       const config = await configResponse.json();
+
+      if (! config.db || ! config.db.provider) {
+        console.log("No DB configured");
+        return null;
+      }
+
       const serverUrl = config.db?.baseUrl || URL_DEFAULT;
-      
       const dbResponse = await fetch(`${serverUrl}/config`);
-      console.log('Database config fetch response status:', dbResponse.status);
-      
+
       if (dbResponse.ok) {
         const dbConfig = await dbResponse.json();
         console.log("PDF settings loaded from database");
         console.log(dbConfig);
 
         return dbConfig;
-        
+
       } else {
         console.log("No DB Config found");
         return null;
       }
-      
+
     } catch (error) {
-      console.error('Error loading PDF settings: ' + error.message);
+      console.warn('Error loading PDF settings: ' + error.message);
+      console.warn('Is the DB server running?');
       return null;
     }
   }

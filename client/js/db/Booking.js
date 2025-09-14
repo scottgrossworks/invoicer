@@ -3,8 +3,8 @@ class Booking {
   constructor(data) {
     if (data.id) {
       // Existing booking
-      this.id = data.id;
-      this.clientId = data.clientId;
+      this.id = data.id; // IGNORE
+      this.clientId = data.clientId; // IGNORE
       this.title = data.title;
       this.description = data.description;
       this.location = data.location;
@@ -16,11 +16,11 @@ class Booking {
       this.hourlyRate = data.hourlyRate;
       this.flatRate = data.flatRate;
       this.totalAmount = data.totalAmount;
-      this.status = data.status;
+      this.status = data.status; // IGNORE
       this.source = data.source;
       this.notes = data.notes;
-      this.createdAt = data.createdAt;
-      this.updatedAt = data.updatedAt;
+      this.createdAt = data.createdAt; // IGNORE
+      this.updatedAt = data.updatedAt; // IGNORE
     } else {
       // New booking
       this.id = '';
@@ -91,53 +91,29 @@ class Booking {
   }
 
 
+  /**
+   * Return just the fields which user can modify
+   * @returns field names[]
+   */
+  static getFieldNames() {
+    const fields = [
+      'title',
+      'location',
+      'description',
+      'startDate',
+      'startTime',
+      'endDate',
+      'endTime',
+      'duration',
+      'hourlyRate',
+      'flatRate',
+      'totalAmount',
+      'notes'
+    ];
 
-
-  // Business logic methods
-  calculateTotalAmount() {
-    if (this.flatRate) {
-      return this.flatRate;
-    }
-
-    if (this.hourlyRate && this.duration) {
-      return this.hourlyRate * this.duration;
-    }
-
-    return this.totalAmount || 0;
+    return fields;
   }
 
-  getDuration() {
-    if (this.duration) {
-      return this.duration;
-    }
-
-    if (this.startDate && this.endDate) {
-      const diffMs = this.endDate.getTime() - this.startDate.getTime();
-      return Math.ceil(diffMs / (1000 * 60 * 60)); // Hours
-    }
-
-    return 0;
-  }
-
-  isCompleted() {
-    return this.status === 'completed';
-  }
-
-  isPending() {
-    return this.status === 'pending';
-  }
-
-  isCancelled() {
-    return this.status === 'cancelled';
-  }
-
-  hasLocation() {
-    return !!(this.location);
-  }
-
-  getDisplayTitle() {
-    return this.location || 'Booking';
-  }
 
   // Data transformation
   toCreateData() {
@@ -206,6 +182,8 @@ class Booking {
     this.updatedAt = new Date();
   }
 }
+
+// Remove CommonJS export - using ES6 default export only
 
 // Add JSON export for client-side usage
 Booking.prototype.toJSON = function() {

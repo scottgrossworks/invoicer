@@ -3,8 +3,10 @@
 import { StateFactory, mergePageData } from './state.js';
 import { initLogging, log, logError } from './logging.js';
 
+import Booking from './db/Booking.js';
+import Client from './db/Client.js';
 
-import { getDbLayer, getParsers } from './provider_registry.js';
+import { getParsers } from './provider_registry.js';
 
 
 const PDF_SETTINGS_JS = './settings/PDF_settings.js';
@@ -38,13 +40,6 @@ function showToast(message, type = 'info') {
   }, 4000);
 }
 
-// Debug check to confirm script execution
-log('sidebar.js executing. Checking environment...');
-log('Document body:', document.body ? 'Present' : 'Missing');
-log('Chrome API available:', typeof chrome !== 'undefined' ? 'Yes' : 'No');
-
-
-
 
 //////////////////// START LOGGING  /////////////////////
 initLogging();
@@ -52,8 +47,6 @@ initLogging();
 
 
 let STATE = null;
-
-
 
 
 /*
@@ -243,11 +236,11 @@ function populateBookingTable() {
   // Clear existing rows
   tbody.innerHTML = '';
 
-  const bookingKeys = Object.keys(STATE.Booking);
-  const clientKeys = Object.keys(STATE.Client);
+  const clientKeys = Client.getFieldNames();
+  const bookingKeys = Booking.getFieldNames();
 
   // merge these two arrays
-  const allFields = [...bookingKeys, ...clientKeys];
+  const allFields = [...clientKeys, ...bookingKeys];
 
   // Populate table rows with booking and client data
   allFields.forEach(field => {
@@ -266,15 +259,24 @@ function populateBookingTable() {
     input.type = 'text';
     input.setAttribute('data-field', field);
     
+    // DATES
     // Convert time fields to 12-hour format and date fields to readable format for display
     let displayValue = STATE.Booking[field] || STATE.Client[field] || '';
     if ((field === 'startTime' || field === 'endTime') && displayValue) {
-      console.log(`DEBUG: Before conversion - ${field}: ${displayValue}`);
       displayValue = convertTo12Hour(displayValue);
-      console.log(`DEBUG: After convertTo12Hour for ${field}: ${displayValue}`);
     }
     if ((field === 'startDate' || field === 'endDate') && displayValue) {
       displayValue = formatDateForDisplay(displayValue);
+    }
+
+    // CURRENCY
+    if (field === 'hourlyRate' || field === 'flatRate' || field === 'totalAmount') {
+      displayValue = formatCurrency( displayValue );
+    }
+
+    // DURATION
+    if (field === 'duration') {
+      displayValue = formatDuration( displayValue );
     }
 
     input.value = displayValue;
@@ -300,48 +302,9 @@ function populateBookingTable() {
     row.appendChild(nameCell);
     row.appendChild(valueCell);
     tbody.appendChild(row);
-  });
 
+  }); // all_fields
 
-  // START AND END TIMES
-  // Auto-complete endDate to match startDate if endDate is missing
-  if (STATE.Booking.startDate && !STATE.Booking.endDate) {
-    STATE.Booking.endDate = STATE.Booking.startDate;
-  }
-
-
-  // DURATION
-  // Calculate duration before displaying if startTime and endTime are available
-  let duration;
-  const startTime = STATE.Booking.startTime;
-  const endTime = STATE.Booking.endTime;
-
-  if (startTime && endTime) {
-    const [startHours, startMinutes] = startTime.split(':').map(Number);
-    const [endHours, endMinutes] = endTime.split(':').map(Number);
-
-    const startTotalMinutes = startHours * 60 + (startMinutes || 0);
-    const endTotalMinutes = endHours * 60 + (endMinutes || 0);
-
-    if (endTotalMinutes < startTotalMinutes) {
-      duration = (24 * 60 - startTotalMinutes) + endTotalMinutes;
-    } else {
-      duration = endTotalMinutes - startTotalMinutes;
-    }
-
-    const durationHours = (duration / 60).toFixed(1);
-    const durationNum = parseFloat(durationHours);
-    STATE.Booking.duration = durationNum;
-  }
-  
-  // Calculate totalAmount before displaying if hourlyRate and duration are available
-  const hourlyRate = parseFloat(STATE.Booking.hourlyRate);
-  const calculatedDuration = parseFloat(STATE.Booking.duration);
-  if (!isNaN(hourlyRate) && !isNaN(calculatedDuration) && hourlyRate > 0 && calculatedDuration > 0) {
-    const total = hourlyRate * calculatedDuration;
-    STATE.Booking.totalAmount = total.toFixed(2);
-  }
-  
   // Note: First loop already handled all fields
 }
 
@@ -360,7 +323,7 @@ function convertTo12Hour(time24) {
   const t = String(time24).trim();
   
   // DEBUG: Log the conversion process
-  console.log(`convertTo12Hour input: "${t}"`);
+  // console.log(`convertTo12Hour input: "${t}"`);
   
   // If already in 12-hour format with AM/PM, normalize and return
   if (/(AM|PM)/i.test(t)) {
@@ -380,7 +343,7 @@ function convertTo12Hour(time24) {
   else if (hour === 12) result = `12:${min} PM`;
   else result = `${hour - 12}:${min} PM`;
   
-  console.log(`convertTo12Hour output: "${result}"`);
+  // console.log(`convertTo12Hour output: "${result}"`);
   return result;
 }
 
@@ -570,7 +533,15 @@ function commitAndFormatField(fieldName, inputElement) {
       formattedValue = `$${numericValue.toFixed(2)}`;
     }
   }
-  
+
+  // Format duration fields
+  if (fieldName === 'duration' && rawValue) {
+    const numericValue = parseFloat(rawValue.replace(/\s*hours\s*/i, ''));
+    if (!isNaN(numericValue)) {
+      formattedValue = `${numericValue} hours`;
+    }
+  }
+
   // Format time fields to 12-hour format
   if (['startTime', 'endTime'].includes(fieldName) && rawValue) {
     const timeValue = convertTo24Hour(rawValue);
@@ -599,7 +570,7 @@ function commitAndFormatField(fieldName, inputElement) {
 function syncFormFieldToState(fieldName, displayValue) {
   // Convert display formats back to canonical formats
   let canonicalValue = displayValue;
-  
+
   // Handle date fields - convert from display format to ISO format
   if ((fieldName === 'startDate' || fieldName === 'endDate') && displayValue) {
     canonicalValue = parseDisplayDateToISO(displayValue);
@@ -607,6 +578,10 @@ function syncFormFieldToState(fieldName, displayValue) {
   // Handle time fields - convert from 12-hour to 24-hour format
   } else if ((fieldName === 'startTime' || fieldName === 'endTime') && displayValue) {
     canonicalValue = convertTo24Hour(displayValue);
+
+  // Handle duration fields - remove 'hours' suffix for storage
+  } else if (fieldName === 'duration' && displayValue) {
+    canonicalValue = displayValue.replace(/\s*hours\s*/i, '').trim();
   }
 
   // COPY INTO STATE
@@ -627,22 +602,6 @@ function syncFormFieldToState(fieldName, displayValue) {
 
 
 
-//
-// DEBUG ONLY - Test function for round-trip date conversion 
-//
-function testDateConversion() {
-  const testISO = "2025-09-18T19:00:00-07:00";
-  console.log("Original ISO:", testISO);
-  
-  const displayFormat = formatDateForDisplay(testISO);
-  console.log("Display format:", displayFormat);
-  
-  const backToISO = parseDisplayDateToISO(displayFormat);
-  console.log("Back to ISO:", backToISO);
-  
-  console.log("Round-trip successful:", testISO.slice(0, 10) === backToISO.slice(0, 10));
-}
-
 // Define formatCurrency function - ALWAYS display with $ prefix
 function formatCurrency(value) {
   if (value === null || value === undefined || value === '') {
@@ -658,6 +617,23 @@ function formatCurrency(value) {
 
   // Add $ prefix to any non-empty value
   return `$${strValue}`;
+}
+
+// Define formatDuration function - ALWAYS display with 'hours' suffix
+function formatDuration(value) {
+  if (value === null || value === undefined || value === '') {
+    return '0 hours';
+  }
+
+  const strValue = String(value).trim();
+
+  // If already has 'hours', return as is
+  if (strValue.includes('hours')) {
+    return strValue;
+  }
+
+  // Add 'hours' suffix to any non-empty value
+  return `${strValue} hours`;
 }
 
 
@@ -744,7 +720,6 @@ async function onSave() {
     await STATE.save();
     // show a toast on failure
     if (STATE.status == 'saved' ) {
-      console.log("8888888888 THIS SHOULD NOT SHOW 8888888888888");
       showToast('Data saved successfully', 'success');
     } else {
       showToast('Database server is not available. You can still generate and preview invoices.', 'error');

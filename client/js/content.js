@@ -64,20 +64,17 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
 
         // Reconstruct proper State instance from serialized data
         const { StateFactory } = await import(chrome.runtime.getURL('js/state.js'));
-        const stateInstance = await StateFactory.create();
+        const stateInstance = await StateFactory.create_blank();
         stateInstance.fromObject(msg.state);
 
         // Initialize and run the parser with proper State instance
         await parser.initialize(stateInstance);
         await parser.parse(stateInstance);
-        
-        this.STATE = stateInstance;
-
-        console.log('Parser extracted data:', this.STATE);
+        // console.log('Parser extracted data:', stateInstance);
         
         reply({
           ok: true,
-          data: this.STATE  
+          data: stateInstance
         });
       } catch (e) {
         console.error('Content script parser error:', e);
@@ -88,7 +85,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
     return true; // keep port open for async reply
   
   } else {
-    console.log("Received Msg [" + msg.type + "] " + (msg.body || 'no body'));
+    if (msg.type) console.log("Received Msg [" + msg.type + "] " + (msg.body || 'no body'));
   }
   return false; // close port
 });

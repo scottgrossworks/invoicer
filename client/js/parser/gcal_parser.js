@@ -25,7 +25,7 @@ class GCalParser extends PortalParser {
         throw new Error(`Config file not found: ${configResponse.status}`);
       }
       CONFIG = await configResponse.json();
-      console.log('GCal parser config loaded successfully');
+      // console.log('GCal parser config loaded successfully');
     } catch (error) {
       console.error('FATAL: Unable to load invoicer_config.json:', error);
       throw new Error('GCal parser cannot initialize - config file missing or invalid');
@@ -34,7 +34,7 @@ class GCalParser extends PortalParser {
 
   async checkPageMatch(url) {
     const testUrl = url || window.location.href;
-    console.log('GCalParser checkPageMatch called with URL:', testUrl);
+    // console.log('GCalParser checkPageMatch called with URL:', testUrl);
     return testUrl.includes('calendar.google.com');
   }
 
@@ -51,13 +51,12 @@ class GCalParser extends PortalParser {
         if (state.Config) Object.assign(this.STATE.Config, state.Config);
       }
 
-      console.log('=== GCal Parse Start ===');
       await this.waitUntilReady();
 
       const proceduralData = this._extractProceduralData();
       if (!proceduralData.title) {
-         console.warn("Could not extract a title. The modal may not be fully loaded or the selectors are outdated.");
-         this.STATE._parseError = "Could not find event details. Please make sure the event pop-up is open.";
+         // console.warn("Could not extract a title. The modal may not be fully loaded or the selectors are outdated.");
+         console.warn("Could not find event details. Please make sure the event pop-up is open.");
          return this.STATE;
       }
 
@@ -66,15 +65,27 @@ class GCalParser extends PortalParser {
       this.STATE.Booking.location = proceduralData.location;
       this.STATE.Booking.source = 'gcal';
       
+      // DATETIME
       // Smart parsing of date/time for same-day events
       if (proceduralData.dateTime) {
         const parsed = this._parseDateTime(proceduralData.dateTime);
+        
         this.STATE.Booking.startDate = parsed.startDate;
         this.STATE.Booking.endDate = parsed.endDate;
         this.STATE.Booking.startTime = parsed.startTime;
         this.STATE.Booking.endTime = parsed.endTime;
-        console.log('Parsed date/time:', parsed);
+
+        // SAME DAY
+        // Auto-complete endDate to match startDate if endDate is missing
+        if (this.STATE.Booking.startDate && ! this.STATE.Booking.endDate) {
+          this.STATE.Booking.endDate = this.STATE.Booking.startDate;
+        }
+
+        // calculate DURATION
+        let duration = this._calculateDuration(parsed.startTime, parsed.endTime);
+        if (duration) this.STATE.Booking.duration = duration;
       }
+
 
       // Conditional LLM Parsing on title + description concatenated
       const title = proceduralData.title || '';
@@ -82,50 +93,77 @@ class GCalParser extends PortalParser {
       const combinedText = `${title}\n\n${description}`.trim();
       
       if (combinedText.length > 0) {
-        console.log("Combined text found, proceeding with LLM parsing.");
-        console.log("Sending to LLM:", combinedText.substring(0, 200) + "...");
+        
         const llmResult = await this._sendToLLM(combinedText);
 
         if (llmResult) {
-          console.log("✓ LLM returned result:", llmResult);
-          console.log("Before conservative update, STATE:", {
-            Client: this.STATE.Client,
-            Booking: this.STATE.Booking
-          });
 
-          // UPDATE the STATE conservatively
-          this._conservativeUpdate(llmResult);
-          
-          
-          console.log("After conservative update, STATE:", {
-            Client: this.STATE.Client,
-            Booking: this.STATE.Booking
-          });
-          this.STATE._processingStatus = 'LLM processed successfully';
+            /*
+            console.log("LLM returned result:", llmResult);
+            console.log("Before conservative update, STATE:", {
+              Client: this.STATE.Client,
+              Booking: this.STATE.Booking
+            });
+            */
+
+            // UPDATE the STATE conservatively
+            this._conservativeUpdate(llmResult);
+
+            /*
+            console.log("After conservative update, STATE:", {
+              Client: this.STATE.Client,
+              Booking: this.STATE.Booking
+            });
+            */
+
+          console.log('LLM processed successfully');
         } else {
-          console.log("❌ LLM returned null/empty result");
-          this.STATE._processingStatus = 'LLM unavailable or failed - basic extraction only';
+          console.warn("LLM returned null/empty result");
         }
       } else {
         console.log("No combined text found for LLM parsing.");
-        this.STATE._processingStatus = 'No text for LLM processing';
       }
 
     } catch (error) {
       console.error('GCal parser error:', error);
       this.STATE.Booking = this.STATE.Booking || {};
       this.STATE.Booking.source = 'gcal';
-      this.STATE._parseError = error.message;
     }
+
+
+     
+    // RATES
+    // if there is a flatRate -- totalAmount = flatRate
+    // else if there is an hourlyRate
+    // totalAmount = hourlyRate * duration
+    // 
+    if (this.STATE.Booking.flatRate) {
+      // user may ++totalAmount later -- this is just a default
+      this.STATE.Booking.totalAmount = this.STATE.Booking.flatRate;
+    
+    } else if (this.STATE.Booking.hourlyRate && ! this.STATE.Booking.totalAmount) {
+
+      // Calculate totalAmount before displaying if hourlyRate and duration are available
+      const hourlyRate = parseFloat(this.STATE.Booking.hourlyRate);
+      const calculatedDuration = parseFloat(this.STATE.Booking.duration);
+      if (!isNaN(hourlyRate) && !isNaN(calculatedDuration) && hourlyRate > 0 && calculatedDuration > 0) {
+        const total = hourlyRate * calculatedDuration;
+        this.STATE.Booking.totalAmount = total.toFixed(2);
+      }
+    } 
 
     return this.STATE;
   }
+
+
+
+
 
   /**
    * Extracts data using the actual HTML structure from the modal dialog.
    */
   _extractProceduralData() {
-    console.log('=== GCal Procedural Data Extraction (Actual HTML Selectors) ===');
+    
     const modalDialog = document.querySelector('[role="dialog"]');
     if (!modalDialog) {
         console.error("No modal dialog found.");
@@ -137,10 +175,9 @@ class GCalParser extends PortalParser {
         const element = modalDialog.querySelector(selector);
         if (element) {
             const text = element.textContent?.trim();
-            console.log(`✓ Found ${label} with selector "${selector}": "${text}"`);
+            // console.log(`Found ${label} with selector "${selector}": "${text}"`);
             return text;
         }
-        console.log(`❌ No element found for ${label} with selector "${selector}"`);
         return null;
     };
 
@@ -162,7 +199,7 @@ class GCalParser extends PortalParser {
         location,
         description
     };
-    console.log('Final procedural extraction result:', result);
+    // console.log('Final procedural extraction result:', result);
     return result;
   }
 
@@ -175,7 +212,7 @@ class GCalParser extends PortalParser {
    * - All day: "Monday, August 25 – Tuesday, August 26"
    */
   _parseDateTime(dateTimeString) {
-    console.log('Parsing dateTime string:', dateTimeString);
+    // console.log('Parsing dateTime string:', dateTimeString);
     
     try {
       // Handle format: "August 16, 2025, 12:00pm – August 17, 2025, 2:00pm"
@@ -284,7 +321,7 @@ class GCalParser extends PortalParser {
 
   async _sendToLLM(combinedText) {
       try {
-        // console.log("=== LLM Processing Start ===");
+
         await this._initializeConfig();
         const llmConfig = CONFIG.llm;
         if (!llmConfig?.baseUrl || !llmConfig?.endpoints?.completions) {
@@ -308,8 +345,7 @@ class GCalParser extends PortalParser {
         // console.log("Extracted LLM text content:", textContent);
 
         const parsedResult = textContent ? this._parseLLMResponse(textContent) : null;
-        console.log("Final parsed LLM result:", parsedResult);
-        // console.log("=== LLM Processing End ===");
+        // console.log("Final parsed LLM result:", parsedResult);
         
         return parsedResult;
 
@@ -374,9 +410,9 @@ class GCalParser extends PortalParser {
       const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
       
       if (jsonMatch) {
-        console.log('Matched JSON text:', jsonMatch[0]);
+        // console.log('Matched JSON text:', jsonMatch[0]);
         const parsed = JSON.parse(jsonMatch[0]);
-        console.log('Successfully parsed JSON:', parsed);
+        // console.log('Successfully parsed JSON:', parsed);
         return parsed;
       }
       
@@ -396,10 +432,48 @@ class GCalParser extends PortalParser {
       return true;
 
     } catch (error) {
-      console.warn('❌ GCal waitUntilReady failed:', error.message);
+      console.warn('GCal waitUntilReady failed:', error.message);
       return false;
     }
   }
+
+
+  /**
+   * CALCULATE DURATION
+   * @param {*} startTime 
+   * @param {*} endTime 
+   * @returns String duration value 
+   */
+  _calculateDuration(startTime, endTime) {
+
+      // DURATION
+      // Calculate duration before displaying if startTime and endTime are available
+      let duration;
+
+      if (startTime && endTime) {
+        const [startHours, startMinutes] = startTime.split(':').map(Number);
+        const [endHours, endMinutes] = endTime.split(':').map(Number);
+    
+        const startTotalMinutes = startHours * 60 + (startMinutes || 0);
+        const endTotalMinutes = endHours * 60 + (endMinutes || 0);
+    
+        if (endTotalMinutes < startTotalMinutes) {
+          duration = (24 * 60 - startTotalMinutes) + endTotalMinutes;
+        } else {
+          duration = endTotalMinutes - startTotalMinutes;
+        }
+    
+        const durationHours = (duration / 60).toFixed(1);
+        const durationNum = parseFloat(durationHours);
+        return durationNum.toString();
+      }
+
+      return null;
+    }
+
+
+
+
 }
 
 export default GCalParser;

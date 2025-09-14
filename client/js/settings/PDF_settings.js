@@ -47,13 +47,17 @@ class PDF_settings extends Settings {
 
     try {
       await this.STATE.load();
+
     } catch (error) {
-      console.error('Error loading PDF settings, using defaults:', error);
-      Object.assign(this.STATE.Config, this.getDefaults());
-      await this.STATE.save();
+      if (this.STATE.status != 'local') {  // load did not find settings in Chrome storage
+        console.error('Error loading PDF settings, using defaults:', error);
+        Object.assign(this.STATE.Config, this.getDefaults());
+        await this.STATE.save();
+      }
     }
-      
   }
+
+
 
   /**
    * Save PDF settings to database

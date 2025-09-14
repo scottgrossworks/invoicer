@@ -30,8 +30,9 @@ class PDFSettingsPage {
    */
   async loadSettings() {
     try {
-      // Load Config settings from database - this updates this.STATE.Config directly
-      await this.pdfSettings.load();
+      
+      // Config settings SHOULD BE LOADED
+      // await this.pdfSettings.load();
       
       // Populate form with the updated state config
       const settings = this.pdfSettings.getSettings();
@@ -49,9 +50,9 @@ class PDFSettingsPage {
    * @param {Object} settings - Settings object
    */
   populateForm(settings) {
-
+      
     // fields of form correspond to Config keys
-    const fields = Object.keys(this.STATE.Config);
+    const fields = Config.getFieldNames();
     /* Should include: 
       'companyName', 'companyAddress', 'companyPhone', 'companyEmail', 'logoUrl',
       'bankName', 'bankAddress', 'bankPhone', 'bankAccount', 'bankRouting', 'bankWire',
@@ -247,7 +248,7 @@ class PDFSettingsPage {
    */
   async previewInvoice() {
     try {
-
+      console.log("HELLO WORLD");
       // Get form settings for Config
       // just in case the user is changing in one window and previewing in another
       const formConfig = this.collectFormData();
@@ -358,6 +359,19 @@ class PDFSettingsPage {
     }, 3000);
   }
 }
+
+  // Missing from end of pdf_settings_page.js:
+  document.addEventListener('DOMContentLoaded', async () => {
+    
+    // Get state from Chrome storage
+    const { StateFactory } = await import('../state.js');
+    const state = await StateFactory.create();
+
+    // Initialize the settings page
+    new PDFSettingsPage(state);
+  });
+
+
 
 // Export the class for manual instantiation
 export { PDFSettingsPage };

@@ -3,14 +3,14 @@ class Client {
   constructor(data) {
     if (data.id) {
       // Existing client
-      this.id = data.id;
+      this.id = data.id; // IGNORE
       this.name = data.name;
       this.email = data.email;
       this.phone = data.phone;
       this.company = data.company;
       this.notes = data.notes;
-      this.createdAt = data.createdAt;
-      this.updatedAt = data.updatedAt;
+      this.createdAt = data.createdAt; // IGNORE
+      this.updatedAt = data.updatedAt; // IGNORE
     } else {
       // New client
       this.id = '';
@@ -26,9 +26,6 @@ class Client {
 
   // Validation methods
   static validate(data) {
-
-    console.log("VALIDATING CLIENT");
-    console.log(data);
 
     const errors = [];
 
@@ -65,18 +62,21 @@ class Client {
     return phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''));
   }
 
-  // Business logic methods
-  getDisplayName() {
-    return this.company ? `${this.name} (${this.company})` : this.name;
+
+  /**
+   * Return just the fields which user can modify
+   * @returns field names[]
+   */
+  static getFieldNames() {
+    const fields = [
+      'name',
+      'email',
+      'phone',
+      'company'
+    ];
+    return fields;
   }
 
-  hasContactInfo() {
-    return !!(this.email || this.phone);
-  }
-
-  isComplete() {
-    return !!(this.name && (this.email || this.phone));
-  }
 
   // Data transformation
   toCreateData() {
