@@ -499,34 +499,34 @@ function extractUserMessage(params) {
 async function handleToolCall(id, params) {
     try {
         const userMessage = extractUserMessage(params);
-        
+
         if (!userMessage) {
             logWarn('No user message found in tool call');
             return createErrorResponse(id, -32602, 'No user message found in request');
         }
-        
+
         logInfo(`Processing tool call: ${userMessage.substring(0, 100)}...`);
-        
+
         // Translate natural language to action using Claude
         const action = await translateWithClaude(userMessage);
-        
+
         if (!action) {
             return createSuccessResponse(id, "I couldn't understand your request. Please try being more specific about what you want to do with the invoicing system.");
         }
-        
+
         // Handle non-actionable requests (conversations)
         if (action.actionable === false) {
             logInfo('Returning conversational response');
             return createSuccessResponse(id, action.response);
         }
-        
+
         // Execute actionable requests (database operations)
         logInfo(`Executing database operation: ${action.method} ${action.endpoint}`);
         const result = await executeHttpRequest(action);
         const formattedResponse = formatApiResponse(result, action);
-        
+
         return createSuccessResponse(id, formattedResponse);
-        
+
     } catch (error) {
         logError(`Tool call error: ${error.message}`);
         return createErrorResponse(id, -32603, 'Internal error');

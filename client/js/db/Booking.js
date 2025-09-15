@@ -25,7 +25,7 @@ class Booking {
       // New booking
       this.id = '';
       this.clientId = data.clientId;
-      this.title = data.title;
+      this.title = data.title || null;
       this.description = data.description || null;
       this.location = data.location || null;
       this.startDate = data.startDate || null;
@@ -36,7 +36,7 @@ class Booking {
       this.hourlyRate = data.hourlyRate || null;
       this.flatRate = data.flatRate || null;
       this.totalAmount = data.totalAmount || null;
-      this.status = data.status || 'pending';
+      this.status = data.status || 'new';
       this.source = data.source || null;
       this.notes = data.notes || null;
       this.createdAt = new Date();
@@ -133,7 +133,7 @@ class Booking {
       status: this.status || undefined,
       source: this.source || undefined,
       notes: this.notes || undefined,
-      notes: this.notes || undefined
+
     };
   }
 
@@ -141,8 +141,10 @@ class Booking {
     return {
       id: this.id,
       clientId: this.clientId,
-
+      title: this.title,
       description: this.description,
+      notes: this.notes,
+
       location: this.location,
       startDate: this.startDate,
       endDate: this.endDate,
@@ -154,8 +156,7 @@ class Booking {
       totalAmount: this.totalAmount,
       status: this.status,
       source: this.source,
-      notes: this.notes,
-      notes: this.notes,
+  
       createdAt: this.createdAt,
       updatedAt: this.updatedAt
     };

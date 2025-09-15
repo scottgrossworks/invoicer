@@ -8,7 +8,7 @@ class Client {
       this.email = data.email;
       this.phone = data.phone;
       this.company = data.company;
-      this.notes = data.notes;
+      this.clientNotes = data.clientNotes; // IGNORE
       this.createdAt = data.createdAt; // IGNORE
       this.updatedAt = data.updatedAt; // IGNORE
     } else {
@@ -18,7 +18,7 @@ class Client {
       this.email = data.email || null;
       this.phone = data.phone || null;
       this.company = data.company || null;
-      this.notes = data.notes || null;
+      this.clientNotes = data.clientNotes || null;
       this.createdAt = new Date();
       this.updatedAt = new Date();
     }
@@ -85,7 +85,7 @@ class Client {
       email: this.email || undefined,
       phone: this.phone || undefined,
       company: this.company || undefined,
-      notes: this.notes || undefined
+      clientNotes: this.clientNotes || undefined
     };
   }
 
@@ -96,7 +96,7 @@ class Client {
       email: this.email,
       phone: this.phone,
       company: this.company,
-      notes: this.notes,
+      clientNotes: this.clientNotes,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt
     };
@@ -108,7 +108,7 @@ class Client {
     if (data.email !== undefined) this.email = data.email;
     if (data.phone !== undefined) this.phone = data.phone;
     if (data.company !== undefined) this.company = data.company;
-    if (data.notes !== undefined) this.notes = data.notes;
+    if (data.clientNotes !== undefined) this.clientNotes = data.clientNotes;
     this.updatedAt = new Date();
   }
 }
@@ -121,7 +121,7 @@ Client.prototype.toJSON = function() {
     email: this.email,
     phone: this.phone,
     company: this.company,
-    notes: this.notes,
+    clientNotes: this.clientNotes,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt
   };

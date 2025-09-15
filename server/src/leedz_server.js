@@ -23,6 +23,7 @@ const config = require('../server_config.json');
 const { DatabaseFactory } = require('./db_factory');
 const { Client } = require('./Client');
 const { Booking } = require('./Booking');
+const { Config } = require('./Config');
 
 const app = express();
 const db = DatabaseFactory.createDatabase(config);
@@ -331,6 +332,140 @@ app.get("/config", asyncRoute(async (req, res) => {
 
   res.status(200).json(config);
 }, "GET /config"));
+
+/**
+ * DUMP ENDPOINTS FOR DATA EXPORT
+ */
+
+app.get('/api/dump/clients', asyncRoute(async (req, res) => {
+  const filePath = await dumpClients();
+  res.status(200).json({
+    success: true,
+    message: 'Clients dumped successfully',
+    filePath: filePath
+  });
+}, "GET /api/dump/clients"));
+
+app.get('/api/dump/bookings', asyncRoute(async (req, res) => {
+  const filePath = await dumpBookings();
+  res.status(200).json({
+    success: true,
+    message: 'Bookings dumped successfully',
+    filePath: filePath
+  });
+}, "GET /api/dump/bookings"));
+
+app.get('/api/dump/config', asyncRoute(async (req, res) => {
+  const filePath = await dumpConfig();
+  res.status(200).json({
+    success: true,
+    message: 'Config dumped successfully',
+    filePath: filePath
+  });
+}, "GET /api/dump/config"));
+
+/**
+ * DUMP FUNCTIONS FOR DATA EXPORT
+ */
+
+/**
+ * Dump all Client objects to JSON file
+ */
+async function dumpClients() {
+  const fs = require('fs').promises;
+  const path = require('path');
+
+  try {
+    log("Starting Client dump...");
+    const clients = await db.getClients({});
+
+    // Convert each client to JSON
+    const clientsJson = clients.map(client => {
+      const clientObj = new Client(client);
+      return clientObj.toInterface();
+    });
+
+    // Create JSON array format
+    const jsonOutput = JSON.stringify(clientsJson, null, 2);
+
+    // Save to file
+    const filePath = path.join(__dirname, '..', 'exports', `clients_${Date.now()}.json`);
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, jsonOutput);
+
+    log(`Clients dumped to: ${filePath}`);
+    return filePath;
+  } catch (error) {
+    log(`Client dump failed: ${error.message}`);
+    throw error;
+  }
+}
+
+/**
+ * Dump all Booking objects to JSON file
+ */
+async function dumpBookings() {
+  const fs = require('fs').promises;
+  const path = require('path');
+
+  try {
+    log("Starting Booking dump...");
+    const bookings = await db.getBookings({});
+
+    // Convert each booking to JSON
+    const bookingsJson = bookings.map(booking => {
+      const bookingObj = new Booking(booking);
+      return bookingObj.toInterface();
+    });
+
+    // Create JSON array format
+    const jsonOutput = JSON.stringify(bookingsJson, null, 2);
+
+    // Save to file
+    const filePath = path.join(__dirname, '..', 'exports', `bookings_${Date.now()}.json`);
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, jsonOutput);
+
+    log(`Bookings dumped to: ${filePath}`);
+    return filePath;
+  } catch (error) {
+    log(`Booking dump failed: ${error.message}`);
+    throw error;
+  }
+}
+
+/**
+ * Dump Config object to JSON file
+ */
+async function dumpConfig() {
+  const fs = require('fs').promises;
+  const path = require('path');
+
+  try {
+    log("Starting Config dump...");
+    const config = await db.getLatestConfig();
+
+    // Convert config to JSON
+    const configObj = new Config(config || {});
+    const jsonOutput = JSON.stringify(configObj.toInterface(), null, 2);
+
+    // Save to file
+    const filePath = path.join(__dirname, '..', 'exports', `config_${Date.now()}.json`);
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, jsonOutput);
+
+    log(`Config dumped to: ${filePath}`);
+    return filePath;
+  } catch (error) {
+    log(`Config dump failed: ${error.message}`);
+    throw error;
+  }
+}
+
+// Export dump functions for MCP server
+module.exports.dumpClients = dumpClients;
+module.exports.dumpBookings = dumpBookings;
+module.exports.dumpConfig = dumpConfig;
 
 /**
  * Server initialization and startup

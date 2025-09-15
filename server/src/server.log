@@ -495,3 +495,88 @@ Unique constraint failed on the fields: (`email`)
 [2025-09-13T19:25:24.441Z] Database connected successfully
 [2025-09-13T19:25:24.445Z] ! Local API running on http://localhost:3000
 [2025-09-13T19:34:20.435Z] Received SIGINT, shutting down gracefully...
+[2025-09-15T19:54:56.020Z] Database connected successfully
+[2025-09-15T19:54:56.027Z] ! Local API running on http://localhost:3000
+[2025-09-15T20:02:43.352Z] GET /api/dump/clients
+[2025-09-15T20:02:43.356Z] Starting Client dump...
+[2025-09-15T20:02:43.358Z] Client dump failed: db.getAllClients is not a function
+[2025-09-15T20:02:43.360Z] GET /api/dump/clients failed: TypeError: db.getAllClients is not a function
+    at dumpClients (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:379:30)
+    at C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:340:26
+    at C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:9
+    at Layer.handle [as handle_request] (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\layer.js:95:5)
+    at C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\index.js:284:15
+    at Function.process_params (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\index.js:346:12)
+    at next (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\index.js:280:10)
+[2025-09-15T20:04:07.843Z] GET /api/dump/clients
+[2025-09-15T20:04:07.845Z] Starting Client dump...
+[2025-09-15T20:04:07.846Z] Client dump failed: db.getAllClients is not a function
+[2025-09-15T20:04:07.847Z] GET /api/dump/clients failed: TypeError: db.getAllClients is not a function
+    at dumpClients (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:379:30)
+    at C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:340:26
+    at C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:9
+    at Layer.handle [as handle_request] (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\layer.js:95:5)
+    at C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\index.js:284:15
+    at Function.process_params (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\index.js:346:12)
+    at next (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\index.js:280:10)
+[2025-09-15T20:04:17.434Z] GET /api/dump/clients
+[2025-09-15T20:04:17.435Z] Starting Client dump...
+[2025-09-15T20:04:17.436Z] Client dump failed: db.getAllClients is not a function
+[2025-09-15T20:04:17.437Z] GET /api/dump/clients failed: TypeError: db.getAllClients is not a function
+    at dumpClients (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:379:30)
+    at C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:340:26
+    at C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:9
+    at Layer.handle [as handle_request] (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\layer.js:95:5)
+    at C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\index.js:284:15
+    at Function.process_params (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\index.js:346:12)
+    at next (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\index.js:280:10)
+[2025-09-15T20:04:22.288Z] Received SIGINT, shutting down gracefully...
+[2025-09-15T20:04:24.846Z] Database connected successfully
+[2025-09-15T20:04:24.853Z] ! Local API running on http://localhost:3000
+[2025-09-15T20:04:40.454Z] GET /api/dump/clients
+[2025-09-15T20:04:40.459Z] Starting Client dump...
+[2025-09-15T20:04:40.554Z] Client dump failed: clientObj.toJSON is not a function
+[2025-09-15T20:04:40.556Z] GET /api/dump/clients failed: TypeError: clientObj.toJSON is not a function
+    at C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:384:24
+    at Array.map (<anonymous>)
+    at dumpClients (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:382:33)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:340:20
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:75:7
+[2025-09-15T20:04:56.703Z] Received SIGINT, shutting down gracefully...
+[2025-09-15T20:13:27.670Z] Database connected successfully
+[2025-09-15T20:13:27.677Z] ! Local API running on http://localhost:3000
+[2025-09-15T20:13:46.571Z] GET /api/dump/clients
+[2025-09-15T20:13:46.573Z] Starting Client dump...
+[2025-09-15T20:13:46.586Z] Clients dumped to: C:\Users\Scott\Desktop\WKG\INVOICER\server\exports\clients_1757967226582.json
+[2025-09-15T20:13:51.446Z] GET /api/dump/bookings
+[2025-09-15T20:13:51.448Z] Starting Booking dump...
+[2025-09-15T20:13:51.468Z] Bookings dumped to: C:\Users\Scott\Desktop\WKG\INVOICER\server\exports\bookings_1757967231465.json
+[2025-09-15T20:13:57.060Z] GET /api/dump/config
+[2025-09-15T20:13:57.062Z] Starting Config dump...
+[2025-09-15T20:13:57.071Z] Config dump failed: Config is not defined
+[2025-09-15T20:13:57.072Z] GET /api/dump/config failed: ReferenceError: Config is not defined
+    at dumpConfig (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:448:23)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:358:20
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:75:7
+[2025-09-15T20:14:09.646Z] GET /api/dump/config
+[2025-09-15T20:14:09.647Z] Starting Config dump...
+[2025-09-15T20:14:09.655Z] Config dump failed: Config is not defined
+[2025-09-15T20:14:09.656Z] GET /api/dump/config failed: ReferenceError: Config is not defined
+    at dumpConfig (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:448:23)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:358:20
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:75:7
+[2025-09-15T20:24:08.936Z] Received SIGINT, shutting down gracefully...
+[2025-09-15T20:24:27.350Z] Database connected successfully
+[2025-09-15T20:24:27.357Z] ! Local API running on http://localhost:3000
+[2025-09-15T20:27:37.578Z] GET /api/dump/clients
+[2025-09-15T20:27:37.580Z] Starting Client dump...
+[2025-09-15T20:27:37.597Z] Clients dumped to: C:\Users\Scott\Desktop\WKG\INVOICER\server\exports\clients_1757968057589.json

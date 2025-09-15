@@ -6,7 +6,10 @@ class Booking {
       // Existing booking
       this.id = data.id;
       this.clientId = data.clientId;
+      this.title = data.title;
       this.description = data.description;
+      this.notes = data.notes;
+
       this.location = data.location;
       this.startDate = data.startDate;
       this.endDate = data.endDate;
@@ -19,7 +22,7 @@ class Booking {
       this.status = data.status;
       this.source = data.source;
 
-      this.notes = data.notes;
+
       this.createdAt = data.createdAt;
       this.updatedAt = data.updatedAt;
     } else {
@@ -27,6 +30,9 @@ class Booking {
       this.id = '';
       this.clientId = data.clientId;
       this.description = data.description || null;
+      this.notes = data.notes || null;
+
+      this.title = data.title || null;
       this.location = data.location || null;
       this.startDate = data.startDate || null;
       this.endDate = data.endDate || null;
@@ -36,10 +42,9 @@ class Booking {
       this.hourlyRate = data.hourlyRate || null;
       this.flatRate = data.flatRate || null;
       this.totalAmount = data.totalAmount || null;
-      this.status = data.status || 'pending';
+      this.status = data.status || 'new';
       this.source = data.source || null;
 
-      this.notes = data.notes || null;
       this.createdAt = new Date();
       this.updatedAt = new Date();
     }
@@ -49,27 +54,41 @@ class Booking {
   static validate(data) {
     const errors = [];
 
-    if (!data.clientId || data.clientId.trim() === '') {
-      errors.push('Client ID is required');
-    }
+    try {
+        if (!data.clientId || data.clientId.trim() === '') {
+          errors.push('Client ID is required');
+        }
+
+        // Numeric field validations
+        if (data.hourlyRate && isNaN(parseFloat(data.hourlyRate))) {
+          errors.push('Hourly rate must be a number');
+        }
+        if (data.hourlyRate && data.hourlyRate < 0) {
+          errors.push('Hourly rate cannot be negative');
+        } 
 
 
+        if (data.flatRate && isNaN(parseFloat(data.flatRate))) {
+          errors.push('Flat rate must be a number');
+        }
+        if (data.flatRate && data.flatRate < 0) {
+          errors.push('Flat rate cannot be negative');
+        }
 
-    if (data.startDate && data.endDate && data.startDate > data.endDate) {
-      errors.push('Start date cannot be after end date');
-    }
+        if (data.duration && isNaN(parseFloat(data.duration))) {
+          errors.push('Duration must be a number');
+        }
+        if (data.duration && data.duration < 0) {
+          errors.push('Duration cannot be negative');
+        }
 
-    if (data.hourlyRate && data.hourlyRate < 0) {
-      errors.push('Hourly rate cannot be negative');
-    }
-
-    if (data.flatRate && data.flatRate < 0) {
-      errors.push('Flat rate cannot be negative');
-    }
-
-    if (data.duration && data.duration < 0) {
-      errors.push('Duration cannot be negative');
-    }
+        if (data.startDate && data.endDate && data.startDate > data.endDate) {
+          errors.push('Start date cannot be after end date');
+        }
+      } catch (error) {
+        console.error("data fails Booking validator");
+        errors.push( error.message );
+      }
 
     return {
       isValid: errors.length === 0,
@@ -77,51 +96,7 @@ class Booking {
     };
   }
 
-  // Business logic methods
-  calculateTotalAmount() {
-    if (this.flatRate) {
-      return this.flatRate;
-    }
 
-    if (this.hourlyRate && this.duration) {
-      return this.hourlyRate * this.duration;
-    }
-
-    return this.totalAmount || 0;
-  }
-
-  getDuration() {
-    if (this.duration) {
-      return this.duration;
-    }
-
-    if (this.startDate && this.endDate) {
-      const diffMs = this.endDate.getTime() - this.startDate.getTime();
-      return Math.ceil(diffMs / (1000 * 60 * 60)); // Hours
-    }
-
-    return 0;
-  }
-
-  isCompleted() {
-    return this.status === 'completed';
-  }
-
-  isPending() {
-    return this.status === 'pending';
-  }
-
-  isCancelled() {
-    return this.status === 'cancelled';
-  }
-
-  hasLocation() {
-    return !!(this.location);
-  }
-
-  getDisplayTitle() {
-    return this.location ? `${this.title} - ${this.location}` : this.title;
-  }
 
   // Data transformation
   // toCreateData is for creating new records
@@ -146,8 +121,8 @@ class Booking {
       flatRate: this.flatRate || undefined,
       totalAmount: this.totalAmount || undefined,
       status: this.status || undefined,
-      sourceEmail: this.sourceEmail || undefined,
-      extractedData: this.extractedData || undefined,
+      source: this.source || undefined,
+
       notes: this.notes || undefined
     };
   }
@@ -158,6 +133,8 @@ class Booking {
       clientId: this.clientId,
       title: this.title,
       description: this.description,
+      notes: this.notes,
+
       location: this.location,
       startDate: this.startDate,
       endDate: this.endDate,
@@ -168,9 +145,8 @@ class Booking {
       flatRate: this.flatRate,
       totalAmount: this.totalAmount,
       status: this.status,
-      sourceEmail: this.sourceEmail,
-      extractedData: this.extractedData,
-      notes: this.notes,
+      source: this.source,
+
       createdAt: this.createdAt,
       updatedAt: this.updatedAt
     };
@@ -181,6 +157,7 @@ class Booking {
     if (data.clientId !== undefined) this.clientId = data.clientId;
     if (data.title !== undefined) this.title = data.title;
     if (data.description !== undefined) this.description = data.description;
+    if (data.notes !== undefined) this.notes = data.notes;
     if (data.location !== undefined) this.location = data.location;
     if (data.startDate !== undefined) this.startDate = data.startDate;
     if (data.endDate !== undefined) this.endDate = data.endDate;
@@ -191,9 +168,8 @@ class Booking {
     if (data.flatRate !== undefined) this.flatRate = data.flatRate;
     if (data.totalAmount !== undefined) this.totalAmount = data.totalAmount;
     if (data.status !== undefined) this.status = data.status;
-    if (data.sourceEmail !== undefined) this.sourceEmail = data.sourceEmail;
-    if (data.extractedData !== undefined) this.extractedData = data.extractedData;
-    if (data.notes !== undefined) this.notes = data.notes;
+    if (data.source !== undefined) this.source = data.source;
+
     this.updatedAt = new Date();
   }
 }

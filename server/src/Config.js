@@ -18,10 +18,12 @@ class Config {
       this.contactHandle = data.contactHandle;
       this.includeTerms = data.includeTerms;
       this.terms = data.terms;
-      this.footerText = data.footerText;
+
       this.template = data.template;
       this.createdAt = data.createdAt;
       this.updatedAt = data.updatedAt;
+    
+    
     } else {
       // New config with defaults
       this.id = '';
@@ -30,18 +32,20 @@ class Config {
       this.companyPhone = data.companyPhone || '';
       this.companyEmail = data.companyEmail || '';
       this.logoUrl = data.logoUrl || '';
+
       this.bankName = data.bankName || '';
       this.bankAddress = data.bankAddress || '';
       this.bankPhone = data.bankPhone || '';
       this.bankAccount = data.bankAccount || '';
       this.bankRouting = data.bankRouting || '';
       this.bankWire = data.bankWire || '';
+
       this.servicesPerformed = data.servicesPerformed || '';
       this.contactHandle = data.contactHandle || '';
-      this.includeTerms = data.includeTerms || false;
+      this.includeTerms = data.includeTerms || true;
       this.terms = data.terms || '';
-      this.footerText = data.footerText || '';
-      this.template = data.template || 'default';
+
+      this.template = data.template || 'modern';
       this.createdAt = new Date();
       this.updatedAt = new Date();
     }
@@ -57,22 +61,18 @@ class Config {
         errors.push('Company name is required');
       }
 
-      // Validate email format if provided
-      if (data.companyEmail && data.companyEmail.trim() !== '') {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(data.companyEmail)) {
-          errors.push('Invalid email format');
-        }
+      if (data.companyEmail && !this.isValidEmail(data.companyEmail)) {
+          errors.push('Invalid company email format');
       }
 
-      // Validate URL format if provided
-      if (data.logoUrl && data.logoUrl.trim() !== '') {
-        try {
-          new URL(data.logoUrl);
-        } catch (e) {
-          errors.push('Invalid logo URL format');
-        }
+      if (data.companyPhone && !this.isValidPhone(data.companyPhone)) {
+          errors.push('Invalid company phone format');
       }
+
+      if (data.logoUrl && ! this.isValidUrl(data.logoUrl)) {
+          errors.push('Invalid logo URL format');
+      }
+
 
     } catch (error) {
       console.error("Config validation failed", error);
@@ -84,6 +84,27 @@ class Config {
       errors
     };
   }
+
+  static isValidUrl(url) {
+    try {
+      new URL(url);
+    } catch (e) {
+      return false;
+    }
+    return true;
+  }
+
+  static isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  static isValidPhone(phone) {
+    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+    return phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''));
+  }
+
+
 
   // Get default config values
   static getDefaults() {
@@ -101,10 +122,10 @@ class Config {
       bankWire: '',
       servicesPerformed: '',
       contactHandle: '',
-      includeTerms: false,
+      includeTerms: true,
       terms: '',
-      footerText: '',
-      template: 'default'
+
+      template: 'modern'
     };
   }
 
@@ -125,10 +146,37 @@ class Config {
     if (data.contactHandle !== undefined) this.contactHandle = data.contactHandle;
     if (data.includeTerms !== undefined) this.includeTerms = data.includeTerms;
     if (data.terms !== undefined) this.terms = data.terms;
-    if (data.footerText !== undefined) this.footerText = data.footerText;
+
     if (data.template !== undefined) this.template = data.template;
     this.updatedAt = new Date();
   }
+
+
+
+  toInterface() {
+    return {
+      companyName: this.companyName,
+      companyAddress: this.companyAddress,
+      companyPhone: this.companyPhone,
+      companyEmail: this.companyEmail,
+      logoUrl: this.logoUrl,
+      bankName: this.bankName,
+      bankAddress: this.bankAddress,
+      bankPhone: this.bankPhone,
+      bankAccount: this.bankAccount,
+      bankRouting: this.bankRouting,
+      bankWire: this.bankWire,
+      servicesPerformed: this.servicesPerformed,
+      contactHandle: this.contactHandle,
+      includeTerms: this.includeTerms,
+      terms: this.terms,
+      template: this.template
+    };
+  }
+
+
+
+
 }
 
 module.exports = {
@@ -154,7 +202,7 @@ Config.prototype.toJSON = function() {
     contactHandle: this.contactHandle,
     includeTerms: this.includeTerms,
     terms: this.terms,
-    footerText: this.footerText,
+
     template: this.template,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt

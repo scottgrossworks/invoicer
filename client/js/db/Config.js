@@ -10,9 +10,16 @@ class Config {
         this.companyPhone = data.companyPhone || '';
         this.companyEmail = data.companyEmail || '';
         this.logoUrl = data.logoUrl || '';
+
+
+        this.bankName = data.bankName || '';
+        this.bankAddress = data.bankAddress || '';
+        this.bankPhone = data.bankPhone || '';
         this.bankAccount = data.bankAccount || '';
         this.bankRouting = data.bankRouting || '';
         this.bankWire = data.bankWire || '';
+        
+        
         this.servicesPerformed = data.servicesPerformed || '';
         this.contactHandle = data.contactHandle || '';
         this.includeTerms = data.includeTerms !== undefined ? data.includeTerms : true;
@@ -20,7 +27,7 @@ class Config {
         this.template = data.template || 'modern';  // IGNORE
     }
 
-
+  // Validation methods
     static validate(data) {
         const errors = [];  
         
@@ -34,6 +41,10 @@ class Config {
 
         if (data.companyPhone && !this.isValidPhone(data.companyPhone)) {
             errors.push('Invalid company phone format');
+        }
+
+        if (data.logoUrl && ! this.isValidUrl(data.logoUrl)) {
+          errors.push('Invalid logo URL format');
         }
 
         return {
@@ -90,7 +101,14 @@ static getFieldNames() {
     };
   }
 
-
+  static isValidUrl(url) {
+    try {
+      new URL(url);
+    } catch (e) {
+      return false;
+    }
+    return true;
+  }
   
   static isValidEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

@@ -364,12 +364,12 @@ class GCalParser extends PortalParser {
     const llmRequest = {
       url: `${llmConfig.baseUrl}${llmConfig.endpoints.completions}`,
       method: 'POST',
-      headers: {
-        'x-api-key': llmConfig['api-key'],
-        'anthropic-version': llmConfig['anthropic-version'],
-        'content-type': 'application/json',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
+        headers: {
+          'x-api-key': llmConfig['api-key'],
+          'anthropic-version': llmConfig['anthropic-version'],
+          'content-type': 'application/json',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
       body: {
         model: llmConfig.provider,
         max_tokens: llmConfig.max_tokens,

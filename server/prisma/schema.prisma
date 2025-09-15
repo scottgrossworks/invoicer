@@ -15,7 +15,7 @@ model Client {
   email         String?   @unique
   phone         String?
   company       String?
-  notes         String?
+  clientNotes   String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   bookings      Booking[]
@@ -26,7 +26,10 @@ model Booking {
   clientId      String
   client        Client    @relation(fields: [clientId], references: [id])
 
+  title         String?
   description   String?
+  notes         String?
+   
   location      String?
   startDate     DateTime?
   endDate       DateTime?
@@ -36,9 +39,9 @@ model Booking {
   hourlyRate    Float?
   flatRate      Float?
   totalAmount   Float?
-  status        String    @default("pending") // pending, confirmed, completed, cancelled
+  status        String    @default("new") 
   source        String?   // original source (gmail, linkedin, etc)
-  notes         String?
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -62,8 +65,7 @@ model Config {
   contactHandle     String?
   includeTerms      Boolean?
   terms             String?
-  footerText        String?
-  
+
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 }
