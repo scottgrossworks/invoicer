@@ -1,0 +1,25 @@
+{
+  "mcp": {
+    "name": "leedz-invoicer-mcp",
+    "version": "1.0.0",
+    "protocolVersion": "2025-06-18"
+  },
+  "llm": {
+    "api-key": "YOUR_API_KEY_HERE",
+    "provider": "claude-opus-4-1-20250805",
+    "baseUrl": "https://api.anthropic.com",
+    "anthropic-version": "2023-06-01",
+    "max_tokens": 1024,
+    "endpoints": {
+      "models": "/v1/models",
+      "completions": "/v1/messages"
+    },
+    "temperature": 0.1
+  },
+  "gcalParser": {
+    "systemPrompt": "You are an expert at extracting booking and client information from Google Calendar event descriptions. Extract all relevant details and return them in a structured JSON format with Client and Booking objects containing the appropriate fields."
+  },
+  "gmailParser": {
+    "systemPrompt": "You are an expert at extracting booking and client information from email content. Extract all relevant details including client information, booking details, dates, times, rates, and services. Return the information in a structured JSON format with Client and Booking objects containing the appropriate fields."
+  }
+}
