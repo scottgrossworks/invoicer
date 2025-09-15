@@ -8,6 +8,8 @@
  * 4. Send the complete and accurate data to the LLM for processing.
  */
 import { PortalParser } from './parser.js';
+import { Client } from '../db/Client.js';
+import { Booking } from '../db/Booking.js';
 
 // Global CONFIG variable
 let CONFIG = null;
@@ -99,7 +101,7 @@ class GmailParser extends PortalParser {
       }
 
       // START TIME AND END TIME
-      if (this.STATE.Booking.startTime && this.STATE.Booking.endTime) {
+      if (this.STATE.Booking.startTime && this.STATE.Booking.endTime ) {
         const duration = this._calculateDuration(this.STATE.Booking.startTime, this.STATE.Booking.endTime);
         if (duration) this.STATE.Booking.duration = duration;
       }
@@ -325,10 +327,8 @@ class GmailParser extends PortalParser {
           Config: {}
         };
 
-        const clientFields = ['name', 'email', 'phone', 'company', 'notes'];
-        const bookingFields = ['description', 'location', 'startDate', 'endDate',
-                             'startTime', 'endTime', 'duration', 'hourlyRate',
-                             'flatRate', 'totalAmount', 'status', 'source'];
+        const clientFields = Client.getFieldNames();
+        const bookingFields = Booking.getFieldNames();
 
         // Map fields to appropriate sub-objects
         Object.entries(parsed).forEach(([field, value]) => {

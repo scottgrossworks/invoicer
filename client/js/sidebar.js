@@ -12,6 +12,11 @@ import { getParsers } from './provider_registry.js';
 const PDF_SETTINGS_JS = './settings/PDF_settings.js';
 const PDF_RENDER_JS = 'js/render/PDF_render.js';
 
+
+const clientFields = Client.getFieldNames();
+const bookingFields = Booking.getFieldNames();
+
+
 // Toast notification function
 function showToast(message, type = 'info') {
   const toast = document.createElement('div');
@@ -386,17 +391,21 @@ function convertTo24Hour(time12) {
 function calculateDuration() {
   const startTime = STATE.Booking.startTime;
   const endTime = STATE.Booking.endTime;
-  
+
   if (!startTime || !endTime) return;
-  
-  // Parse times (both stored in 24-hour format)
-  const [startHours, startMinutes] = startTime.split(':').map(Number);
-  const [endHours, endMinutes] = endTime.split(':').map(Number);
-  
+
+  // Convert 12-hour format to 24-hour for calculation
+  const start24 = convertTo24Hour(startTime);
+  const end24 = convertTo24Hour(endTime);
+
+  // Parse times in 24-hour format
+  const [startHours, startMinutes] = start24.split(':').map(Number);
+  const [endHours, endMinutes] = end24.split(':').map(Number);
+
   // Convert to minutes for easier calculation
   const startTotalMinutes = startHours * 60 + (startMinutes || 0);
   const endTotalMinutes = endHours * 60 + (endMinutes || 0);
-  
+
   // Handle case where end time is next day (e.g., 11 PM to 2 AM)
   let duration;
   if (endTotalMinutes < startTotalMinutes) {
@@ -405,10 +414,9 @@ function calculateDuration() {
   } else {
     duration = endTotalMinutes - startTotalMinutes;
   }
-  
-  // Convert back to hours (with decimal)
-  const durationHours = (duration / 60).toFixed(1);
 
+  // Convert back to hours (with decimal)
+  const durationHours = parseFloat((duration / 60).toFixed(1));
   STATE.Booking.duration = durationHours;
 
   // Update the duration input field if it exists
@@ -416,7 +424,7 @@ function calculateDuration() {
   if (durationInput) {
     durationInput.value = `${durationHours} hours`;
   }
-  
+
   // Also recalculate total amount
   calculateTotalAmount();
 }
@@ -450,31 +458,7 @@ function updateFormFromState( state ) {
   populateBookingTable();
 }
 
-/**
- * Handle automatic calculations when fields are updated
- * @param {string} fieldName - The field that was updated
- * @param {string} value - The new value
- */
-function handleFieldCalculations(fieldName, value) {
-  // Auto-complete endDate when startDate is entered
-  if (fieldName === 'startDate' && value) {
-    const endDateInput = document.querySelector('input[data-field="endDate"]');
-    if (endDateInput && !endDateInput.value.trim()) {
-      endDateInput.value = value;
-      STATE.Booking.endDate = value;
-    }
-  }
 
-  // Auto-calculate duration if startTime and endTime are available
-  if (fieldName === 'startTime' || fieldName === 'endTime') {
-    calculateDuration();
-  }
-
-  // Auto-calculate totalAmount if hourlyRate and duration are available
-  if (fieldName === 'hourlyRate' || fieldName === 'duration') {
-    calculateTotalAmount();
-  }
-}
 
 function formatDateForDisplay(value) {
   if (!value) return value;
@@ -584,20 +568,12 @@ function syncFormFieldToState(fieldName, displayValue) {
     canonicalValue = displayValue.replace(/\s*hours\s*/i, '').trim();
   }
 
-  // COPY INTO STATE
-  // const clientFields = ['name', 'email', 'phone', 'company', 'notes'];
-  // const bookingFields = ['description', 'location', 'startDate', 'endDate', 'startTime', 'endTime', 'duration', 'hourlyRate', 'flatRate', 'totalAmount'];
-  const clientFields = Object.keys(STATE.Client);
-  const bookingFields = Object.keys(STATE.Booking);
-
   if (clientFields.includes(fieldName)) {
     STATE.Client[fieldName] = canonicalValue;
   } else if (bookingFields.includes(fieldName)) {
     STATE.Booking[fieldName] = canonicalValue;
   }
-  
-  // Trigger automatic calculations
-  handleFieldCalculations(fieldName, canonicalValue);
+
 }
 
 
