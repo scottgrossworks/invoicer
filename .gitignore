@@ -10,6 +10,24 @@ server/mcp/mcp_server_config.json
 CLAUDE.md
 server/STATUS.txt
 
+# API Keys and Secrets - NEVER COMMIT THESE
+**/api-key*
+**/anthropic-api-key*
+**/*api*key*
+**/*secret*
+**/*token*
+**/*password*
+**/config*.json
+**/.*key
+**/.*secret
+**/.*token
+**/.env*
+**/credentials*
+**/auth*
+sk-ant-*
+sk-*
+claude-*
+
 # OS generated files
 .DS_Store
 Thumbs.db
