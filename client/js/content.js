@@ -74,7 +74,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
         
         reply({
           ok: true,
-          data: stateInstance
+          data: stateInstance.toObject()
         });
       } catch (e) {
         console.error('Content script parser error:', e);

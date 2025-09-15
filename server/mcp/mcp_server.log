@@ -715,3 +715,6 @@
 [2025-09-13T21:25:29.327Z] [INFO] Handling tools/list request
 [2025-09-13T21:25:29.328Z] [INFO] Handling prompts/list request
 [2025-09-13T21:25:29.329Z] [INFO] Handling resources/list request
+[2025-09-15T03:42:10.174Z] [INFO] Processing tool call: Extract booking information from email thread between Jared Watanabe from Gensler and Scott Gross. S...
+[2025-09-15T03:42:10.176Z] [DEBUG] Sending request to Claude: Extract booking information from email thread between Jared Watanabe from Gensler and Scott Gross. S...
+[2025-09-15T03:42:10.416Z] [ERROR] Claude API error: Request failed with status code 401

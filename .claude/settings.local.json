@@ -7,7 +7,10 @@
       "Bash(grep:*)",
       "Bash(cat:*)",
       "Bash(sed:*)",
-      "Read(//c/Users/Scott/AppData/Roaming/Claude/**)"
+      "Read(//c/Users/Scott/AppData/Roaming/Claude/**)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
