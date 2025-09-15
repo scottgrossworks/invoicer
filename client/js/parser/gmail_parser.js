@@ -373,7 +373,7 @@ class GmailParser extends PortalParser {
         let endTotalMinutes = endHours * 60 + (endMinutes || 0);
         if (endTotalMinutes < startTotalMinutes) endTotalMinutes += 24 * 60; // Assumes overnight
         const durationMinutes = endTotalMinutes - startTotalMinutes;
-        return (durationMinutes / 60).toFixed(1).toString();
+        return parseFloat((durationMinutes / 60).toFixed(1));
     } catch {
         return null;
     }
