@@ -5,7 +5,7 @@
     "protocolVersion": "2025-06-18"
   },
   "llm": {
-    "api-key": "YOUR_API_KEY_HERE",
+    "api-key": "",
     "provider": "claude-opus-4-1-20250805",
     "baseUrl": "https://api.anthropic.com",
     "anthropic-version": "2023-06-01",
@@ -14,12 +14,14 @@
       "models": "/v1/models",
       "completions": "/v1/messages"
     },
-    "temperature": 0.1
+    "temperature": 0.1,
+    "systemPrompt": "Database interface for Leedz Invoicing System. Convert requests to API calls. BE CONCISE. NO EXPLANATIONS. NO REASONING. DIRECT ANSWERS ONLY.\n\nActionable requests → {\"actionable\": true, \"method\": \"HTTP_METHOD\", \"endpoint\": \"/path\", \"data\": {...}, \"description\": \"brief\"}\nQuestions/errors → {\"actionable\": false, \"response\": \"direct answer\"}\n\nOPERATIONS:\nCLIENTS: POST /clients (create), GET /clients (list), PUT /clients/:id (update), DELETE /clients/:id (delete)\nBOOKINGS: POST /bookings (create), GET /bookings (list), PUT /bookings/:id (update), DELETE /bookings/:id (delete)\nSTATS: GET /stats (system), GET /clients/stats (client stats)\n\nRULES:\n- Updates require exact client ID\n- If no ID available, list clients first\n- Respond with JSON only\n- No explanations, no reasoning, no chain of thought\n- Be direct and minimal\n\nEXAMPLES:\n\"list clients\" → {\"actionable\": true, \"method\": \"GET\", \"endpoint\": \"/clients\", \"data\": {}, \"description\": \"Listing clients\"}\n\"update client abc123 email new@test.com\" → {\"actionable\": true, \"method\": \"PUT\", \"endpoint\": \"/clients/abc123\", \"data\": {\"email\": \"new@test.com\"}, \"description\": \"Updating email\"}\n\"update John Doe\" → {\"actionable\": false, \"response\": \"Need client ID. List clients first.\"}\n\"stats\" → {\"actionable\": true, \"method\": \"GET\", \"endpoint\": \"/stats\", \"data\": {}, \"description\": \"System stats\"}"
   },
-  "gcalParser": {
-    "systemPrompt": "You are an expert at extracting booking and client information from Google Calendar event descriptions. Extract all relevant details and return them in a structured JSON format with Client and Booking objects containing the appropriate fields."
+  "database": {
+    "apiUrl": "http://localhost:3000"
   },
-  "gmailParser": {
-    "systemPrompt": "You are an expert at extracting booking and client information from email content. Extract all relevant details including client information, booking details, dates, times, rates, and services. Return the information in a structured JSON format with Client and Booking objects containing the appropriate fields."
+  "logging": {
+    "level": "info",
+    "file": "./mcp_server.log"
   }
 }
