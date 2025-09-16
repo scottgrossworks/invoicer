@@ -32,11 +32,17 @@ class PDFSettingsPage {
     try {
       
       // Config settings SHOULD BE LOADED
-      // await this.pdfSettings.load();
-      
-      // Populate form with the updated state config
+      // Force reload from DB if config appears empty
+      if (!this.STATE.Config?.companyName) {
+        await this.pdfSettings.load();
+      }
+
+      // Populate form with the updated state config, using defaults if empty
       const settings = this.pdfSettings.getSettings();
-      this.populateForm( settings );
+      const settingsWithDefaults = Object.keys(settings).length === 0 || !settings.companyName
+        ? Config.getDefaults()
+        : { ...Config.getDefaults(), ...settings };
+      this.populateForm( settingsWithDefaults );
 
     } catch (error) {
       console.error('Failed to load settings:', error);

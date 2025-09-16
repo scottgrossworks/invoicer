@@ -1092,3 +1092,28 @@ Argument `[32mstatus[39m` must not be [31mnull[39m.
 [2025-09-16T17:45:15.950Z] POST /clients
 [2025-09-16T17:45:15.987Z] POST /bookings
 [2025-09-16T17:45:16.012Z] POST /config
+[2025-09-16T18:59:31.071Z] POST /clients
+[2025-09-16T18:59:31.097Z] POST /bookings
+[2025-09-16T18:59:31.123Z] POST /config
+[2025-09-16T19:05:52.631Z] POST /clients
+[2025-09-16T19:05:52.659Z] POST /bookings
+[2025-09-16T19:05:52.687Z] POST /config
+[2025-09-16T19:06:12.328Z] POST /clients
+[2025-09-16T19:06:12.352Z] POST /bookings
+[2025-09-16T19:06:12.376Z] POST /config
+[2025-09-16T19:06:16.134Z] GET /config
+[2025-09-16T19:06:16.143Z] POST /clients
+[2025-09-16T19:06:16.169Z] POST /bookings
+[2025-09-16T19:14:24.133Z] Received SIGINT, shutting down gracefully...
+[2025-09-16T19:19:48.084Z] Database connected successfully
+[2025-09-16T19:19:48.090Z] ! Local API running on http://localhost:3000
+[2025-09-16T19:23:39.870Z] GET /config
+[2025-09-16T19:23:50.654Z] POST /clients
+[2025-09-16T19:23:50.686Z] POST /bookings
+[2025-09-16T19:23:50.721Z] POST /config
+[2025-09-16T19:23:57.834Z] POST /clients
+[2025-09-16T19:23:57.859Z] POST /bookings
+[2025-09-16T19:23:57.887Z] POST /config
+[2025-09-16T19:24:17.013Z] POST /clients
+[2025-09-16T19:24:17.039Z] POST /bookings
+[2025-09-16T19:24:17.065Z] POST /config

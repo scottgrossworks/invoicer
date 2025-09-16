@@ -169,7 +169,7 @@ cleanFloat(value) {
 
       // SUCCESS!
       state.status = 'saved';
-
+      console.log("Save Successful :)");
       
     } catch (error) {
       

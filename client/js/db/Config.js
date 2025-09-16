@@ -31,9 +31,10 @@ class Config {
     static validate(data) {
         const errors = [];  
         
-        if (!data.companyName || data.companyName.trim() === '') {
-            errors.push('Company name is required');
-        }
+        // Company name validation relaxed - allow empty for preview/defaults
+        // if (!data.companyName || data.companyName.trim() === '') {
+        //     errors.push('Company name is required');
+        // }
 
         if (data.companyEmail && !this.isValidEmail(data.companyEmail)) {
             errors.push('Invalid company email format');
@@ -82,19 +83,19 @@ static getFieldNames() {
    */
   static getDefaults() {
     return {
-      companyName: '',
-      companyAddress: '',
-      companyPhone: '',
-      companyEmail: '',
+      companyName: 'Your Company Name',
+      companyAddress: '123 Main Street\nCity, State 12345',
+      companyPhone: '(555) 123-4567',
+      companyEmail: 'info@yourcompany.com',
       logoUrl: '',
-      bankName: '',
-      bankAddress: '',
-      bankPhone: '',
-      bankAccount: '',
-      bankRouting: '',
-      bankWire: '',
-      servicesPerformed: '',
-      contactHandle: '',
+      bankName: 'Your Bank',
+      bankAddress: '456 Bank Street\nCity, State 12345',
+      bankPhone: '(555) 987-6543',
+      bankAccount: '123456789',
+      bankRouting: '987654321',
+      bankWire: 'BANKWIRE123',
+      servicesPerformed: 'Professional Services',
+      contactHandle: '@yourcompany',
       includeTerms: true,
       terms: '',
       template: 'modern'
