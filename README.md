@@ -120,6 +120,18 @@ The Leedz Invoicer is a three-tier invoicing and booking management system consi
 - `GET /config` - Retrieve latest configuration
 - `GET /stats` - System-wide statistics
 
+### Data Export Operations
+- `GET /api/dump/clients` - Export all clients to JSON file in server/exports/
+- `GET /api/dump/bookings` - Export all bookings to JSON file in server/exports/
+- `GET /api/dump/config` - Export configuration to JSON file in server/exports/
+
+**Dump Functionality Details:**
+- Creates timestamped JSON files (e.g., `clients_1694808123456.json`)
+- Files are saved to `server/exports/` directory (auto-created if missing)
+- Each endpoint returns success message with file path
+- Data is exported using business object `.toInterface()` methods for clean JSON structure
+- All endpoints use async error handling with comprehensive logging
+
 ## CHROME EXTENSION IMPLEMENTATION
 
 ### Content Script Architecture

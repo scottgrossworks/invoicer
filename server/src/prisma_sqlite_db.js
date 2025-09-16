@@ -182,6 +182,21 @@ class Prisma_Sqlite_DB extends Leedz_DB {
     }
   }
 
+  // Helper function to convert strings to floats for Prisma
+  cleanFloat(value) {
+    if (!value || value === "") return null;
+
+    if (typeof value === 'string') {
+      value = value.replace('$', '').trim();
+    }
+
+    let floatVal = parseFloat(value);
+
+    if (isNaN(floatVal)) return null;
+
+    return floatVal;
+  }
+
   // Booking operations
   async createBooking(data) {
     // Check for duplicate: same client, same date, same location
@@ -196,12 +211,15 @@ class Prisma_Sqlite_DB extends Leedz_DB {
       
       if (existing) {
         // Update existing booking (overwrite)
+        const { clientId, ...updateData } = data;
         return await this.prisma.booking.update({
           where: { id: existing.id },
           data: {
-            ...data,
+            ...updateData,
+            client: { connect: { id: clientId } },
             startDate: data.startDate || null,
             endDate: data.endDate || null,
+            status: data.status || "new",
           }
         });
       }
@@ -210,9 +228,21 @@ class Prisma_Sqlite_DB extends Leedz_DB {
     // Create new booking
     return await this.prisma.booking.create({
       data: {
-        ...data,
+        client: { connect: { id: data.clientId } },
+        title: data.title,
+        description: data.description,
+        notes: data.notes,
+        location: data.location,
         startDate: data.startDate || null,
         endDate: data.endDate || null,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        duration: this.cleanFloat(data.duration),
+        hourlyRate: this.cleanFloat(data.hourlyRate),
+        flatRate: this.cleanFloat(data.flatRate),
+        totalAmount: this.cleanFloat(data.totalAmount),
+        status: data.status || "new",
+        source: data.source
       }
     });
   }

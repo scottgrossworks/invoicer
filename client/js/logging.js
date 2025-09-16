@@ -4,6 +4,7 @@ let consoleOverridden = false;
 let listenerAttached = false;
 
 function updateDebugOutput(...args) {
+  /*
   const isError = args.length > 0 && args[args.length - 1] === true;
   if (isError) args.pop();
   try {
@@ -26,6 +27,7 @@ function updateDebugOutput(...args) {
     // eslint-disable-next-line no-console
     console.error('UI log failed', e);
   }
+    */
 }
 
 export function log(...args) {
@@ -45,11 +47,11 @@ function overrideConsole() {
   const originalConsoleError = console.error;
   console.log = function(...args) {
     originalConsoleLog.apply(console, args);
-    updateDebugOutput(...args);
+    // updateDebugOutput(...args);
   };
   console.error = function(...args) {
     originalConsoleError.apply(console, args);
-    updateDebugOutput(...args, true);
+    // updateDebugOutput(...args, true);
   };
 }
 
@@ -61,13 +63,13 @@ function attachMessageListener() {
       chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (message?.type === 'leedz_log') {
           log('Received log from background:', message.args);
-          updateDebugOutput(...(message.args || ['No message']));
+          // updateDebugOutput(...(message.args || ['No message']));
           sendResponse?.({ received: true });
           return true;
         }
         if (message?.type === 'leedz_error') {
           logError('Received error from background:', message.args);
-          updateDebugOutput(...(message.args || ['No error message']), true);
+          // updateDebugOutput(...(message.args || ['No error message']), true);
           sendResponse?.({ received: true });
           return true;
         }
@@ -80,7 +82,7 @@ function attachMessageListener() {
 }
 
 export function initLogging() {
-  overrideConsole();
+  // overrideConsole();
   attachMessageListener();
 }
 

@@ -17,6 +17,32 @@ class PortalParser {
     }
 
     /**
+     * GOAL: Sanitize phone numbers by removing all non-digit characters except leading +
+     * Handles formats like: 123.456.7890, (123) 456-7890, 123-456-7890, +1 123 456 7890
+     * @param {string} phone - Raw phone number string
+     * @returns {string} - Cleaned phone number with only digits and optional leading +
+     */
+    sanitizePhone(phone) {
+        if (!phone) return phone;
+        // Keep optional + at start, remove all non-digits
+        return phone.replace(/^(\+)?[^\d]*/, '$1').replace(/[^\d]/g, '');
+    }
+
+    /**
+     * GOAL: Sanitize currency values by removing $ and converting to number
+     * Handles formats like: $1200, $1,200.00, 1200, 1200.50
+     * @param {string|number} currency - Raw currency string or number
+     * @returns {number} - Cleaned numeric value
+     */
+    sanitizeCurrency(currency) {
+        if (!currency && currency !== 0) return currency;
+        if (typeof currency === 'number') return currency;
+        // Remove $ and commas, convert to number
+        const cleaned = currency.toString().replace(/[$,]/g, '');
+        return parseFloat(cleaned) || 0;
+    }
+
+    /**
      * Check if current page is relevant for this parser
      * @returns {boolean} True if the current page can be parsed
      */

@@ -52,9 +52,14 @@ class Client {
     return emailRegex.test(email);
   }
 
+  /**
+   * GOAL: Server-side validation for client phone numbers. Accept common separators including dots
+   * and validate against international phone format. Must match client-side validation exactly.
+   * Supports formats: 123-456-7890, (123) 456-7890, 123.456.7890, +1 123 456 7890
+   */
   static isValidPhone(phone) {
     const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-    return phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''));
+    return phoneRegex.test(phone.replace(/[\s\-\(\)\.]/g, ''));
   }
 
   // Business logic methods

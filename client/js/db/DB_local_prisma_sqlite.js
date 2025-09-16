@@ -24,8 +24,8 @@ export class DB_Local_PrismaSqlite extends DB_Layer {
    * 
    */
 cleanFloat(value) {
-  
-  if (! value || value === "") return "0.0";
+
+  if (! value || value === "") return 0.0;
 
   if (typeof value === 'string') {
     value = value.replace('$', '').trim();
@@ -33,9 +33,9 @@ cleanFloat(value) {
 
   let floatVal = parseFloat(value);
 
-  if (isNaN(floatVal))  return "0.0";
+  if (isNaN(floatVal))  return 0.0;
 
-  return floatVal.toString();
+  return floatVal;
 
 }
 
@@ -105,20 +105,20 @@ cleanFloat(value) {
       // create a Booking payload
       const bookingPayload = {
         clientId: client.id,
-        title: data.title || "",
-        description: data.description || "",
-        notes: data.notes || "",
-        location: data.location || "",
-        startDate: data.startDate || "",
-        endDate: data.endDate || "",
-        startTime: data.startTime || "",
-        endTime: data.endTime || "",
+        title: data.title || null,
+        description: data.description || null,
+        notes: data.notes || null,
+        location: data.location || null,
+        startDate: data.startDate || null,
+        endDate: data.endDate || null,
+        startTime: data.startTime || null,
+        endTime: data.endTime || null,
         duration: this.cleanFloat(data.duration),
         hourlyRate: this.cleanFloat(data.hourlyRate),
         flatRate: this.cleanFloat(data.flatRate),
         totalAmount: this.cleanFloat(data.totalAmount),
-        status: data.status || "",
-        source: data.source || ""
+        status: data.status || null,
+        source: data.source || null
       };
 
       let bookingRes = await fetch(`${this.baseUrl}/bookings`, {

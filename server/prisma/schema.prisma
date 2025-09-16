@@ -1,55 +1,48 @@
-// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
 
 datasource db {
   provider = "sqlite"
   url      = "file:./leedz_invoicer.sqlite"
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
 model Client {
-  id            String    @id @default(cuid())
-  name          String
-  email         String?   @unique
-  phone         String?
-  company       String?
-  clientNotes   String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  bookings      Booking[]
+  id          String    @id @default(cuid())
+  name        String
+  email       String?   @unique
+  phone       String?
+  company     String?
+  clientNotes String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  bookings    Booking[]
 }
 
 model Booking {
-  id            String    @id @default(cuid())
-  clientId      String
-  client        Client    @relation(fields: [clientId], references: [id])
-
-  title         String?
-  description   String?
-  notes         String?
-   
-  location      String?
-  startDate     DateTime?
-  endDate       DateTime?
-  startTime     String?
-  endTime       String?
-  duration      Float?    // hours
-  hourlyRate    Float?
-  flatRate      Float?
-  totalAmount   Float?
-  status        String    @default("new") 
-  source        String?   // original source (gmail, linkedin, etc)
-
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  clientId    String
+  title       String?
+  description String?
+  notes       String?
+  location    String?
+  startDate   DateTime?
+  endDate     DateTime?
+  startTime   String?
+  endTime     String?
+  duration    Float?
+  hourlyRate  Float?
+  flatRate    Float?
+  totalAmount Float?
+  status      String    @default("new")
+  source      String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  client      Client     @relation(fields: [clientId], references: [id])
 }
 
 model Config {
-  id                String    @id @default(cuid())
-  
-  // PDF Settings fields from invoicer_config.json
+  id                String   @id @default(cuid())
   companyName       String?
   companyAddress    String?
   companyPhone      String?
@@ -65,7 +58,6 @@ model Config {
   contactHandle     String?
   includeTerms      Boolean?
   terms             String?
-
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }

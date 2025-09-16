@@ -202,7 +202,7 @@ class GmailParser extends PortalParser {
       };
 
       // Note: We don't update Client name/email from LLM as procedural extraction is more reliable.
-      updateIfEmpty(this.STATE.Client, 'phone', llmResult.Client?.phone);
+      updateIfEmpty(this.STATE.Client, 'phone', this.sanitizePhone(llmResult.Client?.phone));
       updateIfEmpty(this.STATE.Client, 'company', llmResult.Client?.company);
       updateIfEmpty(this.STATE.Client, 'notes', llmResult.Client?.notes);
 
@@ -243,10 +243,10 @@ class GmailParser extends PortalParser {
       const contentArray = response.data?.content;
       const firstContent = contentArray?.[0];
       const textContent = firstContent?.text || firstContent;
-      console.log("Extracted LLM text content:", textContent);
+      // console.log("Extracted LLM text content:", textContent);
 
       const parsedResult = textContent ? this._parseLLMResponse(textContent) : null;
-      console.log("Final parsed LLM result:", parsedResult);
+      // console.log("Final parsed LLM result:", parsedResult);
 
       return parsedResult;
 
@@ -312,13 +312,13 @@ class GmailParser extends PortalParser {
 
   _parseLLMResponse(content) {
     try {
-      console.log('_parseLLMResponse called with content:', content?.substring(0, 200));
+      // console.log('_parseLLMResponse called with content:', content?.substring(0, 200));
       const jsonMatch = content.match(/\{[\s\S]*\}/);
 
       if (jsonMatch) {
-        console.log('Matched JSON:', jsonMatch[0].substring(0, 200));
+        // console.log('Matched JSON:', jsonMatch[0].substring(0, 200));
         const parsed = JSON.parse(jsonMatch[0]);
-        console.log('Parsed JSON:', parsed);
+        // console.log('Parsed JSON:', parsed);
 
         // Map LLM fields to our structured state
         const mapped = {
@@ -342,7 +342,9 @@ class GmailParser extends PortalParser {
             } else if (bookingFields.includes(field)) {
               mapped.Booking[field] = value;
               // Convert numeric fields
-              if (['hourlyRate', 'flatRate', 'totalAmount', 'duration'].includes(field)) {
+              if (['hourlyRate', 'flatRate', 'totalAmount'].includes(field)) {
+                mapped.Booking[field] = this.sanitizeCurrency(value);
+              } else if (field === 'duration') {
                 mapped.Booking[field] = parseFloat(value) || null;
               }
             }

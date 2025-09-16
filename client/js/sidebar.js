@@ -151,9 +151,9 @@ async function reloadParsers() {
                 log(`Parser ${p.name} completed successfully`);
 
                 // DEBUG: Log complete parser response
-                console.log('=== PARSER RESPONSE DEBUG ===');
+                // console.log('=== PARSER RESPONSE DEBUG ===');
                 console.log('Parser response data:', JSON.stringify(response.data, null, 2));
-                console.log('Response timestamp:', new Date().toISOString());
+                // console.log('Response timestamp:', new Date().toISOString());
 
                 // Store parser data with timestamp for tracking
                 const parserTimestamp = Date.now();
@@ -164,10 +164,7 @@ async function reloadParsers() {
 
                 updateFormFromState( STATE );
 
-                // NOW save state with populated data
-                STATE.save()
-                  .then(() => log('State saved after parser completion'))
-                  .catch(error => console.warn('Failed to save state after parsing:', error));
+                // Parser complete - do NOT auto-save, wait for user to click Save button
 
                 resolve();
 
@@ -570,6 +567,10 @@ function syncFormFieldToState(fieldName, displayValue) {
   // Handle duration fields - remove 'hours' suffix for storage
   } else if (fieldName === 'duration' && displayValue) {
     canonicalValue = displayValue.replace(/\s*hours\s*/i, '').trim();
+
+  // Handle currency fields - remove $ and convert to number
+  } else if (['hourlyRate', 'flatRate', 'totalAmount'].includes(fieldName) && displayValue) {
+    canonicalValue = parseFloat(displayValue.toString().replace(/[$,]/g, '')) || 0;
   }
 
   if (clientFields.includes(fieldName)) {

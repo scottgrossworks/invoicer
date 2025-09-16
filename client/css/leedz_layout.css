@@ -274,8 +274,7 @@ html, body {
   left: 0;
   width: 100%;
   background: var(--LEEDZ_GREEN);
-  min-height: 40px;
-  max-height: 120px;
+  height: 10px;
   z-index: 10;
   display: flex;
   flex-direction: column;
@@ -285,7 +284,7 @@ html, body {
 .leedz-grass {
   z-index:0;
   position: absolute;
-  top: -48px;
+  top: -60px;
   left: 0;
   width: 100%;
   height: auto;
@@ -293,7 +292,7 @@ html, body {
   display: block;
 }
 
-/* Debug output styling */
+/* Debug output styling 
 .debug-output {
   overflow-y: auto;
   overflow-x: hidden;
@@ -315,6 +314,7 @@ html, body {
 .debug-output div:last-child {
   margin-bottom: 0;
 }
+*/
 
 .input-wrapper {
   position: relative;

@@ -620,3 +620,475 @@ Unknown argument `[31mnotes[39m`. Did you mean `[32mname[39m`? Available opt
     at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:117:18
     at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
 [2025-09-16T00:15:30.257Z] Received SIGINT, shutting down gracefully...
+[2025-09-16T01:02:28.568Z] Database connected successfully
+[2025-09-16T01:02:28.574Z] ! Local API running on http://localhost:3000
+[2025-09-16T01:03:12.469Z] GET /config
+[2025-09-16T01:03:17.938Z] POST /clients
+[2025-09-16T01:03:17.981Z] POST /bookings
+[2025-09-16T01:03:18.015Z] POST /bookings failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.booking.create()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:211:38[24m
+
+  [2m[90m208[39m [34m}[39m[22m
+  [2m[90m209[39m [22m
+  [2m[90m210[39m [90m// Create new booking[39m[22m
+[1m[31m→[39m[22m [2m[90m211[39m [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mbooking[34m.[39m[36mcreate[39m[34m([39m[22m{
+        data: {
+          clientId: "cmflun16v0000145k6gt6igxb",
+          [31mtitle[39m: "",
+          [31m~~~~~[39m
+          description: "Demo presentation at Ascend GenAI Demo Day",
+          notes: "",
+          location: "Merage Jewish Community Center (Outdoor Garden), 1 Federation Way, Irvine, CA 92603",
+          startDate: new Date("2025-10-01T01:00:00.000Z"),
+          endDate: new Date("2025-10-01T03:00:00.000Z"),
+          startTime: "6:00 PM",
+          endTime: "8:00 PM",
+          duration: "2",
+          hourlyRate: "0.0",
+          flatRate: "0.0",
+          totalAmount: "0.0",
+          status: "",
+          source: "gmail",
+      [32m?[39m   [32mid[39m[32m?[39m[32m: [39m[32mString[39m,
+      [32m?[39m   [32mcreatedAt[39m[32m?[39m[32m: [39m[32mDateTime[39m,
+      [32m?[39m   [32mupdatedAt[39m[32m?[39m[32m: [39m[32mDateTime[39m
+        }
+      }[2m)[22m
+
+Unknown argument `[31mtitle[39m`. Available options are listed in [32mgreen[39m.
+    at wn (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createBooking (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:211:12)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:227:18
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-09-16T01:05:45.818Z] Received SIGINT, shutting down gracefully...
+[2025-09-16T01:24:56.226Z] Database connected successfully
+[2025-09-16T01:24:56.235Z] ! Local API running on http://localhost:3000
+[2025-09-16T01:25:22.555Z] GET /config
+[2025-09-16T01:25:27.683Z] POST /clients
+[2025-09-16T01:25:27.730Z] POST /bookings
+[2025-09-16T01:25:27.759Z] POST /bookings failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.booking.create()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:211:38[24m
+
+  [2m[90m208[39m [34m}[39m[22m
+  [2m[90m209[39m [22m
+  [2m[90m210[39m [90m// Create new booking[39m[22m
+[1m[31m→[39m[22m [2m[90m211[39m [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mbooking[34m.[39m[36mcreate[39m[34m([39m[22m{
+        data: {
+          clientId: "cmflun16v0000145k6gt6igxb",
+          title: null,
+          description: "Demo presentation at Ascend GenAI Demo Day",
+          notes: null,
+          location: "Merage Jewish Community Center (Outdoor Garden), 1 Federation Way, Irvine, CA 92603",
+          startDate: new Date("2025-10-01T01:00:00.000Z"),
+          endDate: new Date("2025-10-01T03:00:00.000Z"),
+          startTime: "6:00 PM",
+          endTime: "8:00 PM",
+          duration: [31m"2"[39m,
+                    [31m~~~[39m
+          hourlyRate: "0.0",
+          flatRate: "0.0",
+          totalAmount: "0.0",
+          status: null,
+          source: "gmail"
+        }
+      }[2m)[22m
+
+Argument `[1mduration[22m`: Invalid value provided. Expected [32mFloat[39m or [32mNull[39m, provided [31mString[39m.
+    at wn (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createBooking (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:211:12)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:227:18
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-09-16T01:39:27.898Z] Received SIGINT, shutting down gracefully...
+[2025-09-16T01:39:31.303Z] Database connected successfully
+[2025-09-16T01:39:31.310Z] ! Local API running on http://localhost:3000
+[2025-09-16T01:41:23.962Z] GET /config
+[2025-09-16T01:41:29.147Z] POST /clients
+[2025-09-16T01:41:29.173Z] POST /bookings
+[2025-09-16T01:41:29.200Z] POST /bookings failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.booking.create()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:211:38[24m
+
+  [2m[90m208[39m [34m}[39m[22m
+  [2m[90m209[39m [22m
+  [2m[90m210[39m [90m// Create new booking[39m[22m
+[1m[31m→[39m[22m [2m[90m211[39m [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mbooking[34m.[39m[36mcreate[39m[34m([39m[22m{
+        data: {
+          clientId: "cmflun16v0000145k6gt6igxb",
+          title: null,
+          description: "Demo presentation at Ascend GenAI Demo Day",
+          notes: null,
+          location: "Merage Jewish Community Center (Outdoor Garden), 1 Federation Way, Irvine, CA 92603",
+          startDate: new Date("2025-10-01T01:00:00.000Z"),
+          endDate: new Date("2025-10-01T03:00:00.000Z"),
+          startTime: "6:00 PM",
+          endTime: "8:00 PM",
+          duration: 2,
+          hourlyRate: 0,
+          flatRate: 0,
+          totalAmount: 0,
+          status: null,
+          source: "gmail",
+      [32m+[39m   [32mclient[39m[32m: [39m[32m{[39m
+      [32m[2m+[22m[39m     [32m[2mcreate: ClientCreateWithoutBookingsInput | ClientUncheckedCreateWithoutBookingsInput[22m[39m,
+      [32m[2m+[22m[39m     [32m[2mconnectOrCreate: ClientCreateOrConnectWithoutBookingsInput[22m[39m,
+      [32m[2m+[22m[39m     [32m[2mconnect: ClientWhereUniqueInput[22m[39m
+      [32m+[39m   [32m}[39m
+        }
+      }[2m)[22m
+
+Argument `[32mclient[39m` is missing.
+    at wn (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createBooking (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:211:12)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:227:18
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-09-16T01:47:44.760Z] Received SIGINT, shutting down gracefully...
+[2025-09-16T01:52:35.549Z] Database connected successfully
+[2025-09-16T01:52:35.556Z] ! Local API running on http://localhost:3000
+[2025-09-16T01:53:25.081Z] GET /config
+[2025-09-16T01:53:30.206Z] POST /clients
+[2025-09-16T01:53:30.233Z] POST /bookings
+[2025-09-16T01:53:30.259Z] POST /bookings failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.booking.create()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:211:38[24m
+
+  [2m[90m208[39m [34m}[39m[22m
+  [2m[90m209[39m [22m
+  [2m[90m210[39m [90m// Create new booking[39m[22m
+[1m[31m→[39m[22m [2m[90m211[39m [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mbooking[34m.[39m[36mcreate[39m[34m([39m[22m{
+        data: {
+          [31mclientId[39m: "cmflun16v0000145k6gt6igxb",
+          [31m~~~~~~~~[39m
+          title: null,
+          description: "Demo presentation at Ascend GenAI Demo Day",
+          notes: null,
+          location: "Merage Jewish Community Center (Outdoor Garden), 1 Federation Way, Irvine, CA 92603",
+          startDate: new Date("2025-10-01T01:00:00.000Z"),
+          endDate: new Date("2025-10-01T03:00:00.000Z"),
+          startTime: "6:00 PM",
+          endTime: "8:00 PM",
+          duration: 2,
+          hourlyRate: 0,
+          flatRate: 0,
+          totalAmount: 0,
+          status: null,
+          source: "gmail",
+      [32m?[39m   [32mid[39m[32m?[39m[32m: [39m[32mString[39m,
+      [32m?[39m   [32mcreatedAt[39m[32m?[39m[32m: [39m[32mDateTime[39m,
+      [32m?[39m   [32mupdatedAt[39m[32m?[39m[32m: [39m[32mDateTime[39m,
+      [32m?[39m   [32mclient[39m[32m?[39m[32m: [39m[32mClientCreateNestedOneWithoutBookingsInput[39m
+        }
+      }[2m)[22m
+
+Unknown argument `[31mclientId[39m`. Did you mean `[32mclient[39m`? Available options are listed in [32mgreen[39m.
+    at wn (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createBooking (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:211:12)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:227:18
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-09-16T02:03:07.148Z] Received SIGINT, shutting down gracefully...
+[2025-09-16T03:03:24.967Z] Database connected successfully
+[2025-09-16T03:03:24.973Z] ! Local API running on http://localhost:3000
+[2025-09-16T03:03:54.336Z] GET /config
+[2025-09-16T03:03:59.262Z] POST /clients
+[2025-09-16T03:03:59.284Z] POST /bookings
+[2025-09-16T03:03:59.311Z] POST /bookings failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.booking.create()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:211:38[24m
+
+  [2m[90m208[39m [34m}[39m[22m
+  [2m[90m209[39m [22m
+  [2m[90m210[39m [90m// Create new booking[39m[22m
+[1m[31m→[39m[22m [2m[90m211[39m [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mbooking[34m.[39m[36mcreate[39m[34m([39m[22m{
+        data: {
+          [31mclient[39m: {
+          [31m~~~~~~[39m
+            connect: {
+              id: "cmflun16v0000145k6gt6igxb"
+            }
+          },
+          title: null,
+          description: "Demo presentation at Ascend GenAI Demo Day",
+          notes: null,
+          location: "Merage Jewish Community Center (Outdoor Garden), 1 Federation Way, Irvine, CA 92603",
+          startDate: new Date("2025-10-01T01:00:00.000Z"),
+          endDate: new Date("2025-10-01T03:00:00.000Z"),
+          startTime: "6:00 PM",
+          endTime: "8:00 PM",
+          duration: 2,
+          hourlyRate: 0,
+          flatRate: 0,
+          totalAmount: 0,
+          status: null,
+          source: "gmail",
+      [32m?[39m   [32mid[39m[32m?[39m[32m: [39m[32mString[39m,
+      [32m?[39m   [32mclientId[39m[32m?[39m[32m: [39m[32mString | Null[39m,
+      [32m?[39m   [32mcreatedAt[39m[32m?[39m[32m: [39m[32mDateTime[39m,
+      [32m?[39m   [32mupdatedAt[39m[32m?[39m[32m: [39m[32mDateTime[39m
+        }
+      }[2m)[22m
+
+Unknown argument `[31mclient[39m`. Did you mean `[32mclientId[39m`? Available options are listed in [32mgreen[39m.
+    at wn (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createBooking (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:211:12)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:227:18
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-09-16T03:05:02.902Z] Received SIGINT, shutting down gracefully...
+[2025-09-16T03:14:34.672Z] Database connected successfully
+[2025-09-16T03:14:34.679Z] ! Local API running on http://localhost:3000
+[2025-09-16T03:14:45.292Z] GET /dump/clients
+[2025-09-16T03:14:47.314Z] GET /dump/bookings
+[2025-09-16T03:14:49.346Z] GET /dump/config
+[2025-09-16T03:21:53.397Z] GET /api/dump/clients
+[2025-09-16T03:21:53.400Z] Starting Client dump...
+[2025-09-16T03:21:53.413Z] Clients dumped to: C:\Users\Scott\Desktop\WKG\INVOICER\server\exports\clients_1757992913408.json
+[2025-09-16T03:21:55.731Z] GET /api/dump/bookings
+[2025-09-16T03:21:55.732Z] Starting Booking dump...
+[2025-09-16T03:21:55.740Z] Bookings dumped to: C:\Users\Scott\Desktop\WKG\INVOICER\server\exports\bookings_1757992915738.json
+[2025-09-16T03:21:58.005Z] GET /api/dump/config
+[2025-09-16T03:21:58.006Z] Starting Config dump...
+[2025-09-16T03:21:58.012Z] Config dumped to: C:\Users\Scott\Desktop\WKG\INVOICER\server\exports\config_1757992918010.json
+[2025-09-16T03:28:23.343Z] Received SIGINT, shutting down gracefully...
+[2025-09-16T03:48:32.676Z] Database connected successfully
+[2025-09-16T03:48:32.683Z] ! Local API running on http://localhost:3000
+[2025-09-16T03:49:04.615Z] GET /config
+[2025-09-16T03:49:09.617Z] POST /clients
+[2025-09-16T03:49:09.640Z] POST /bookings
+[2025-09-16T03:49:09.664Z] POST /bookings failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.booking.create()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:211:38[24m
+
+  [2m[90m208[39m [34m}[39m[22m
+  [2m[90m209[39m [22m
+  [2m[90m210[39m [90m// Create new booking[39m[22m
+[1m[31m→[39m[22m [2m[90m211[39m [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mbooking[34m.[39m[36mcreate[39m[34m([39m[22m{
+        data: {
+          [31mclient[39m: {
+          [31m~~~~~~[39m
+            connect: {
+              id: "cmfm0kby30000rfpupdwxg2rj"
+            }
+          },
+          title: null,
+          description: "Demo presentation at Ascend GenAI Demo Day",
+          notes: null,
+          location: "Merage Jewish Community Center (Outdoor Garden), 1 Federation Way, Irvine, CA 92603",
+          startDate: new Date("2025-10-01T01:00:00.000Z"),
+          endDate: new Date("2025-10-01T03:00:00.000Z"),
+          startTime: "6:00 PM",
+          endTime: "8:00 PM",
+          duration: 2,
+          hourlyRate: 0,
+          flatRate: 0,
+          totalAmount: 0,
+          status: null,
+          source: "gmail",
+      [32m?[39m   [32mid[39m[32m?[39m[32m: [39m[32mString[39m,
+      [32m?[39m   [32mclientId[39m[32m?[39m[32m: [39m[32mString | Null[39m,
+      [32m?[39m   [32mcreatedAt[39m[32m?[39m[32m: [39m[32mDateTime[39m,
+      [32m?[39m   [32mupdatedAt[39m[32m?[39m[32m: [39m[32mDateTime[39m
+        }
+      }[2m)[22m
+
+Unknown argument `[31mclient[39m`. Did you mean `[32mclientId[39m`? Available options are listed in [32mgreen[39m.
+    at wn (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createBooking (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:211:12)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:227:18
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-09-16T03:54:59.672Z] Received SIGINT, shutting down gracefully...
+[2025-09-16T04:02:39.731Z] Database connected successfully
+[2025-09-16T04:02:39.737Z] ! Local API running on http://localhost:3000
+[2025-09-16T04:03:15.815Z] Received SIGINT, shutting down gracefully...
+[2025-09-16T04:05:00.962Z] Database connected successfully
+[2025-09-16T04:05:00.969Z] ! Local API running on http://localhost:3000
+[2025-09-16T04:06:15.601Z] GET /config
+[2025-09-16T04:06:21.510Z] POST /clients
+[2025-09-16T04:06:21.540Z] POST /bookings
+[2025-09-16T04:06:21.566Z] POST /bookings failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.booking.create()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:211:38[24m
+
+  [2m[90m208[39m [34m}[39m[22m
+  [2m[90m209[39m [22m
+  [2m[90m210[39m [90m// Create new booking[39m[22m
+[1m[31m→[39m[22m [2m[90m211[39m [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mbooking[34m.[39m[36mcreate[39m[34m([39m[22m{
+        data: {
+          client: {
+            connect: {
+              id: "cmfm16g5x0000nbsbgm2dcxpd"
+            }
+          },
+          title: null,
+          description: "Demo presentation at Ascend GenAI Demo Day",
+          notes: null,
+          location: "Merage Jewish Community Center (Outdoor Garden), 1 Federation Way, Irvine, CA 92603",
+          startDate: new Date("2025-10-01T01:00:00.000Z"),
+          endDate: new Date("2025-10-01T03:00:00.000Z"),
+          startTime: "6:00 PM",
+          endTime: "8:00 PM",
+          duration: 2,
+          hourlyRate: 0,
+          flatRate: 0,
+          totalAmount: 0,
+          source: "gmail",
+      [32m+[39m   [32mstatus[39m[32m: [39m[32mString[39m
+        }
+      }[2m)[22m
+
+Argument `[32mstatus[39m` must not be [31mnull[39m.
+    at wn (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createBooking (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:211:12)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:227:18
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-09-16T04:29:37.378Z] Received SIGINT, shutting down gracefully...
+[2025-09-16T04:41:21.669Z] Database connected successfully
+[2025-09-16T04:41:21.676Z] ! Local API running on http://localhost:3000
+[2025-09-16T04:42:02.115Z] GET /config
+[2025-09-16T04:42:07.237Z] POST /clients
+[2025-09-16T04:42:07.265Z] POST /bookings
+[2025-09-16T04:42:07.287Z] POST /config
+[2025-09-16T15:50:56.095Z] GET /config
+[2025-09-16T16:17:58.175Z] Received SIGINT, shutting down gracefully...
+[2025-09-16T16:44:03.703Z] Database connected successfully
+[2025-09-16T16:44:03.708Z] ! Local API running on http://localhost:3000
+[2025-09-16T16:47:45.625Z] GET /config
+[2025-09-16T16:47:56.017Z] POST /clients
+[2025-09-16T16:47:56.039Z] POST /bookings
+[2025-09-16T16:47:56.057Z] POST /config
+[2025-09-16T16:48:25.128Z] POST /clients
+[2025-09-16T16:54:21.454Z] Received SIGINT, shutting down gracefully...
+[2025-09-16T16:54:26.409Z] Database connected successfully
+[2025-09-16T16:54:26.415Z] ! Local API running on http://localhost:3000
+[2025-09-16T16:55:44.774Z] GET /config
+[2025-09-16T16:55:50.168Z] POST /clients
+[2025-09-16T16:55:50.196Z] POST /bookings
+[2025-09-16T16:55:50.226Z] POST /bookings failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.booking.update()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:214:42[24m
+
+  [2m[90m211[39m [22m
+  [2m[90m212[39m [36mif[39m [34m([39mexisting[34m)[39m [34m{[39m[22m
+  [2m[90m213[39m   [90m// Update existing booking (overwrite)[39m[22m
+[1m[31m→[39m[22m [2m[90m214[39m   [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mbooking[34m.[39m[36mupdate[39m[34m([39m[22m{
+          where: {
+            id: "cmfmsdua50001fxgy1kl0khi1"
+          },
+          data: {
+            [31mclientId[39m: "cmfmsdu9m0000fxgyv0urdf7q",
+            [31m~~~~~~~~[39m
+            title: null,
+            description: "Caricature artist services at convention",
+            notes: null,
+            location: "Anaheim Marriott, Marquis Ballroom Booth #307",
+            startDate: new Date("2025-09-06T02:00:00.000Z"),
+            endDate: new Date("2025-09-07T01:30:00.000Z"),
+            startTime: "7:00 PM",
+            endTime: "6:30 PM",
+            duration: 23,
+            hourlyRate: 0,
+            flatRate: 1200,
+            totalAmount: 1200,
+            status: null,
+            source: "gmail",
+        [32m?[39m   [32mid[39m[32m?[39m[32m: [39m[32mString | StringFieldUpdateOperationsInput[39m,
+        [32m?[39m   [32mcreatedAt[39m[32m?[39m[32m: [39m[32mDateTime | DateTimeFieldUpdateOperationsInput[39m,
+        [32m?[39m   [32mupdatedAt[39m[32m?[39m[32m: [39m[32mDateTime | DateTimeFieldUpdateOperationsInput[39m,
+        [32m?[39m   [32mclient[39m[32m?[39m[32m: [39m[32mClientUpdateOneRequiredWithoutBookingsNestedInput[39m
+          }
+        }[2m)[22m
+
+Unknown argument `[31mclientId[39m`. Did you mean `[32mclient[39m`? Available options are listed in [32mgreen[39m.
+    at wn (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createBooking (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:214:16)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:227:18
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-09-16T16:57:37.356Z] Received SIGINT, shutting down gracefully...
+[2025-09-16T17:31:48.262Z] Database connected successfully
+[2025-09-16T17:31:48.268Z] ! Local API running on http://localhost:3000
+[2025-09-16T17:33:39.550Z] GET /config
+[2025-09-16T17:33:46.501Z] POST /clients
+[2025-09-16T17:33:46.529Z] POST /bookings
+[2025-09-16T17:33:46.556Z] POST /bookings failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.booking.update()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:215:42[24m
+
+  [2m[90m212[39m [36mif[39m [34m([39mexisting[34m)[39m [34m{[39m[22m
+  [2m[90m213[39m   [90m// Update existing booking (overwrite)[39m[22m
+  [2m[90m214[39m   [36mconst[39m [34m{[39m clientId[34m,[39m ...updateData [34m}[39m = data[34m;[39m[22m
+[1m[31m→[39m[22m [2m[90m215[39m   [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mbooking[34m.[39m[36mupdate[39m[34m([39m[22m{
+          where: {
+            id: "cmfmsdua50001fxgy1kl0khi1"
+          },
+          data: {
+            title: null,
+            description: "Caricature artist services at convention",
+            notes: null,
+            location: "Anaheim Marriott, Marquis Ballroom Booth #307",
+            startDate: new Date("2025-09-06T02:00:00.000Z"),
+            endDate: new Date("2025-09-07T01:30:00.000Z"),
+            startTime: "7:00 PM",
+            endTime: "6:30 PM",
+            duration: 23,
+            hourlyRate: 0,
+            flatRate: 1200,
+            totalAmount: 1200,
+            source: "gmail",
+            client: {
+              connect: {
+                id: "cmfmsdu9m0000fxgyv0urdf7q"
+              }
+            },
+        [32m+[39m   [32mstatus[39m[32m: [39m[32mString[39m
+          }
+        }[2m)[22m
+
+Argument `[32mstatus[39m` must not be [31mnull[39m.
+    at wn (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createBooking (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:215:16)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:227:18
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-09-16T17:35:15.118Z] Received SIGINT, shutting down gracefully...
+[2025-09-16T17:41:30.544Z] Database connected successfully
+[2025-09-16T17:41:30.551Z] ! Local API running on http://localhost:3000
+[2025-09-16T17:41:33.384Z] GET /config
+[2025-09-16T17:41:57.522Z] POST /clients
+[2025-09-16T17:44:49.032Z] GET /config
+[2025-09-16T17:45:15.950Z] POST /clients
+[2025-09-16T17:45:15.987Z] POST /bookings
+[2025-09-16T17:45:16.012Z] POST /config

@@ -115,9 +115,14 @@ static getFieldNames() {
     return emailRegex.test(email);
   }
 
+  /**
+   * GOAL: Validate phone number format for company/bank phone fields by accepting common separators
+   * (spaces, hyphens, parentheses, dots) and ensuring the cleaned number matches international phone format
+   * This allows inputs like: 123-456-7890, (123) 456-7890, 123.456.7890, +1 123 456 7890
+   */
   static isValidPhone(phone) {
     const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-    return phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''));
+    return phoneRegex.test(phone.replace(/[\s\-\(\)\.]/g, ''));
   }
 
   

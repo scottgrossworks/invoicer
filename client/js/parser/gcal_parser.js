@@ -306,14 +306,14 @@ class GCalParser extends PortalParser {
       // Client fields
       updateIfEmpty(this.STATE.Client, 'name', llmResult.name);
       updateIfEmpty(this.STATE.Client, 'email', llmResult.email);
-      updateIfEmpty(this.STATE.Client, 'phone', llmResult.phone);
+      updateIfEmpty(this.STATE.Client, 'phone', this.sanitizePhone(llmResult.phone));
       updateIfEmpty(this.STATE.Client, 'company', llmResult.company);
       updateIfEmpty(this.STATE.Client, 'notes', llmResult.notes);
 
       // Booking fields
-      updateIfEmpty(this.STATE.Booking, 'hourlyRate', llmResult.hourlyRate);
-      updateIfEmpty(this.STATE.Booking, 'flatRate', llmResult.flatRate);
-      updateIfEmpty(this.STATE.Booking, 'totalAmount', llmResult.totalAmount);
+      updateIfEmpty(this.STATE.Booking, 'hourlyRate', this.sanitizeCurrency(llmResult.hourlyRate));
+      updateIfEmpty(this.STATE.Booking, 'flatRate', this.sanitizeCurrency(llmResult.flatRate));
+      updateIfEmpty(this.STATE.Booking, 'totalAmount', this.sanitizeCurrency(llmResult.totalAmount));
       updateIfEmpty(this.STATE.Booking, 'duration', llmResult.duration);
       this.STATE.Booking.source = 'Google Calendar'; // Always set source to gcal
   }
