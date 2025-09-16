@@ -487,7 +487,7 @@ module.exports.dumpConfig = dumpConfig;
     });
 
     server.on("error", (err) => {
-      log("* Server listen failed: " + err.stack);
+      log("* xServer listen failed: " + err.stack);
       process.exit(1);
     });
 

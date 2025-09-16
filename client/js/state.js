@@ -141,14 +141,8 @@ class State {
         Object.assign(this.Config, dbConfig);
         
         
-        // TRY TO SAVE STATE --> DB
-        try {
-          await this.save();
-        } catch (error) {
-          // DO NOT FAIL
-          console.warn("Save failed, is the DB configured?");
-          return;
-        }
+        // CONFIG LOADED - DO NOT SAVE YET
+        // Save will happen after parser completes and populates Client/Booking data
 
       } else {
         console.warn("No Config found in DB");

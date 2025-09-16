@@ -8,8 +8,8 @@
  * 4. Send the complete and accurate data to the LLM for processing.
  */
 import { PortalParser } from './parser.js';
-import { Client } from '../db/Client.js';
-import { Booking } from '../db/Booking.js';
+import Client from '../db/Client.js';
+import Booking from '../db/Booking.js';
 
 // Global CONFIG variable
 let CONFIG = null;

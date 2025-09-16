@@ -151,9 +151,9 @@ async function reloadParsers() {
                 log(`Parser ${p.name} completed successfully`);
 
                 // DEBUG: Log complete parser response
-                // console.log('=== PARSER RESPONSE DEBUG ===');
-                //console.log('Parser response data:', JSON.stringify(response.data, null, 2));
-                //console.log('Response timestamp:', new Date().toISOString());
+                console.log('=== PARSER RESPONSE DEBUG ===');
+                console.log('Parser response data:', JSON.stringify(response.data, null, 2));
+                console.log('Response timestamp:', new Date().toISOString());
 
                 // Store parser data with timestamp for tracking
                 const parserTimestamp = Date.now();
@@ -163,8 +163,12 @@ async function reloadParsers() {
                 mergePageData(STATE, response.data);
 
                 updateFormFromState( STATE );
-                
-                // State automatically saves itself
+
+                // NOW save state with populated data
+                STATE.save()
+                  .then(() => log('State saved after parser completion'))
+                  .catch(error => console.warn('Failed to save state after parsing:', error));
+
                 resolve();
 
               } else {
@@ -662,7 +666,7 @@ function clearForm() {
   updateFormFromState( STATE ); // Re-render UI with empty state
   log('Cleared');
 
-  //console.log('State after clear:', JSON.stringify(state.toObject(), null, 2));
+  console.log('State after clear:', JSON.stringify(STATE.toObject(), null, 2));
 }
 
 

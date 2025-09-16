@@ -67,7 +67,7 @@ cleanFloat(value) {
         email: data.email || data.clientEmail || null,
         phone: data.phone || null,
         company: data.company || data.org || null,
-        notes: data.notes || null
+        clientNotes: data.clientNotes || null
       };
 
       const clientRes = await fetch(`${this.baseUrl}/clients`, {
@@ -107,16 +107,18 @@ cleanFloat(value) {
         clientId: client.id,
         title: data.title || "",
         description: data.description || "",
+        notes: data.notes || "",
         location: data.location || "",
         startDate: data.startDate || "",
         endDate: data.endDate || "",
+        startTime: data.startTime || "",
+        endTime: data.endTime || "",
         duration: this.cleanFloat(data.duration),
         hourlyRate: this.cleanFloat(data.hourlyRate),
         flatRate: this.cleanFloat(data.flatRate),
         totalAmount: this.cleanFloat(data.totalAmount),
         status: data.status || "",
-        source: data.source || "",
-        notes: data.notes || ""
+        source: data.source || ""
       };
 
       let bookingRes = await fetch(`${this.baseUrl}/bookings`, {

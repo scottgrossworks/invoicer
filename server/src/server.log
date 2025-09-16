@@ -580,3 +580,43 @@ Unique constraint failed on the fields: (`email`)
 [2025-09-15T20:27:37.578Z] GET /api/dump/clients
 [2025-09-15T20:27:37.580Z] Starting Client dump...
 [2025-09-15T20:27:37.597Z] Clients dumped to: C:\Users\Scott\Desktop\WKG\INVOICER\server\exports\clients_1757968057589.json
+[2025-09-15T20:34:04.733Z] Received SIGINT, shutting down gracefully...
+[2025-09-15T22:44:31.630Z] Database connected successfully
+[2025-09-15T22:44:31.645Z] ! Local API running on http://localhost:3000
+[2025-09-15T22:46:44.277Z] GET /config
+[2025-09-16T00:03:10.806Z] GET /config
+[2025-09-16T00:11:21.972Z] GET /config
+[2025-09-16T00:11:27.847Z] POST /clients
+[2025-09-16T00:11:27.903Z] POST /clients failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.client.create()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:65:39[24m
+
+  [2m[90m62[39m   [34m}[39m[34m)[39m[34m;[39m[22m
+  [2m[90m63[39m [34m}[39m [36melse[39m [34m{[39m[22m
+  [2m[90m64[39m   [90m// Create new client[39m[22m
+[1m[31m→[39m[22m [2m[90m65[39m   [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mclient[34m.[39m[36mcreate[39m[34m([39m[22m{
+         data: {
+           name: "Sarah Lee",
+           email: "sarah.ji.won.lee@gmail.com",
+           phone: null,
+           company: "Ascend GenAI",
+           [31mnotes[39m: null,
+           [31m~~~~~[39m
+       [32m?[39m   [32mid[39m[32m?[39m[32m: [39m[32mString[39m,
+       [32m?[39m   [32mclientNotes[39m[32m?[39m[32m: [39m[32mString | Null[39m,
+       [32m?[39m   [32mcreatedAt[39m[32m?[39m[32m: [39m[32mDateTime[39m,
+       [32m?[39m   [32mupdatedAt[39m[32m?[39m[32m: [39m[32mDateTime[39m,
+       [32m?[39m   [32mbookings[39m[32m?[39m[32m: [39m[32mBookingCreateNestedManyWithoutClientInput[39m
+         }
+       }[2m)[22m
+
+Unknown argument `[31mnotes[39m`. Did you mean `[32mname[39m`? Available options are listed in [32mgreen[39m.
+    at wn (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createClient (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:65:14)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:117:18
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-09-16T00:15:30.257Z] Received SIGINT, shutting down gracefully...
