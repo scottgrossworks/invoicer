@@ -266,7 +266,7 @@ app.put("/bookings/:id", asyncRoute(async (req, res) => {
   const bookingData = convertBookingDates(req.body);
 
   // Validate booking data
-  const validation = Booking.validate(bookingData);
+  const validation = Booking.validateUpdate(bookingData);
   if (!validation.isValid) {
     return res.status(400).json({ error: "Validation failed", errors: validation.errors });
   }

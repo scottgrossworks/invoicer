@@ -141,7 +141,7 @@ class GmailParser extends PortalParser {
             return { email, name };
         }
       }
-      console.warn("Could not find a primary sender element.");
+      console.log("Could not find a primary sender element.");
       return { email: null, name: null };
     } catch (error) {
       console.error('Error extracting email/name:', error);

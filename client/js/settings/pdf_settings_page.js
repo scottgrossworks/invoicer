@@ -254,7 +254,7 @@ class PDFSettingsPage {
    */
   async previewInvoice() {
     try {
-      console.log("HELLO WORLD");
+      
       // Get form settings for Config
       // just in case the user is changing in one window and previewing in another
       const formConfig = this.collectFormData();
@@ -269,6 +269,13 @@ class PDFSettingsPage {
 
 
       // Generate HTML body content and CSS using merged state
+      console.log('STATE.Config before template:', this.STATE.Config);
+      console.log('Bank fields:', {
+        bankName: this.STATE.Config.bankName,
+        bankAccount: this.STATE.Config.bankAccount,
+        bankRouting: this.STATE.Config.bankRouting,
+        bankWire: this.STATE.Config.bankWire
+      });
       const bodyContent = await template.generateInvoiceHTML( this.STATE );
       const cssContent = await template.getInvoiceCSS();
       
@@ -295,8 +302,8 @@ class PDFSettingsPage {
             /* Remove gaps for better preview */
             .invoice-header { margin-bottom: 10px !important; }
             .invoice-details { margin-bottom: 5px !important; }
-            .billing-section { margin: 5px 0 !important; }
-            
+            .billing-section { margin-top: 150px !important; margin-bottom: 5px !important; }
+
             /* Additional preview styling */
             body {
               margin: 20px;
@@ -366,18 +373,23 @@ class PDFSettingsPage {
   }
 }
 
-  // Missing from end of pdf_settings_page.js:
-  document.addEventListener('DOMContentLoaded', async () => {
-    
+// DOMContentLoaded event listener to initialize the page
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log('PDF Settings page loading...');
+
+  try {
     // Get state from Chrome storage
     const { StateFactory } = await import('../state.js');
     const state = await StateFactory.create();
+    console.log('State loaded:', state);
 
     // Initialize the settings page
-    new PDFSettingsPage(state);
-  });
-
-
+    const settingsPage = new PDFSettingsPage(state);
+    console.log('PDF Settings page initialized');
+  } catch (error) {
+    console.error('Failed to initialize PDF Settings page:', error);
+  }
+});
 
 // Export the class for manual instantiation
 export { PDFSettingsPage };

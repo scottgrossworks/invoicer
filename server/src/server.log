@@ -1117,3 +1117,161 @@ Argument `[32mstatus[39m` must not be [31mnull[39m.
 [2025-09-16T19:24:17.013Z] POST /clients
 [2025-09-16T19:24:17.039Z] POST /bookings
 [2025-09-16T19:24:17.065Z] POST /config
+[2025-09-17T01:21:40.225Z] Received SIGINT, shutting down gracefully...
+[2025-09-17T01:21:44.229Z] Database connected successfully
+[2025-09-17T01:21:44.233Z] ! Local API running on http://localhost:3000
+[2025-09-17T01:22:50.339Z] GET /config
+[2025-09-17T01:23:24.130Z] POST /clients
+[2025-09-17T01:23:24.160Z] POST /bookings
+[2025-09-17T01:23:24.181Z] POST /config
+[2025-09-17T01:47:12.616Z] GET /config
+[2025-09-17T01:59:57.743Z] GET /config
+[2025-09-17T02:00:20.885Z] POST /clients
+[2025-09-17T02:00:20.912Z] POST /bookings
+[2025-09-17T02:00:20.934Z] POST /config
+[2025-09-17T02:00:56.924Z] POST /clients
+[2025-09-17T02:00:56.943Z] POST /bookings
+[2025-09-17T02:00:56.966Z] POST /config
+[2025-09-17T02:00:59.394Z] POST /clients
+[2025-09-17T02:00:59.414Z] POST /bookings
+[2025-09-17T02:00:59.434Z] POST /config
+[2025-09-17T02:01:01.292Z] POST /clients
+[2025-09-17T02:01:01.309Z] POST /bookings
+[2025-09-17T02:01:01.325Z] POST /config
+[2025-09-17T02:53:25.241Z] POST /clients
+[2025-09-17T02:53:25.262Z] POST /bookings
+[2025-09-17T02:53:25.282Z] POST /config
+[2025-09-17T17:21:53.299Z] Database connected successfully
+[2025-09-17T17:21:53.306Z] ! Local API running on http://localhost:3000
+[2025-09-17T17:22:34.231Z] POST /clients
+[2025-09-17T17:22:34.313Z] POST /bookings
+[2025-09-17T17:22:34.343Z] POST /config
+[2025-09-17T17:33:21.261Z] POST /clients
+[2025-09-17T17:33:21.283Z] POST /bookings
+[2025-09-17T17:33:21.306Z] POST /config
+[2025-09-17T17:33:30.868Z] POST /clients
+[2025-09-17T17:33:30.889Z] POST /bookings
+[2025-09-17T17:33:30.911Z] POST /config
+[2025-09-17T17:35:18.543Z] POST /clients
+[2025-09-17T17:35:18.565Z] POST /bookings
+[2025-09-17T17:35:18.583Z] POST /config
+[2025-09-17T17:35:21.393Z] POST /clients
+[2025-09-17T17:35:21.414Z] POST /bookings
+[2025-09-17T17:35:21.432Z] POST /config
+[2025-09-17T17:57:29.576Z] GET /config
+[2025-09-17T17:58:10.296Z] POST /clients
+[2025-09-17T17:58:10.317Z] POST /bookings
+[2025-09-17T17:58:10.338Z] POST /config
+[2025-09-17T17:58:30.321Z] POST /clients
+[2025-09-17T17:58:30.344Z] POST /bookings
+[2025-09-17T17:58:30.363Z] POST /config
+[2025-09-17T18:07:56.596Z] POST /clients
+[2025-09-17T18:07:56.615Z] POST /bookings
+[2025-09-17T18:07:56.640Z] POST /config
+[2025-09-17T18:08:13.711Z] POST /clients
+[2025-09-17T18:08:13.731Z] POST /bookings
+[2025-09-17T18:08:13.750Z] POST /config
+[2025-09-17T18:09:20.744Z] GET /config
+[2025-09-17T18:09:29.675Z] POST /clients
+[2025-09-17T18:09:29.697Z] POST /bookings
+[2025-09-17T18:09:29.717Z] POST /config
+[2025-09-17T18:14:05.790Z] POST /clients
+[2025-09-17T18:14:05.809Z] POST /bookings
+[2025-09-17T18:14:05.830Z] POST /config
+[2025-09-17T18:27:59.608Z] GET /config
+[2025-09-17T18:28:26.001Z] POST /clients
+[2025-09-17T18:28:26.023Z] POST /bookings
+[2025-09-17T18:28:26.041Z] POST /config
+[2025-09-17T18:29:07.708Z] POST /clients
+[2025-09-17T18:29:07.727Z] POST /bookings
+[2025-09-17T18:29:07.744Z] POST /config
+[2025-09-17T18:29:14.373Z] POST /clients
+[2025-09-17T18:29:14.390Z] POST /bookings
+[2025-09-17T18:29:14.407Z] POST /config
+[2025-09-17T18:29:23.838Z] POST /clients
+[2025-09-17T18:29:23.858Z] POST /bookings
+[2025-09-17T18:29:23.878Z] POST /config
+[2025-09-17T18:29:25.141Z] POST /clients
+[2025-09-17T18:29:25.161Z] POST /bookings
+[2025-09-17T18:29:25.183Z] POST /config
+[2025-09-17T18:46:06.029Z] GET /config
+[2025-09-17T18:46:16.371Z] POST /clients
+[2025-09-17T18:46:16.392Z] POST /bookings
+[2025-09-17T18:46:16.416Z] POST /config
+[2025-09-17T18:46:46.561Z] POST /clients
+[2025-09-17T18:46:46.576Z] POST /bookings
+[2025-09-17T18:46:46.593Z] POST /config
+[2025-09-17T18:46:49.324Z] POST /clients
+[2025-09-17T18:46:49.343Z] POST /bookings
+[2025-09-17T18:46:49.362Z] POST /config
+[2025-09-17T18:56:35.102Z] GET /config
+[2025-09-17T18:56:43.858Z] POST /clients
+[2025-09-17T18:56:43.878Z] POST /bookings
+[2025-09-17T18:56:43.897Z] POST /config
+[2025-09-17T18:56:51.756Z] POST /clients
+[2025-09-17T18:56:51.776Z] POST /bookings
+[2025-09-17T18:56:51.796Z] POST /config
+[2025-09-17T18:59:00.079Z] POST /clients
+[2025-09-17T18:59:00.101Z] POST /bookings
+[2025-09-17T18:59:00.120Z] POST /config
+[2025-09-17T18:59:02.545Z] POST /clients
+[2025-09-17T18:59:02.563Z] POST /bookings
+[2025-09-17T18:59:02.580Z] POST /config
+[2025-09-17T19:01:01.236Z] POST /clients
+[2025-09-17T19:01:01.253Z] POST /bookings
+[2025-09-17T19:01:01.269Z] POST /config
+[2025-09-18T16:48:34.724Z] Database connected successfully
+[2025-09-18T16:48:34.733Z] ! Local API running on http://localhost:3000
+[2025-09-18T16:52:50.300Z] GET /bookings
+[2025-09-18T16:59:29.087Z] DELETE /bookings/cmfoac0pe0002xkq2zspmu6wm
+[2025-09-18T17:00:39.505Z] GET /bookings/cmfm0x5n700056qutdzvh31yf
+[2025-09-18T17:02:25.595Z] GET /bookings
+[2025-09-18T17:04:45.891Z] PUT /bookings/cmfm0x5ms00016qut6l40vfio
+[2025-09-18T17:04:54.183Z] PUT /bookings/cmfm0x5ms00016qut6l40vfio
+[2025-09-18T17:05:16.572Z] DELETE /bookings/cmfm0x5n700056qutdzvh31yf
+[2025-09-18T17:05:29.917Z] PUT /bookings/cmfm0x5ms00016qut6l40vfio
+[2025-09-18T17:05:39.547Z] PUT /bookings/cmfm0x5ms00016qut6l40vfio
+[2025-09-18T17:06:04.279Z] PUT /bookings/cmfm0x5ms00016qut6l40vfio
+[2025-09-18T17:06:12.930Z] PUT /bookings/cmfm0x5ms00016qut6l40vfio
+[2025-09-18T17:07:32.292Z] PUT /bookings/cmfm0x5ms00016qut6l40vfio
+[2025-09-18T17:29:55.851Z] Received SIGINT, shutting down gracefully...
+[2025-09-18T17:30:32.373Z] Database connected successfully
+[2025-09-18T17:30:32.379Z] ! Local API running on http://localhost:3000
+[2025-09-18T17:31:54.761Z] PUT /bookings/cmfm0x5ms00016qut6l40vfio
+[2025-09-18T17:31:54.764Z] PUT /bookings/:id failed: TypeError: Booking.validateUpdate is not a function
+    at C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:269:30
+    at C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:77:9
+    at Layer.handle [as handle_request] (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\layer.js:95:5)
+    at C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\index.js:284:15
+    at param (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\index.js:365:14)
+    at param (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\index.js:376:14)
+    at Function.process_params (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\index.js:421:3)
+[2025-09-18T17:32:04.556Z] PUT /bookings/cmfm0x5ms00016qut6l40vfio
+[2025-09-18T17:32:04.561Z] PUT /bookings/:id failed: TypeError: Booking.validateUpdate is not a function
+    at C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:269:30
+    at C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:77:9
+    at Layer.handle [as handle_request] (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\layer.js:95:5)
+    at C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\index.js:284:15
+    at param (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\index.js:365:14)
+    at param (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\index.js:376:14)
+    at Function.process_params (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\index.js:421:3)
+[2025-09-18T17:33:22.817Z] Received SIGINT, shutting down gracefully...
+[2025-09-18T17:39:27.963Z] Database connected successfully
+[2025-09-18T17:39:27.970Z] ! Local API running on http://localhost:3000
+[2025-09-18T17:41:15.367Z] GET /bookings
+[2025-09-18T17:57:22.425Z] GET /bookings/cmfm0x5n100036qutvbvreed9
+[2025-09-18T17:58:53.897Z] GET /clients
+[2025-09-18T18:00:07.368Z] PUT /bookings/cmfm0x5n100036qutvbvreed9
+[2025-09-18T18:02:13.347Z] PUT /bookings/cmfm0x5nd00076quttrklkn0f
+[2025-09-18T18:04:02.299Z] GET /bookings
+[2025-09-18T18:09:42.482Z] PUT /bookings/cmfm0x5n100036qutvbvreed9
+[2025-09-18T18:11:43.234Z] PUT /bookings/cmfmsdua50001fxgy1kl0khi1
+[2025-09-18T18:12:33.346Z] DELETE /bookings/cmfmxycdo000018ej29ikikm7
+[2025-09-18T18:13:21.416Z] GET /bookings
+[2025-09-18T19:38:04.818Z] PUT /bookings/cmfm0x5nd00076quttrklkn0f

@@ -363,22 +363,34 @@ function convertTo12Hour(time24) {
  * @returns {string} Time in 24-hour format (e.g., "19:00", "04:30")
  */
 function convertTo24Hour(time12) {
-  if (!time12 || !time12.includes(':')) return time12;
-  
+  if (!time12) return time12;
+
   const timeUpper = time12.toUpperCase();
   const isPM = timeUpper.includes('PM');
   const isAM = timeUpper.includes('AM');
-  
-  if (!isPM && !isAM) return time12; // No AM/PM, assume already 24-hour
-  
+
+  if (!isPM && !isAM) {
+    // No AM/PM - if it has colon, assume already 24-hour, otherwise reject
+    return time12.includes(':') ? time12 : time12;
+  }
+
   const timePart = timeUpper.replace(/\s*(AM|PM)/g, '');
-  const [hours, minutes] = timePart.split(':');
+
+  // Handle both "2" and "2:00" formats
+  let hours, minutes;
+  if (timePart.includes(':')) {
+    [hours, minutes] = timePart.split(':');
+  } else {
+    hours = timePart;
+    minutes = '00';
+  }
+
   let hour = parseInt(hours, 10);
   const min = minutes || '00';
-  
+
   if (isPM && hour !== 12) hour += 12;
   if (isAM && hour === 12) hour = 0;
-  
+
   return `${hour.toString().padStart(2, '0')}:${min}`;
 }
 
@@ -430,25 +442,6 @@ function calculateDuration() {
   calculateTotalAmount();
 }
 
-/**
- * Calculate totalAmount as hourlyRate * duration if both are available.
- * Updates the state and refreshes the totalAmount input field.
- */
-function calculateTotalAmount() {
-  const hourlyRate = parseFloat(STATE.Booking.hourlyRate);
-  const duration = parseFloat(STATE.Booking.duration);
-
-  if (!isNaN(hourlyRate) && !isNaN(duration) && hourlyRate > 0 && duration > 0) {
-    const total = hourlyRate * duration;
-    STATE.Booking.totalAmount = total; // Store as number
-    
-    // Update the totalAmount input field if it exists
-    const totalInput = document.querySelector('input[data-field="totalAmount"]');
-    if (totalInput) {
-      totalInput.value = formatCurrency(total.toFixed(2)); // Format for display
-    }
-  }
-}
 
 /**
  * Update the display table from current state.
@@ -507,7 +500,12 @@ function commitAndFormatField(fieldName, inputElement) {
   
   // Sync to state first
   syncFormFieldToState(fieldName, rawValue);
-  
+
+  // Auto-calculate totalAmount if conditions are met
+  if (['hourlyRate', 'duration'].includes(fieldName)) {
+    calculateTotalAmount();
+  }
+
   // Format and update display based on field type
   let formattedValue = rawValue;
   
@@ -581,23 +579,48 @@ function syncFormFieldToState(fieldName, displayValue) {
 
 }
 
+/**
+ * Auto-calculate totalAmount based on hourlyRate * duration
+ * Only calculates if totalAmount and flatRate are not set
+ */
+function calculateTotalAmount() {
+  // Get current values from STATE (already synced)
+  const hourlyRate = parseFloat(STATE.Booking.hourlyRate) || 0;
+  const duration = parseFloat(STATE.Booking.duration) || 0;
+  const flatRate = parseFloat(STATE.Booking.flatRate) || 0;
+  const currentTotal = parseFloat(STATE.Booking.totalAmount) || 0;
 
+  // Guard clauses - only calculate if conditions are met
+  if (hourlyRate <= 0 || duration <= 0) return; // Need both values
+  if (flatRate > 0) return; // flatRate takes precedence
+  if (currentTotal > 0) return; // Don't override existing totalAmount
 
-// Define formatCurrency function - ALWAYS display with $ prefix
+  // Calculate total
+  const calculatedTotal = hourlyRate * duration;
+
+  // Update STATE
+  STATE.Booking.totalAmount = calculatedTotal;
+
+  // Update form display
+  const totalAmountInput = document.querySelector('[data-field="totalAmount"]');
+  if (totalAmountInput) {
+    totalAmountInput.value = formatCurrency(calculatedTotal);
+  }
+}
+
+// Define formatCurrency function - ALWAYS display with $ prefix and 2 decimals
 function formatCurrency(value) {
   if (value === null || value === undefined || value === '') {
-    return '$0';
+    return '$0.00';
   }
 
-  const strValue = String(value).trim();
-
-  // If already has $, return as is
-  if (strValue.startsWith('$')) {
-    return strValue;
+  // Convert to number and format to 2 decimals
+  const numericValue = parseFloat(String(value).replace(/[$,]/g, ''));
+  if (isNaN(numericValue)) {
+    return '$0.00';
   }
 
-  // Add $ prefix to any non-empty value
-  return `$${strValue}`;
+  return `$${numericValue.toFixed(2)}`;
 }
 
 // Define formatDuration function - ALWAYS display with 'hours' suffix

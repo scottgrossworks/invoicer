@@ -107,9 +107,11 @@ class PDF_template {
      * @param {*} value3 - Third value to check (optional)
      * @returns {*} First truthy value, or last value if all are falsy
      */
-    HandlebarsInstance.registerHelper('or', function (value1, value2, value3) {
-      // console.log('OR helper called with:', { value1, value2, value3, result: value1 || value2 || value3 });
-      return value1 || value2 || value3;
+    HandlebarsInstance.registerHelper('or', function (...args) {
+      // Remove the last argument which is Handlebars options
+      const values = args.slice(0, -1);
+      // console.log('OR helper called with:', { values, result: values.some(val => val) });
+      return values.some(val => val);
     });
     
     // Calculates hourly rate from total amount and duration

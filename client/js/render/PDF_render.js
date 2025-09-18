@@ -32,8 +32,9 @@ class PDF_render extends RenderLayer {
       // Use Config data directly from unified state structure
       const mergedSettings = configData;
       
-      /*
+      
       console.log('PDF Render - Config data:', configData);
+      /*
       console.log('PDF Render - Merged settings:', mergedSettings);
       console.log('PDF Render - State type:', typeof state, 'Has get method:', typeof state?.get);
       console.log('PDF Render - Raw servicesPerformed from state:', state?.Config?.servicesPerformed || 'NO CONFIG');

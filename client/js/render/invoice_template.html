@@ -12,7 +12,7 @@
           <div class="invoice-title">INVOICE #{{invoiceNumber}}</div>
           <div class="invoice-date">{{invoiceDate}}</div>
         </div>
-        {{#if (or Config.bankAccount Config.bankName Config.bankRouting)}}
+        {{#if (or Config.bankName Config.bankAddress Config.bankPhone Config.bankAccount Config.bankRouting Config.bankWire)}}
         <div class="bank-info">
           <div class="bank-label">Bank:</div>
           {{#if Config.bankName}}<div class="bank-details">{{Config.bankName}}</div>{{/if}}
@@ -52,7 +52,8 @@
             <td class="qty-col">{{bookingData.duration}}</td>
             <td class="description-col">
               <div class="service-title">{{Config.servicesPerformed}}</div>
-              <div class="service-description">{{bookingData.description}}</div>
+              {{#if bookingData.title}}<div class="event-title">{{bookingData.title}}</div>{{/if}}
+              {{#if bookingData.description}}<div class="service-description">{{bookingData.description}}</div>{{/if}}
               <br>
               <div class="service-date">{{formatDate bookingData.startDate}} {{bookingData.startTime}} &ndash; {{formatDate bookingData.endDate}} {{bookingData.endTime}}</div>
               <div class="service-hours">{{bookingData.duration}} hours</div>

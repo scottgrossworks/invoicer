@@ -152,6 +152,9 @@ cleanFloat(value) {
         bankName: data.bankName || '',
         bankAddress: data.bankAddress || '',
         bankPhone: data.bankPhone || '',
+        bankAccount: data.bankAccount || '',
+        bankRouting: data.bankRouting || '',
+        bankWire: data.bankWire || '',
       };
 
       let configRes = await fetch(`${this.baseUrl}/config`, {

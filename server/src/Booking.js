@@ -65,8 +65,48 @@ class Booking {
         }
         if (data.hourlyRate && data.hourlyRate < 0) {
           errors.push('Hourly rate cannot be negative');
-        } 
+        }
 
+
+        if (data.flatRate && isNaN(parseFloat(data.flatRate))) {
+          errors.push('Flat rate must be a number');
+        }
+        if (data.flatRate && data.flatRate < 0) {
+          errors.push('Flat rate cannot be negative');
+        }
+
+        if (data.duration && isNaN(parseFloat(data.duration))) {
+          errors.push('Duration must be a number');
+        }
+        if (data.duration && data.duration < 0) {
+          errors.push('Duration cannot be negative');
+        }
+
+        if (data.startDate && data.endDate && data.startDate > data.endDate) {
+          errors.push('Start date cannot be after end date');
+        }
+      } catch (error) {
+        console.error("data fails Booking validator");
+        errors.push( error.message );
+      }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+
+  static validateUpdate(data) {
+    const errors = [];
+
+    try {
+        // Numeric field validations
+        if (data.hourlyRate && isNaN(parseFloat(data.hourlyRate))) {
+          errors.push('Hourly rate must be a number');
+        }
+        if (data.hourlyRate && data.hourlyRate < 0) {
+          errors.push('Hourly rate cannot be negative');
+        }
 
         if (data.flatRate && isNaN(parseFloat(data.flatRate))) {
           errors.push('Flat rate must be a number');
