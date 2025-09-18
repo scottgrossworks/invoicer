@@ -212,8 +212,9 @@ app.get("/clients/:id/stats", asyncRoute(async (req, res) => {
 
 /**
  * POST /bookings
- * Creates a new booking in the database
+ * Creates a new booking in the database or updates existing duplicate
  * Converts string dates to Date objects and validates booking data
+ * Checks for duplicates based on clientId + location + startDate
  */
 app.post("/bookings", asyncRoute(async (req, res) => {
   const bookingData = convertBookingDates(req.body);
@@ -224,8 +225,39 @@ app.post("/bookings", asyncRoute(async (req, res) => {
     return res.status(400).json({ error: "Validation failed", errors: validation.errors });
   }
 
-  const result = await db.createBooking(bookingData);
-  res.status(200).json(result);
+  // Check for duplicate bookings
+  let isUpdate = false;
+  let result;
+
+  if (bookingData.clientId && bookingData.location && bookingData.startDate) {
+    const existingBookings = await db.getBookings({
+      clientId: bookingData.clientId,
+      location: bookingData.location,
+      startDate: bookingData.startDate
+    });
+
+    if (existingBookings.length > 0) {
+      // Duplicate found - update existing booking
+      const existingBooking = existingBookings[0];
+      const updateValidation = Booking.validateUpdate(bookingData);
+      if (!updateValidation.isValid) {
+        return res.status(400).json({ error: "Update validation failed", errors: updateValidation.errors });
+      }
+      result = await db.updateBooking(existingBooking.id, bookingData);
+      isUpdate = true;
+    } else {
+      // No duplicate - create new booking
+      result = await db.createBooking(bookingData);
+    }
+  } else {
+    // Missing required fields for duplicate check - create new booking
+    result = await db.createBooking(bookingData);
+  }
+
+  res.status(200).json({
+    ...result,
+    isUpdate: isUpdate
+  });
 }, "POST /bookings"));
 
 /**

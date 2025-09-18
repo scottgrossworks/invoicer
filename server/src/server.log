@@ -1275,3 +1275,41 @@ Argument `[32mstatus[39m` must not be [31mnull[39m.
 [2025-09-18T18:12:33.346Z] DELETE /bookings/cmfmxycdo000018ej29ikikm7
 [2025-09-18T18:13:21.416Z] GET /bookings
 [2025-09-18T19:38:04.818Z] PUT /bookings/cmfm0x5nd00076quttrklkn0f
+[2025-09-18T20:05:20.679Z] POST /bookings
+[2025-09-18T20:05:20.703Z] POST /bookings failed: PrismaClientKnownRequestError: 
+[31mInvalid [1m`this.prisma.booking.create()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:229:38[24m
+
+  [2m[90m226[39m [34m}[39m[22m
+  [2m[90m227[39m [22m
+  [2m[90m228[39m [90m// Create new booking[39m[22m
+[1m[31m→[39m[22m [2m[90m229[39m [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mbooking[34m.[39m[36mcreate[39m[34m([39m[22m
+An operation failed because it depends on one or more records that were required but not found. No 'Client' record(s) (needed to inline the relation on 'Booking' record(s)) was found for a nested connect on one-to-many relation 'BookingToClient'.
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createBooking (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:229:12)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:227:18
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-09-18T20:05:25.875Z] GET /clients
+[2025-09-18T20:05:33.536Z] POST /bookings
+[2025-09-18T20:05:40.028Z] POST /bookings
+[2025-09-18T20:06:09.440Z] POST /bookings
+[2025-09-18T20:06:37.345Z] POST /bookings
+[2025-09-18T20:06:55.262Z] Received SIGINT, shutting down gracefully...
+[2025-09-18T20:06:56.828Z] Database connected successfully
+[2025-09-18T20:06:56.834Z] ! Local API running on http://localhost:3000
+[2025-09-18T20:07:14.259Z] POST /bookings
+[2025-09-18T20:07:23.239Z] POST /bookings
+[2025-09-18T20:08:22.798Z] POST /bookings
+[2025-09-18T20:24:59.575Z] GET /bookings
+[2025-09-18T20:26:24.861Z] GET /bookings
+[2025-09-18T20:31:40.921Z] GET /stats
+[2025-09-18T20:37:11.189Z] DELETE /bookings/cmfpue1kf0000a7k1sncs8n4f
+[2025-09-18T20:38:16.445Z] GET /bookings
+[2025-09-18T20:42:29.257Z] DELETE /bookings/cmfpubowz0001ftdoq70ckxfq
+[2025-09-18T20:46:12.306Z] GET /bookings
+[2025-09-18T20:46:27.281Z] GET /bookings
+[2025-09-18T20:47:01.474Z] DELETE /bookings/cmfpud25k0002ftdo0m0sjunp
+[2025-09-18T20:47:37.610Z] GET /bookings

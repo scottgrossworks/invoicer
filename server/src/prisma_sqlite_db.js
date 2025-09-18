@@ -267,6 +267,14 @@ class Prisma_Sqlite_DB extends Leedz_DB {
       where.status = filters.status;
     }
 
+    if (filters?.location) {
+      where.location = filters.location;
+    }
+
+    if (filters?.startDate) {
+      where.startDate = filters.startDate;
+    }
+
     return await this.prisma.booking.findMany({
       where,
       include: {
