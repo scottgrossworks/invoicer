@@ -33,7 +33,7 @@ class PDF_render extends RenderLayer {
       const mergedSettings = configData;
       
       
-      console.log('PDF Render - Config data:', configData);
+      // console.log('PDF Render - Config data:', configData);
       /*
       console.log('PDF Render - Merged settings:', mergedSettings);
       console.log('PDF Render - State type:', typeof state, 'Has get method:', typeof state?.get);
@@ -41,7 +41,7 @@ class PDF_render extends RenderLayer {
       */
 
       // 1. Generate the BODY content from the template using merged settings.
-      const bodyContent = await this.template.generateInvoiceHTML( state );
+      const bodyContent = await this.template.generateInvoiceHTML( state, configData );
       
       // 2. Fetch the CSS content separately.
       const cssContent = await this.template.getInvoiceCSS(); //

@@ -296,3 +296,11 @@
 [2025-09-18T20:47:37.606Z] [INFO] Executing database operation: GET /bookings
 [2025-09-18T20:47:37.606Z] [INFO] Executing GET /bookings
 [2025-09-18T20:47:37.618Z] [INFO] HTTP request successful: 200
+[2025-09-21T04:15:45.874Z] [INFO] Starting MCP server...
+[2025-09-21T04:15:45.875Z] [INFO] Configuration loaded from: C:\Users\Scott\Desktop\WKG\INVOICER\server\mcp\mcp_server_config.json
+[2025-09-21T04:15:45.876Z] [INFO] Log file: C:\Users\Scott\Desktop\WKG\INVOICER\server\mcp\mcp_server.log
+[2025-09-21T04:15:45.876Z] [INFO] Database API: http://localhost:3000
+[2025-09-21T04:15:45.876Z] [INFO] Claude API: https://api.anthropic.com
+[2025-09-21T04:15:45.878Z] [INFO] MCP server ready - listening for JSON-RPC requests...
+[2025-09-21T04:15:46.838Z] [INFO] Handling MCP initialize request
+[2025-09-21T04:15:46.927Z] [INFO] Handling tools/list request

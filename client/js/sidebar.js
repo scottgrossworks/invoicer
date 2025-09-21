@@ -285,6 +285,11 @@ function populateBookingTable() {
       displayValue = formatDuration( displayValue );
     }
 
+    // PHONE
+    if (field === 'phone') {
+      displayValue = formatPhoneForDisplay( displayValue );
+    }
+
     input.value = displayValue;
 
     // Add event listener to sync changes back to state on input
@@ -540,6 +545,11 @@ function commitAndFormatField(fieldName, inputElement) {
       formattedValue = formatDateForDisplay(isoDate);
     }
   }
+
+  // Format phone fields
+  if (fieldName === 'phone' && rawValue) {
+    formattedValue = formatPhoneForDisplay(rawValue);
+  }
   
   // Update the input display and exit edit mode
   inputElement.value = formattedValue;
@@ -569,6 +579,10 @@ function syncFormFieldToState(fieldName, displayValue) {
   // Handle currency fields - remove $ and convert to number
   } else if (['hourlyRate', 'flatRate', 'totalAmount'].includes(fieldName) && displayValue) {
     canonicalValue = parseFloat(displayValue.toString().replace(/[$,]/g, '')) || 0;
+
+  // Handle phone fields - remove formatting for storage
+  } else if (fieldName === 'phone' && displayValue) {
+    canonicalValue = displayValue.replace(/[^\d]/g, '');
   }
 
   if (clientFields.includes(fieldName)) {
@@ -638,6 +652,28 @@ function formatDuration(value) {
 
   // Add 'hours' suffix to any non-empty value
   return `${strValue} hours`;
+}
+
+// Define formatPhoneForDisplay function - Format 10-digit US numbers as ABC-DEF-GHIJ
+function formatPhoneForDisplay(value) {
+  if (!value) return value;
+
+  // Remove any existing formatting
+  const digitsOnly = value.toString().replace(/[^\d]/g, '');
+
+  // Handle 10-digit US numbers
+  if (digitsOnly.length === 10) {
+    return `${digitsOnly.slice(0,3)}-${digitsOnly.slice(3,6)}-${digitsOnly.slice(6)}`;
+  }
+
+  // Handle 11-digit with country code (remove leading 1)
+  if (digitsOnly.length === 11 && digitsOnly.startsWith('1')) {
+    const phone = digitsOnly.slice(1);
+    return `${phone.slice(0,3)}-${phone.slice(3,6)}-${phone.slice(6)}`;
+  }
+
+  // Return as-is for other formats
+  return value;
 }
 
 

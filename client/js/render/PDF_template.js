@@ -84,6 +84,7 @@ class PDF_template {
     HandlebarsInstance.registerHelper('formatCurrency', this.formatCurrency);
     HandlebarsInstance.registerHelper('formatDecimalCurrency', this.formatDecimalCurrency);
     HandlebarsInstance.registerHelper('formatAddress', this.formatAddress);
+    HandlebarsInstance.registerHelper('formatPhoneForDisplay', this.formatPhoneForDisplay);
     HandlebarsInstance.registerHelper('ifShouldShowBankInfo', function(Config, options) {
       if (PDF_template.prototype.shouldShowBankInfo(Config)) {
         return options.fn(this);
@@ -212,6 +213,32 @@ class PDF_template {
   }
 
   /**
+   * Formats phone numbers with dashes for display (ABC-DEF-GHIJ)
+   * @param {string} phone - Phone number string
+   * @returns {string} Formatted phone number or original if invalid
+   */
+  formatPhoneForDisplay(phone) {
+    if (!phone) return phone;
+
+    // Remove any existing formatting
+    const digitsOnly = phone.toString().replace(/[^\d]/g, '');
+
+    // Handle 10-digit US numbers
+    if (digitsOnly.length === 10) {
+      return `${digitsOnly.slice(0,3)}-${digitsOnly.slice(3,6)}-${digitsOnly.slice(6)}`;
+    }
+
+    // Handle 11-digit with country code (remove leading 1)
+    if (digitsOnly.length === 11 && digitsOnly.startsWith('1')) {
+      const phone = digitsOnly.slice(1);
+      return `${phone.slice(0,3)}-${phone.slice(3,6)}-${phone.slice(6)}`;
+    }
+
+    // Return as-is for other formats
+    return phone;
+  }
+
+  /**
    * Check if bank information should be included in the invoice
    * @param {Object} settings - Settings object
    * @returns {boolean} True if bank info should be shown
@@ -228,21 +255,21 @@ class PDF_template {
 
 
   // Generates HTML invoice content using Handlebars template and state data
-  async generateInvoiceHTML( state ) {
+  async generateInvoiceHTML( state, configData = null ) {
     // Ensure template is loaded before using it
     await this.templatePromise;
-    
+
     if (!this.templateReady || !this.template) {
       throw new Error('Template not ready or failed to load');
     }
 
     this.STATE = state;
-    
+
     // Create context object with proper structure
     const context = {
       bookingData: this.STATE.Booking || {},
       clientData: this.STATE.Client || {},
-      Config: this.STATE.Config || {},
+      Config: configData || this.STATE.Config || {},
       invoiceNumber: this.generateInvoiceNumber(),
       invoiceDate: new Date().toLocaleDateString()
     };

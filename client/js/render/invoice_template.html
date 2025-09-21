@@ -4,7 +4,7 @@
         {{#if Config.logoUrl}}<img src="{{Config.logoUrl}}" alt="Company Logo" class="company-logo" />{{/if}}
         <h1 class="company-name">{{Config.companyName}}</h1>
         <div class="company-address">{{formatAddress Config.companyAddress}}</div>
-        <div class="company-contact-large">{{Config.companyPhone}}</div>
+        <div class="company-contact-large">{{formatPhoneForDisplay Config.companyPhone}}</div>
         <div class="company-contact-large">{{Config.companyEmail}}</div>
       </div>
       <div class="header-right">
@@ -12,17 +12,15 @@
           <div class="invoice-title">INVOICE #{{invoiceNumber}}</div>
           <div class="invoice-date">{{invoiceDate}}</div>
         </div>
-        {{#if (or Config.bankName Config.bankAddress Config.bankPhone Config.bankAccount Config.bankRouting Config.bankWire)}}
         <div class="bank-info">
           <div class="bank-label">Bank:</div>
-          {{#if Config.bankName}}<div class="bank-details">{{Config.bankName}}</div>{{/if}}
+          <div class="bank-details">{{Config.bankName}}</div>
           {{#if Config.bankAddress}}<div class="bank-details">{{Config.bankAddress}}</div>{{/if}}
-          {{#if Config.bankPhone}}<div class="bank-details">{{Config.bankPhone}}</div>{{/if}}
+          {{#if Config.bankPhone}}<div class="bank-details">{{formatPhoneForDisplay Config.bankPhone}}</div>{{/if}}
           {{#if Config.bankAccount}}<div class="bank-account">Acct: {{Config.bankAccount}}</div>{{/if}}
           {{#if Config.bankRouting}}<div class="bank-routing">ABA Routing: {{Config.bankRouting}}</div>{{/if}}
           {{#if Config.bankWire}}<div class="bank-wire">WIRE Routing: {{Config.bankWire}}</div>{{/if}}
         </div>
-        {{/if}}
       </div>
     </div>
 
@@ -31,7 +29,7 @@
           <div class="client-name-large">{{clientData.name}}</div>
         {{#if clientData.company}}<div class="client-company">{{clientData.company}}</div>{{/if}}
         {{#if clientData.email}}<div class="client-email">{{clientData.email}}</div>{{/if}}
-        {{#if clientData.phone}}<div class="client-phone">{{clientData.phone}}</div>{{/if}}
+        {{#if clientData.phone}}<div class="client-phone">{{formatPhoneForDisplay clientData.phone}}</div>{{/if}}
 
         <!-- <div class="client-address">{{{formatAddress clientData.address}}}</div> -->
       </div>
