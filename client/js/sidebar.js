@@ -511,6 +511,11 @@ function commitAndFormatField(fieldName, inputElement) {
     calculateTotalAmount();
   }
 
+  // Auto-calculate duration if time fields are committed
+  if (['startTime', 'endTime'].includes(fieldName)) {
+    calculateDuration();
+  }
+
   // Format and update display based on field type
   let formattedValue = rawValue;
   

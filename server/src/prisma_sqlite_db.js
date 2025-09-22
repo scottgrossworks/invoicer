@@ -283,13 +283,44 @@ class Prisma_Sqlite_DB extends Leedz_DB {
     });
   }
 
+  /**
+   * Updates an existing booking in the database
+   *
+   * IMPORTANT: This method excludes 'clientId' from the update data to prevent Prisma validation errors.
+   *
+   * BACKGROUND:
+   * - The Booking model has both a 'clientId' field (String) and a 'client' relation field
+   * - When updating bookings, we should not modify the client relationship (clientId should remain unchanged)
+   * - Prisma throws "Unknown argument `clientId`" error when trying to update foreign key fields
+   *   that have corresponding relation fields defined in the schema
+   * - This is because Prisma expects relation updates to go through the relation field, not the raw foreign key
+   *
+   * SOLUTION:
+   * - Destructure and exclude 'clientId' from the update data before passing to Prisma
+   * - This preserves the existing client-booking relationship while allowing all other fields to be updated
+   * - The clientId value remains unchanged in the database, maintaining referential integrity
+   *
+   * @param {string} id - The booking ID to update
+   * @param {Object} data - Update data containing booking fields (may include clientId which will be excluded)
+   * @returns {Promise<Object>} Updated booking record from database
+   */
   async updateBooking(id, data) {
+    // Remove clientId from update data as it's a foreign key with a relation
+    // This prevents Prisma validation error: "Unknown argument `clientId`. Did you mean `client`?"
+    const { clientId, ...updateData } = data;
+
+    // Handle status field - Prisma schema requires non-null status with default "new"
+    // If status is null/undefined, exclude it from update to preserve existing value
+    if (updateData.status === null || updateData.status === undefined) {
+      delete updateData.status;
+    }
+
     return await this.prisma.booking.update({
       where: { id },
       data: {
-        ...data,
-        startDate: data.startDate || null,
-        endDate: data.endDate || null,
+        ...updateData,
+        startDate: updateData.startDate || null,
+        endDate: updateData.endDate || null,
       }
     });
   }

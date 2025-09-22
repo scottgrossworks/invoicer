@@ -1329,3 +1329,156 @@ An operation failed because it depends on one or more records that were required
 [2025-09-22T00:09:14.741Z] POST /config
 [2025-09-22T03:57:34.489Z] PUT /bookings/cmfm0x5n100036qutvbvreed9
 [2025-09-22T03:57:44.675Z] PUT /bookings/cmfm0x5nd00076quttrklkn0f
+[2025-09-22T04:01:27.428Z] GET /config
+[2025-09-22T04:03:42.221Z] POST /clients
+[2025-09-22T04:03:42.252Z] POST /bookings
+[2025-09-22T04:03:42.278Z] POST /config
+[2025-09-22T04:04:47.220Z] POST /clients
+[2025-09-22T04:04:47.244Z] POST /bookings
+[2025-09-22T04:04:47.281Z] POST /bookings failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.booking.update()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:287:38[24m
+
+  [2m[90m284[39m [34m}[39m[22m
+  [2m[90m285[39m [22m
+  [2m[90m286[39m [36masync[39m [36mupdateBooking[39m[34m([39mid,[object Object], data[34m)[39m [34m{[39m[22m
+[1m[31m→[39m[22m [2m[90m287[39m   [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mbooking[34m.[39m[36mupdate[39m[34m([39m[22m{
+          where: {
+            id: "cmfulq5a10006a7k1v09xfzeh"
+          },
+          data: {
+            [31mclientId[39m: "cmfulq5980005a7k1xu0lno4i",
+            [31m~~~~~~~~[39m
+            title: "Dash 1st Birthday",
+            description: "House party of baby's first birthday",
+            notes: null,
+            location: "1235 Town and Country Rd, Orange, CA 92868",
+            startDate: new Date("2025-12-27T22:00:00.000Z"),
+            endDate: new Date("2025-12-27T22:00:00.000Z"),
+            startTime: "2:00 PM",
+            endTime: "16:00",
+            duration: 2,
+            hourlyRate: 175,
+            flatRate: 0,
+            totalAmount: 350,
+            status: null,
+            source: "gmail",
+        [32m?[39m   [32mid[39m[32m?[39m[32m: [39m[32mString | StringFieldUpdateOperationsInput[39m,
+        [32m?[39m   [32mcreatedAt[39m[32m?[39m[32m: [39m[32mDateTime | DateTimeFieldUpdateOperationsInput[39m,
+        [32m?[39m   [32mupdatedAt[39m[32m?[39m[32m: [39m[32mDateTime | DateTimeFieldUpdateOperationsInput[39m,
+        [32m?[39m   [32mclient[39m[32m?[39m[32m: [39m[32mClientUpdateOneRequiredWithoutBookingsNestedInput[39m
+          }
+        }[2m)[22m
+
+Unknown argument `[31mclientId[39m`. Did you mean `[32mclient[39m`? Available options are listed in [32mgreen[39m.
+    at wn (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.updateBooking (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:287:12)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:246:16
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-09-22T04:04:47.285Z] POST /clients
+[2025-09-22T04:04:47.307Z] POST /bookings
+[2025-09-22T04:04:47.321Z] POST /bookings failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.booking.update()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:287:38[24m
+
+  [2m[90m284[39m [34m}[39m[22m
+  [2m[90m285[39m [22m
+  [2m[90m286[39m [36masync[39m [36mupdateBooking[39m[34m([39mid,[object Object], data[34m)[39m [34m{[39m[22m
+[1m[31m→[39m[22m [2m[90m287[39m   [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mbooking[34m.[39m[36mupdate[39m[34m([39m[22m{
+          where: {
+            id: "cmfulq5a10006a7k1v09xfzeh"
+          },
+          data: {
+            [31mclientId[39m: "cmfulq5980005a7k1xu0lno4i",
+            [31m~~~~~~~~[39m
+            title: "Dash 1st Birthday",
+            description: "House party of baby's first birthday",
+            notes: null,
+            location: "1235 Town and Country Rd, Orange, CA 92868",
+            startDate: new Date("2025-12-27T22:00:00.000Z"),
+            endDate: new Date("2025-12-27T22:00:00.000Z"),
+            startTime: "2:00 PM",
+            endTime: "16:00",
+            duration: 2,
+            hourlyRate: 175,
+            flatRate: 0,
+            totalAmount: 350,
+            status: null,
+            source: "gmail",
+        [32m?[39m   [32mid[39m[32m?[39m[32m: [39m[32mString | StringFieldUpdateOperationsInput[39m,
+        [32m?[39m   [32mcreatedAt[39m[32m?[39m[32m: [39m[32mDateTime | DateTimeFieldUpdateOperationsInput[39m,
+        [32m?[39m   [32mupdatedAt[39m[32m?[39m[32m: [39m[32mDateTime | DateTimeFieldUpdateOperationsInput[39m,
+        [32m?[39m   [32mclient[39m[32m?[39m[32m: [39m[32mClientUpdateOneRequiredWithoutBookingsNestedInput[39m
+          }
+        }[2m)[22m
+
+Unknown argument `[31mclientId[39m`. Did you mean `[32mclient[39m`? Available options are listed in [32mgreen[39m.
+    at wn (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.updateBooking (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:287:12)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:246:16
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-09-22T04:07:51.037Z] Received SIGINT, shutting down gracefully...
+[2025-09-22T04:09:02.978Z] Database connected successfully
+[2025-09-22T04:09:02.984Z] ! Local API running on http://localhost:3000
+[2025-09-22T04:09:24.903Z] GET /config
+[2025-09-22T04:09:48.398Z] POST /clients
+[2025-09-22T04:09:48.425Z] POST /bookings
+[2025-09-22T04:09:48.462Z] POST /bookings failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.booking.update()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:312:38[24m
+
+  [2m[90m309[39m [90m// This prevents Prisma validation error: "Unknown argument `clientId`. Did you mean `client`?"[39m[22m
+  [2m[90m310[39m [36mconst[39m [34m{[39m clientId[34m,[39m ...updateData [34m}[39m = data[34m;[39m[22m
+  [2m[90m311[39m [22m
+[1m[31m→[39m[22m [2m[90m312[39m [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mbooking[34m.[39m[36mupdate[39m[34m([39m[22m{
+        where: {
+          id: "cmfulq5a10006a7k1v09xfzeh"
+        },
+        data: {
+          title: null,
+          description: "Dash 1st Birthday",
+          notes: null,
+          location: "1235 Town and Country Rd, Orange, CA 92868",
+          startDate: new Date("2025-12-27T22:00:00.000Z"),
+          endDate: new Date("2025-12-27T22:00:00.000Z"),
+          startTime: "2:00 PM",
+          endTime: "16:00",
+          duration: 2,
+          hourlyRate: 175,
+          flatRate: 0,
+          totalAmount: 350,
+          source: "gmail",
+      [32m+[39m   [32mstatus[39m[32m: [39m[32mString[39m
+        }
+      }[2m)[22m
+
+Argument `[32mstatus[39m` must not be [31mnull[39m.
+    at wn (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.updateBooking (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:312:12)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:246:16
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-09-22T04:10:52.657Z] Received SIGINT, shutting down gracefully...
+[2025-09-22T04:11:00.870Z] Database connected successfully
+[2025-09-22T04:11:00.877Z] ! Local API running on http://localhost:3000
+[2025-09-22T04:11:21.049Z] GET /config
+[2025-09-22T04:11:38.211Z] POST /clients
+[2025-09-22T04:11:38.241Z] POST /bookings
+[2025-09-22T04:11:38.275Z] POST /config
+[2025-09-22T04:12:01.119Z] POST /clients
+[2025-09-22T04:12:01.138Z] POST /bookings
+[2025-09-22T04:12:01.159Z] POST /config
+[2025-09-22T04:13:44.177Z] POST /clients
+[2025-09-22T04:13:44.208Z] POST /bookings
+[2025-09-22T04:13:44.240Z] POST /config

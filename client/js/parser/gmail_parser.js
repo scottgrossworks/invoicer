@@ -128,7 +128,7 @@ class GmailParser extends PortalParser {
    */
   _extractEmailAndName() {
     try {
-      console.log("--- Starting Email/Name Extraction ---");
+      // console.log("--- Starting Email/Name Extraction ---");
       // Find all elements that might contain sender info.
       const senderElements = document.querySelectorAll('.gD[email], .gD > span[email]');
       if (senderElements.length > 0) {
