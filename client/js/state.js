@@ -94,7 +94,13 @@ class State {
    * Save to Database layer if configured, else to local storage
    */
   async save() {
-   
+
+    // Auto-set endDate to match startDate if endDate is empty (same-day event default)
+    if (this.Booking.startDate && (!this.Booking.endDate || this.Booking.endDate.trim() === '')) {
+      this.Booking.endDate = this.Booking.startDate;
+      console.log('State.save: Auto-set endDate to match startDate:', this.Booking.startDate);
+    }
+
     try {
       this.saveLocal();
     } catch (error) {

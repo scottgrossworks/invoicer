@@ -550,7 +550,22 @@ function commitAndFormatField(fieldName, inputElement) {
   if (fieldName === 'phone' && rawValue) {
     formattedValue = formatPhoneForDisplay(rawValue);
   }
-  
+
+  // Auto-set endDate to match startDate if endDate is empty (same-day event default)
+  if (fieldName === 'startDate' && rawValue && (!STATE.Booking.endDate || STATE.Booking.endDate.trim() === '')) {
+    const isoDate = parseDisplayDateToISO(rawValue);
+    if (isoDate) {
+      STATE.Booking.endDate = isoDate;
+      console.log('Auto-set endDate to match startDate:', isoDate);
+
+      // Update the endDate input field display
+      const endDateInput = document.querySelector('[data-field="endDate"]');
+      if (endDateInput) {
+        endDateInput.value = formatDateForDisplay(isoDate);
+      }
+    }
+  }
+
   // Update the input display and exit edit mode
   inputElement.value = formattedValue;
   inputElement.blur(); // Exit edit mode
