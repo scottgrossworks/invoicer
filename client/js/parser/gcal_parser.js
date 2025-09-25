@@ -82,7 +82,7 @@ class GCalParser extends PortalParser {
         }
 
         // calculate DURATION
-        let duration = this._calculateDuration(parsed.startTime, parsed.endTime);
+        let duration = this._calculateDuration(parsed.startDate, parsed.endDate);
         if (duration) this.STATE.Booking.duration = duration;
       }
 
@@ -300,21 +300,24 @@ class GCalParser extends PortalParser {
    */
   _conservativeUpdate(llmResult) {
       const updateIfEmpty = (obj, prop, llmValue) => {
-          obj[prop] = (llmValue && !obj[prop]) ? llmValue : obj[prop];
+          // Only update if the current value is null, undefined, or an empty string
+          if (llmValue && (! obj[prop] || String(obj[prop]).trim() === "")) {
+              obj[prop] = llmValue;
+          }
       };
 
       // Client fields
-      updateIfEmpty(this.STATE.Client, 'name', llmResult.name);
-      updateIfEmpty(this.STATE.Client, 'email', llmResult.email);
-      updateIfEmpty(this.STATE.Client, 'phone', this.sanitizePhone(llmResult.phone));
-      updateIfEmpty(this.STATE.Client, 'company', llmResult.company);
-      updateIfEmpty(this.STATE.Client, 'notes', llmResult.notes);
+      updateIfEmpty(this.STATE.Client, 'name', llmResult.Client?.name);
+      updateIfEmpty(this.STATE.Client, 'email', llmResult.Client?.email);
+      updateIfEmpty(this.STATE.Client, 'phone', this.sanitizePhone(llmResult.Client?.phone));
+      updateIfEmpty(this.STATE.Client, 'company', llmResult.Client?.company);
+      updateIfEmpty(this.STATE.Client, 'notes', llmResult.Client?.notes);
 
       // Booking fields
-      updateIfEmpty(this.STATE.Booking, 'hourlyRate', this.sanitizeCurrency(llmResult.hourlyRate));
-      updateIfEmpty(this.STATE.Booking, 'flatRate', this.sanitizeCurrency(llmResult.flatRate));
-      updateIfEmpty(this.STATE.Booking, 'totalAmount', this.sanitizeCurrency(llmResult.totalAmount));
-      updateIfEmpty(this.STATE.Booking, 'duration', llmResult.duration);
+      updateIfEmpty(this.STATE.Booking, 'hourlyRate', this.sanitizeCurrency(llmResult.Booking?.hourlyRate));
+      updateIfEmpty(this.STATE.Booking, 'flatRate', this.sanitizeCurrency(llmResult.Booking?.flatRate));
+      updateIfEmpty(this.STATE.Booking, 'totalAmount', this.sanitizeCurrency(llmResult.Booking?.totalAmount));
+      updateIfEmpty(this.STATE.Booking, 'duration', llmResult.Booking?.duration);
       this.STATE.Booking.source = 'Google Calendar'; // Always set source to gcal
   }
 
@@ -438,38 +441,6 @@ class GCalParser extends PortalParser {
   }
 
 
-  /**
-   * CALCULATE DURATION
-   * @param {*} startTime 
-   * @param {*} endTime 
-   * @returns String duration value 
-   */
-  _calculateDuration(startTime, endTime) {
-
-      // DURATION
-      // Calculate duration before displaying if startTime and endTime are available
-      let duration;
-
-      if (startTime && endTime) {
-        const [startHours, startMinutes] = startTime.split(':').map(Number);
-        const [endHours, endMinutes] = endTime.split(':').map(Number);
-    
-        const startTotalMinutes = startHours * 60 + (startMinutes || 0);
-        const endTotalMinutes = endHours * 60 + (endMinutes || 0);
-    
-        if (endTotalMinutes < startTotalMinutes) {
-          duration = (24 * 60 - startTotalMinutes) + endTotalMinutes;
-        } else {
-          duration = endTotalMinutes - startTotalMinutes;
-        }
-    
-        const durationHours = (duration / 60).toFixed(1);
-        const durationNum = parseFloat(durationHours);
-        return durationNum.toString();
-      }
-
-      return null;
-    }
 
 
 

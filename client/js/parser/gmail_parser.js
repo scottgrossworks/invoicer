@@ -100,10 +100,12 @@ class GmailParser extends PortalParser {
         this.STATE.Booking.endDate = this.STATE.Booking.startDate;
       }
 
-      // START TIME AND END TIME
-      if (this.STATE.Booking.startTime && this.STATE.Booking.endTime ) {
-        const duration = this._calculateDuration(this.STATE.Booking.startTime, this.STATE.Booking.endTime);
-        if (duration) this.STATE.Booking.duration = duration;
+      // DURATION CALCULATION
+      if (this.STATE.Booking.startDate && this.STATE.Booking.endDate) {
+        const duration = this._calculateDuration(this.STATE.Booking.startDate, this.STATE.Booking.endDate);
+        if (duration) {
+          this.STATE.Booking.duration = duration;
+        }
       }
 
       // RATE / TOTAL AMOUNT 
@@ -189,7 +191,7 @@ class GmailParser extends PortalParser {
   _conservativeUpdate(llmResult) {
       const updateIfEmpty = (obj, prop, llmValue) => {
           // Only update if the current value is null, undefined, or an empty string
-          if (llmValue && (obj[prop] === null || obj[prop] === undefined || String(obj[prop]).trim() === '')) {
+          if (llmValue && (! obj[prop] || String(obj[prop]).trim() === "")) {
               obj[prop] = llmValue;
           }
       };
@@ -209,7 +211,7 @@ class GmailParser extends PortalParser {
       // Booking fields - be more aggressive about updating from LLM data
       if (llmResult.Booking) {
         Object.keys(llmResult.Booking).forEach(key => {
-            updateAlways(this.STATE.Booking, key, llmResult.Booking[key]);
+          updateAlways(this.STATE.Booking, key, llmResult.Booking[key]);
         });
       }
   }
@@ -366,20 +368,6 @@ class GmailParser extends PortalParser {
     }
   }
 
-  _calculateDuration(startTime, endTime) {
-    if (!startTime || !endTime) return null;
-    try {
-        const [startHours, startMinutes] = startTime.split(':').map(Number);
-        const [endHours, endMinutes] = endTime.split(':').map(Number);
-        let startTotalMinutes = startHours * 60 + (startMinutes || 0);
-        let endTotalMinutes = endHours * 60 + (endMinutes || 0);
-        if (endTotalMinutes < startTotalMinutes) endTotalMinutes += 24 * 60; // Assumes overnight
-        const durationMinutes = endTotalMinutes - startTotalMinutes;
-        return parseFloat((durationMinutes / 60).toFixed(1));
-    } catch {
-        return null;
-    }
-  }
 }
 
 export default GmailParser;

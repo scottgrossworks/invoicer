@@ -41,7 +41,7 @@ class PDF_render extends RenderLayer {
       */
 
       // 1. Generate the BODY content from the template using merged settings.
-      const bodyContent = await this.template.generateInvoiceHTML( state, configData );
+      const bodyContent = await this.template.generateInvoiceHTML( clientData, bookingData, configData );
       
       // 2. Fetch the CSS content separately.
       const cssContent = await this.template.getInvoiceCSS(); //

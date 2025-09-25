@@ -267,16 +267,26 @@ class PDFSettingsPage {
       const PDF_template = templateModule.default || templateModule.PDF_template;
       const template = new PDF_template();
 
+      
+      // Extract data from state using inherited helper methods
+      const bookingData = this.extractBookingData(this.STATE);
+      const clientData = this.extractClientData(this.STATE);
+      
+      // Extract Config data from state (company info, logo, services, terms, etc.)
+      const configData = this.extractConfigData(this.STATE);
+
 
       // Generate HTML body content and CSS using merged state
-      console.log('STATE.Config before template:', this.STATE.Config);
+      // console.log('STATE.Config before template:', this.STATE.Config);
+      /*
       console.log('Bank fields:', {
         bankName: this.STATE.Config.bankName,
         bankAccount: this.STATE.Config.bankAccount,
         bankRouting: this.STATE.Config.bankRouting,
         bankWire: this.STATE.Config.bankWire
       });
-      const bodyContent = await template.generateInvoiceHTML( this.STATE );
+      */
+      const bodyContent = await template.generateInvoiceHTML( clientData, bookingData, configData );
       const cssContent = await template.getInvoiceCSS();
       
       // Construct complete HTML document for preview

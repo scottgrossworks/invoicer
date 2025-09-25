@@ -43,6 +43,42 @@ class PortalParser {
     }
 
     /**
+     * Calculate duration between two ISO date strings
+     * Handles dates with embedded time like "2025-07-25T12:00:00-07:00"
+     * @param {string} startDate - ISO date string (e.g., "2025-07-25T12:00:00-07:00")
+     * @param {string} endDate - ISO date string (e.g., "2025-07-25T15:30:00-07:00")
+     * @returns {number|null} - Duration in hours as decimal (e.g., 3.5) or null if invalid
+     */
+    _calculateDuration(startDate, endDate) {
+        if (!startDate || !endDate) return null;
+        try {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+
+            // Validate dates
+            if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+                console.warn('Invalid date format in duration calculation:', { startDate, endDate });
+                return null;
+            }
+
+            const durationMs = end - start;
+
+            // Ensure positive duration
+            if (durationMs < 0) {
+                console.warn('Negative duration calculated:', { startDate, endDate, durationMs });
+                return null;
+            }
+
+            const durationHours = durationMs / (1000 * 60 * 60); // Convert to hours
+            return parseFloat(durationHours.toFixed(1));
+
+        } catch (error) {
+            console.error('Error calculating duration:', error);
+            return null;
+        }
+    }
+
+    /**
      * Check if current page is relevant for this parser
      * @returns {boolean} True if the current page can be parsed
      */

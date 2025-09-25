@@ -255,7 +255,7 @@ class PDF_template {
 
 
   // Generates HTML invoice content using Handlebars template and state data
-  async generateInvoiceHTML( state, configData = null ) {
+  async generateInvoiceHTML( clientData, bookingData, configData) {
     // Ensure template is loaded before using it
     await this.templatePromise;
 
@@ -263,13 +263,12 @@ class PDF_template {
       throw new Error('Template not ready or failed to load');
     }
 
-    this.STATE = state;
 
     // Create context object with proper structure
     const context = {
-      bookingData: this.STATE.Booking || {},
-      clientData: this.STATE.Client || {},
-      Config: configData || this.STATE.Config || {},
+      bookingData: bookingData || {},
+      clientData: clientData || {},
+      Config: configData || {},
       invoiceNumber: this.generateInvoiceNumber(),
       invoiceDate: new Date().toLocaleDateString()
     };
