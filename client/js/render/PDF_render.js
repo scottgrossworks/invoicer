@@ -278,9 +278,17 @@ class PDF_render extends RenderLayer {
    * @returns {string} Generated filename
    */
   generateFileName(bookingData, clientData) {
-    const clientName = (clientData.name || 'client').replace(/[^a-zA-Z0-9]/g, '_'); //
-    const date = new Date().toISOString().split('T')[0]; //
-    return `invoice_${clientName}_${date}.pdf`; //
+    const clientName = (clientData.name || 'client').replace(/[^a-zA-Z0-9]/g, '_');
+
+    // Use event date instead of current date
+    let date;
+    if (bookingData.startDate) {
+      date = new Date(bookingData.startDate).toISOString().split('T')[0];
+    } else {
+      date = new Date().toISOString().split('T')[0]; // Fallback to current date
+    }
+
+    return `invoice_${clientName}_${date}.pdf`;
   }
 }
 
