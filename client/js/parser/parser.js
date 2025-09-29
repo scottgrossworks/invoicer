@@ -2,6 +2,9 @@
 //
 //
 
+import Client from '../db/Client.js';
+import Booking from '../db/Booking.js';
+
 // Portal Parser Interface
 class PortalParser {
 
@@ -74,6 +77,78 @@ class PortalParser {
 
         } catch (error) {
             console.error('Error calculating duration:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Parse LLM JSON response and transform flat structure to nested Client/Booking structure.
+     * Handles markdown code blocks, sanitizes currency values, parses durations, and maps clientId.
+     *
+     * This is the canonical implementation shared by all parsers that use LLM extraction.
+     *
+     * @param {string} content - Raw LLM response content (may include markdown)
+     * @returns {Object|null} - Structured object with Client, Booking, Config properties or null if parsing fails
+     */
+    _parseLLMResponse(content) {
+        try {
+            // Handle markdown code blocks: ```json {...} ```
+            let jsonText = content;
+
+            // Remove markdown code block markers
+            jsonText = jsonText.replace(/```json\s*/g, '').replace(/```\s*$/g, '');
+
+            // Extract JSON object
+            const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
+
+            if (jsonMatch) {
+                const parsed = JSON.parse(jsonMatch[0]);
+
+                // Map LLM fields to our structured state
+                const mapped = {
+                    Client: {},
+                    Booking: {},
+                    Config: {}
+                };
+
+                const clientFields = Client.getFieldNames();
+                const bookingFields = Booking.getFieldNames();
+
+                // Map fields to appropriate sub-objects
+                Object.entries(parsed).forEach(([field, value]) => {
+                    if (value === 'Not applicable' || value === 'Not specified') {
+                        value = null;
+                    }
+
+                    if (value !== undefined && value !== null) {
+                        if (clientFields.includes(field)) {
+                            mapped.Client[field] = value;
+                        } else if (bookingFields.includes(field)) {
+                            mapped.Booking[field] = value;
+                            // Convert numeric fields
+                            if (['hourlyRate', 'flatRate', 'totalAmount'].includes(field)) {
+                                mapped.Booking[field] = this.sanitizeCurrency(value);
+                            } else if (field === 'duration') {
+                                mapped.Booking[field] = parseFloat(value) || null;
+                            }
+                        }
+                    }
+                });
+
+                // Ensure clientId is set from Client.name
+                if (mapped.Client.name) {
+                    mapped.Booking.clientId = mapped.Client.name;
+                }
+
+                console.log('Final mapped object:', mapped);
+                return mapped;
+            }
+
+            console.warn('No JSON object found in LLM response');
+            return null;
+        } catch (error) {
+            console.error('Failed to parse LLM JSON response:', error);
+            console.error('Raw content was:', content);
             return null;
         }
     }

@@ -61,7 +61,8 @@ class GCalParser extends PortalParser {
       }
 
       // Assign extracted data to the state
-      this.STATE.Booking.description = proceduralData.title; // Per instructions, map event title to booking description
+      this.STATE.Booking.title = proceduralData.title; 
+      this.STATE.Booking.description = proceduralData.description;
       this.STATE.Booking.location = proceduralData.location;
       this.STATE.Booking.source = 'gcal';
       
@@ -98,23 +99,23 @@ class GCalParser extends PortalParser {
 
         if (llmResult) {
 
-            /*
+          
             console.log("LLM returned result:", llmResult);
             console.log("Before conservative update, STATE:", {
               Client: this.STATE.Client,
               Booking: this.STATE.Booking
             });
-            */
+         
 
             // UPDATE the STATE conservatively
             this._conservativeUpdate(llmResult);
 
-            /*
+          
             console.log("After conservative update, STATE:", {
               Client: this.STATE.Client,
               Booking: this.STATE.Booking
             });
-            */
+           
 
           console.log('LLM processed successfully');
         } else {
@@ -181,14 +182,14 @@ class GCalParser extends PortalParser {
         return null;
     };
 
-    // 1. Extract the main title (already working)
+    // 1. Extract the event title 
     const title = getText('#rAECCd', 'title');
     
     // 2. Extract date/time from the actual structure
     const dateTime = getText('.AzuXid.O2VjS.CyPPBf', 'dateTime');
     
-    // 3. Extract location from the location section (target second div for full address)
-    const location = getText('#xDetDlgLoc .bgOWSb div:nth-child(2)', 'location');
+    // 3. Extract location from the location section
+    const location = getText('#xDetDlgLoc .UfeRlc', 'location');
     
     // 4. Extract description from the description section
     const description = getText('#xDetDlgDesc', 'description');
@@ -199,7 +200,7 @@ class GCalParser extends PortalParser {
         location,
         description
     };
-    // console.log('Final procedural extraction result:', result);
+    console.log('Final procedural extraction result:', result);
     return result;
   }
 
@@ -301,7 +302,8 @@ class GCalParser extends PortalParser {
   _conservativeUpdate(llmResult) {
       const updateIfEmpty = (obj, prop, llmValue) => {
           // Only update if the current value is null, undefined, or an empty string
-          if (llmValue && (! obj[prop] || String(obj[prop]).trim() === "")) {
+          const currentValue = obj[prop];
+          if (llmValue && (currentValue === null || currentValue === undefined || String(currentValue).trim() === "")) {
               obj[prop] = llmValue;
           }
       };
@@ -311,13 +313,17 @@ class GCalParser extends PortalParser {
       updateIfEmpty(this.STATE.Client, 'email', llmResult.Client?.email);
       updateIfEmpty(this.STATE.Client, 'phone', this.sanitizePhone(llmResult.Client?.phone));
       updateIfEmpty(this.STATE.Client, 'company', llmResult.Client?.company);
-      updateIfEmpty(this.STATE.Client, 'notes', llmResult.Client?.notes);
+      // updateIfEmpty(this.STATE.Client, 'clientNotes', llmResult.Client?.clientNotes);
 
       // Booking fields
       updateIfEmpty(this.STATE.Booking, 'hourlyRate', this.sanitizeCurrency(llmResult.Booking?.hourlyRate));
       updateIfEmpty(this.STATE.Booking, 'flatRate', this.sanitizeCurrency(llmResult.Booking?.flatRate));
       updateIfEmpty(this.STATE.Booking, 'totalAmount', this.sanitizeCurrency(llmResult.Booking?.totalAmount));
       updateIfEmpty(this.STATE.Booking, 'duration', llmResult.Booking?.duration);
+      updateIfEmpty(this.STATE.Booking, 'location', llmResult.Booking?.location);
+      updateIfEmpty(this.STATE.Booking, 'description', llmResult.Booking?.description);
+      updateIfEmpty(this.STATE.Booking, 'title', llmResult.Booking?.title);
+      updateIfEmpty(this.STATE.Booking, 'notes', llmResult.Booking?.notes);
       this.STATE.Booking.source = 'Google Calendar'; // Always set source to gcal
   }
 
@@ -400,33 +406,8 @@ class GCalParser extends PortalParser {
     });
   }
 
-  _parseLLMResponse(content) {
-    try {
-            
-      // Handle markdown code blocks: ```json {...} ```
-      let jsonText = content;
-      
-      // Remove markdown code block markers
-      jsonText = jsonText.replace(/```json\s*/g, '').replace(/```\s*$/g, '');
-      
-      // Extract JSON object
-      const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
-      
-      if (jsonMatch) {
-        // console.log('Matched JSON text:', jsonMatch[0]);
-        const parsed = JSON.parse(jsonMatch[0]);
-        // console.log('Successfully parsed JSON:', parsed);
-        return parsed;
-      }
-      
-      console.warn('No JSON object found in LLM response');
-      return null;
-    } catch (error) {
-      console.error('Failed to parse LLM JSON response:', error);
-      console.error('Raw content was:', content);
-      return null;
-    }
-  }
+  // _parseLLMResponse() inherited from PortalParser base class
+  // Transforms flat LLM JSON response into nested Client/Booking structure
 
   async waitUntilReady() {
     try {

@@ -1559,3 +1559,16 @@ Argument `[32mstatus[39m` must not be [31mnull[39m.
 [2025-09-25T18:32:22.969Z] POST /bookings
 [2025-09-25T18:32:22.985Z] POST /config
 [2025-09-25T18:33:13.389Z] GET /config
+[2025-09-29T16:41:46.950Z] Database connected successfully
+[2025-09-29T16:41:46.973Z] ! Local API running on http://localhost:3000
+[2025-09-29T17:48:42.907Z] GET /stats
+[2025-09-29T17:54:40.876Z] GET /config
+[2025-09-29T17:57:16.001Z] GET /config
+[2025-09-29T18:11:54.174Z] GET /config
+[2025-09-29T18:30:54.676Z] GET /config
+[2025-09-29T19:10:51.484Z] GET /config
+[2025-09-29T19:14:01.791Z] GET /config
+[2025-09-29T19:41:01.186Z] GET /config
+[2025-09-29T19:41:11.118Z] POST /clients
+[2025-09-29T19:41:11.195Z] POST /bookings
+[2025-09-29T19:41:11.262Z] POST /config

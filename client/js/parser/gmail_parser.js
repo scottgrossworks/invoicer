@@ -191,7 +191,8 @@ class GmailParser extends PortalParser {
   _conservativeUpdate(llmResult) {
       const updateIfEmpty = (obj, prop, llmValue) => {
           // Only update if the current value is null, undefined, or an empty string
-          if (llmValue && (! obj[prop] || String(obj[prop]).trim() === "")) {
+          const currentValue = obj[prop];
+          if (llmValue && (currentValue === null || currentValue === undefined || String(currentValue).trim() === "")) {
               obj[prop] = llmValue;
           }
       };
@@ -206,7 +207,7 @@ class GmailParser extends PortalParser {
       // Note: We don't update Client name/email from LLM as procedural extraction is more reliable.
       updateIfEmpty(this.STATE.Client, 'phone', this.sanitizePhone(llmResult.Client?.phone));
       updateIfEmpty(this.STATE.Client, 'company', llmResult.Client?.company);
-      updateIfEmpty(this.STATE.Client, 'notes', llmResult.Client?.notes);
+      // updateIfEmpty(this.STATE.Client, 'clientNotes', llmResult.Client?.clientNotes);
 
       // Booking fields - be more aggressive about updating from LLM data
       if (llmResult.Booking) {
@@ -312,61 +313,8 @@ class GmailParser extends PortalParser {
     });
   }
 
-  _parseLLMResponse(content) {
-    try {
-      // console.log('_parseLLMResponse called with content:', content?.substring(0, 200));
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-
-      if (jsonMatch) {
-        // console.log('Matched JSON:', jsonMatch[0].substring(0, 200));
-        const parsed = JSON.parse(jsonMatch[0]);
-        // console.log('Parsed JSON:', parsed);
-
-        // Map LLM fields to our structured state
-        const mapped = {
-          Client: {},
-          Booking: {},
-          Config: {}
-        };
-
-        const clientFields = Client.getFieldNames();
-        const bookingFields = Booking.getFieldNames();
-
-        // Map fields to appropriate sub-objects
-        Object.entries(parsed).forEach(([field, value]) => {
-          if (value === 'Not applicable' || value === 'Not specified') {
-            value = null;
-          }
-
-          if (value !== undefined && value !== null) {
-            if (clientFields.includes(field)) {
-              mapped.Client[field] = value;
-            } else if (bookingFields.includes(field)) {
-              mapped.Booking[field] = value;
-              // Convert numeric fields
-              if (['hourlyRate', 'flatRate', 'totalAmount'].includes(field)) {
-                mapped.Booking[field] = this.sanitizeCurrency(value);
-              } else if (field === 'duration') {
-                mapped.Booking[field] = parseFloat(value) || null;
-              }
-            }
-          }
-        });
-
-        // Ensure clientId is set from Client.name
-        if (mapped.Client.name) {
-          mapped.Booking.clientId = mapped.Client.name;
-        }
-
-        console.log('Final mapped object:', mapped);
-        return mapped;
-      }
-      return null;
-    } catch (error) {
-      console.warn('Failed to parse LLM JSON response');
-      return null;
-    }
-  }
+  // _parseLLMResponse() inherited from PortalParser base class
+  // Transforms flat LLM JSON response into nested Client/Booking structure
 
 }
 
