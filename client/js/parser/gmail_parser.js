@@ -139,7 +139,7 @@ class GmailParser extends PortalParser {
         if (primarySender) {
             const email = primarySender.getAttribute('email');
             const name = primarySender.getAttribute('name') || primarySender.textContent?.trim();
-            console.log(`Primary sender found: name='${name}', email='${email}'`);
+            // console.log(`Primary sender found: name='${name}', email='${email}'`);
             return { email, name };
         }
       }

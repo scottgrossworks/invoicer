@@ -99,23 +99,23 @@ class GCalParser extends PortalParser {
 
         if (llmResult) {
 
-          
+          /*
             console.log("LLM returned result:", llmResult);
             console.log("Before conservative update, STATE:", {
               Client: this.STATE.Client,
               Booking: this.STATE.Booking
             });
-         
+          */
 
             // UPDATE the STATE conservatively
             this._conservativeUpdate(llmResult);
 
-          
+            /*         
             console.log("After conservative update, STATE:", {
               Client: this.STATE.Client,
               Booking: this.STATE.Booking
             });
-           
+            */
 
           console.log('LLM processed successfully');
         } else {
@@ -200,7 +200,7 @@ class GCalParser extends PortalParser {
         location,
         description
     };
-    console.log('Final procedural extraction result:', result);
+    // console.log('Final procedural extraction result:', result);
     return result;
   }
 
@@ -416,7 +416,7 @@ class GCalParser extends PortalParser {
       return true;
 
     } catch (error) {
-      console.warn('GCal waitUntilReady failed:', error.message);
+      console.log('GCal waitUntilReady failed:', error.message);
       return false;
     }
   }

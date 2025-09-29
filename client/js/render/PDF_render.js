@@ -1,5 +1,8 @@
 import { RenderLayer } from './Render_layer.js';
 import PDF_template from './PDF_template.js';
+import Booking from '../db/Booking.js';
+import Client from '../db/Client.js';
+import Config from '../db/Config.js';
 
 /**
  * PDF Render implementation extending RenderLayer
@@ -22,12 +25,12 @@ class PDF_render extends RenderLayer {
     try {
       console.log('PDF Render starting...');
       
-      // Extract data from state using inherited helper methods
-      const bookingData = this.extractBookingData(state);
-      const clientData = this.extractClientData(state);
-      
+      // Extract data from state using static methods
+      const bookingData = Booking.extractBookingData(state);
+      const clientData = Client.extractClientData(state);
+
       // Extract Config data from state (company info, logo, services, terms, etc.)
-      const configData = this.extractConfigData(state);
+      const configData = Config.extractConfigData(state);
       
       // Use Config data directly from unified state structure
       const mergedSettings = configData;

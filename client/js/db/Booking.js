@@ -114,6 +114,27 @@ class Booking {
     return fields;
   }
 
+  /**
+   * Extract booking data from state object for rendering
+   * @param {Object} state - Application state with Booking property
+   * @returns {Object} Booking data object
+   */
+  static extractBookingData(state) {
+    return {
+      title: state.Booking.title,
+      description: state.Booking.description,
+      location: state.Booking.location,
+      startDate: state.Booking.startDate,
+      endDate: state.Booking.endDate,
+      startTime: state.Booking.startTime,
+      endTime: state.Booking.endTime,
+      duration: state.Booking.duration,
+      hourlyRate: state.Booking.hourlyRate,
+      flatRate: state.Booking.flatRate,
+      totalAmount: state.Booking.totalAmount,
+      notes: state.Booking.notes
+    };
+  }
 
   // Data transformation
   toCreateData() {

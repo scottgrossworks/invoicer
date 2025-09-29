@@ -5,6 +5,8 @@
 
 // Import PDF settings class
 import Config from '../db/Config.js';
+import Client from '../db/Client.js';
+import Booking from '../db/Booking.js';
 import PDF_settings from './PDF_settings.js';
 
 
@@ -267,13 +269,13 @@ class PDFSettingsPage {
       const PDF_template = templateModule.default || templateModule.PDF_template;
       const template = new PDF_template();
 
-      
-      // Extract data from state using inherited helper methods
-      const bookingData = this.extractBookingData(this.STATE);
-      const clientData = this.extractClientData(this.STATE);
-      
+
+      // Extract data from state using static methods
+      const bookingData = Booking.extractBookingData(this.STATE);
+      const clientData = Client.extractClientData(this.STATE);
+
       // Extract Config data from state (company info, logo, services, terms, etc.)
-      const configData = this.extractConfigData(this.STATE);
+      const configData = Config.extractConfigData(this.STATE);
 
 
       // Generate HTML body content and CSS using merged state

@@ -79,6 +79,37 @@ static getFieldNames() {
     return fields;
   }
 
+  /**
+   * Extract config data from state object for rendering
+   * @param {Object} state - Application state with Config property
+   * @returns {Object} Config data object
+   */
+  static extractConfigData(state) {
+    return {
+      // Company info
+      companyName: state.Config.companyName,
+      companyAddress: state.Config.companyAddress,
+      companyPhone: state.Config.companyPhone,
+      companyEmail: state.Config.companyEmail,
+      logoUrl: state.Config.logoUrl,
+
+      // Bank info
+      bankName: state.Config.bankName,
+      bankAddress: state.Config.bankAddress,
+      bankPhone: state.Config.bankPhone,
+      bankAccount: state.Config.bankAccount,
+      bankRouting: state.Config.bankRouting,
+      bankWire: state.Config.bankWire,
+
+      // Invoice content
+      servicesPerformed: state.Config.servicesPerformed,
+      contactHandle: state.Config.contactHandle,
+
+      // Terms and conditions
+      includeTerms: state.Config.includeTerms,
+      terms: state.Config.terms
+    };
+  }
 
   /**
    * Get default PDF settings (empty object to rely on HTML placeholders)

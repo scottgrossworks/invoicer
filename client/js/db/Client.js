@@ -82,6 +82,20 @@ class Client {
     return fields;
   }
 
+  /**
+   * Extract client data from state object for rendering
+   * @param {Object} state - Application state with Client property
+   * @returns {Object} Client data object
+   */
+  static extractClientData(state) {
+    return {
+      name: state.Client.name,
+      email: state.Client.email,
+      phone: state.Client.phone,
+      company: state.Client.company
+    };
+  }
+
 
   // Data transformation
   toCreateData() {
