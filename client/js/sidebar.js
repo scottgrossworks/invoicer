@@ -152,7 +152,7 @@ async function reloadParsers() {
 
                 // DEBUG: Log complete parser response
                 // console.log('=== PARSER RESPONSE DEBUG ===');
-                console.log('Parser response data:', JSON.stringify(response.data, null, 2));
+                // console.log('Parser response data:', JSON.stringify(response.data, null, 2));
                 // console.log('Response timestamp:', new Date().toISOString());
 
                 // Store parser data with timestamp for tracking

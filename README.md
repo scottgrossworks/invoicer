@@ -254,6 +254,7 @@ npm run mcp  # Runs dist/mcp_server.js
 - Local inference via LM Studio for privacy
 - Configurable system prompts for different parsing contexts
 - Fallback handling for LLM service unavailability
+- **Relationship Analysis**: LLM layer analyzes booking patterns and relationships across clients without encoding complex logic in database schema. The normalized database maintains clean one-to-many Client-Booking relationships while the LLM handles pattern recognition, repeat customer identification, and contextual analysis
 
 ## DEPLOYMENT CONSIDERATIONS
 

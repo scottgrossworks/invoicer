@@ -54,15 +54,20 @@ class GCalParser extends PortalParser {
       await this.waitUntilReady();
 
       const proceduralData = this._extractProceduralData();
-      if (!proceduralData.title) {
-         // console.warn("Could not extract a title. The modal may not be fully loaded or the selectors are outdated.");
-         console.warn("Could not find event details. Please make sure the event pop-up is open.");
-         return this.STATE;
+      // console.log('Procedural extraction result:', proceduralData);
+      if (! (proceduralData.title ||
+            proceduralData.dateTime ||
+            proceduralData.location ||
+            proceduralData.description)
+      ) {
+        console.log("Calendar Event not found.  Cannot parse details. Make sure the event pop-up is open.");
+        return this.STATE;
       }
 
       // Assign extracted data to the state
       this.STATE.Booking.title = proceduralData.title; 
-      this.STATE.Booking.description = proceduralData.description;
+      // let the LLM fill in description if possible
+      // this.STATE.Booking.description = proceduralData.description;
       this.STATE.Booking.location = proceduralData.location;
       this.STATE.Booking.source = 'gcal';
       
@@ -70,9 +75,10 @@ class GCalParser extends PortalParser {
       // Smart parsing of date/time for same-day events
       if (proceduralData.dateTime) {
         const parsed = this._parseDateTime(proceduralData.dateTime);
-        
-        this.STATE.Booking.startDate = parsed.startDate;
-        this.STATE.Booking.endDate = parsed.endDate;
+
+        // Convert dates to ISO 8601 format
+        this.STATE.Booking.startDate = this._convertToISO8601(parsed.startDate, parsed.startTime);
+        this.STATE.Booking.endDate = this._convertToISO8601(parsed.endDate, parsed.endTime);
         this.STATE.Booking.startTime = parsed.startTime;
         this.STATE.Booking.endTime = parsed.endTime;
 
@@ -83,7 +89,7 @@ class GCalParser extends PortalParser {
         }
 
         // calculate DURATION
-        let duration = this._calculateDuration(parsed.startDate, parsed.endDate);
+        let duration = this._calculateDuration(this.STATE.Booking.startDate, this.STATE.Booking.endDate);
         if (duration) this.STATE.Booking.duration = duration;
       }
 
@@ -205,9 +211,62 @@ class GCalParser extends PortalParser {
   }
 
   /**
+   * Convert human-readable date string to ISO 8601 format
+   * @param {string} dateString - e.g., "November 3, 2023" or "Sunday, August 24"
+   * @param {string} timeString - e.g., "9:00pm" (optional)
+   * @returns {string} ISO 8601 formatted date string
+   */
+  _convertToISO8601(dateString, timeString = null) {
+    if (!dateString) return null;
+
+    try {
+      // Parse the date string
+      let dateObj = new Date(dateString);
+
+      // If time string is provided, parse and set it
+      if (timeString) {
+        const timeMatch = timeString.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
+        if (timeMatch) {
+          let hours = parseInt(timeMatch[1]);
+          const minutes = parseInt(timeMatch[2]);
+          const period = timeMatch[3]?.toLowerCase();
+
+          // Convert to 24-hour format
+          if (period === 'pm' && hours !== 12) {
+            hours += 12;
+          } else if (period === 'am' && hours === 12) {
+            hours = 0;
+          }
+
+          dateObj.setHours(hours, minutes, 0, 0);
+        }
+      }
+
+      // Return ISO 8601 format with timezone
+      const offset = dateObj.getTimezoneOffset();
+      const offsetHours = Math.floor(Math.abs(offset) / 60).toString().padStart(2, '0');
+      const offsetMinutes = (Math.abs(offset) % 60).toString().padStart(2, '0');
+      const offsetSign = offset <= 0 ? '+' : '-';
+
+      const year = dateObj.getFullYear();
+      const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+      const day = dateObj.getDate().toString().padStart(2, '0');
+      const hours = dateObj.getHours().toString().padStart(2, '0');
+      const minutes = dateObj.getMinutes().toString().padStart(2, '0');
+      const seconds = dateObj.getSeconds().toString().padStart(2, '0');
+
+      return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetSign}${offsetHours}:${offsetMinutes}`;
+
+    } catch (error) {
+      console.error('Error converting to ISO 8601:', error, 'Input:', dateString, timeString);
+      return dateString; // Fallback to original
+    }
+  }
+
+  /**
    * Parse Google Calendar date/time string into structured components
    * Handles both same-day and multi-day events
-   * Examples: 
+   * Examples:
    * - Same day: "Sunday, August 24⋅2:30 – 4:30pm"
    * - Multi-day: "Monday, August 25 – Tuesday, August 26⋅9:00am – 5:00pm"
    * - All day: "Monday, August 25 – Tuesday, August 26"

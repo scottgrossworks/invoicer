@@ -140,7 +140,7 @@ class PortalParser {
                     mapped.Booking.clientId = mapped.Client.name;
                 }
 
-                console.log('Final mapped object:', mapped);
+                // console.log('Final mapped object:', mapped);
                 return mapped;
             }
 
