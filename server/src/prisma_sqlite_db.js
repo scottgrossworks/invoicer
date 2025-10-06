@@ -256,6 +256,8 @@ class Prisma_Sqlite_DB extends Leedz_DB {
     });
   }
 
+  // 9/30/2025: Enhanced getBookings() with date range filtering to improve MCP server performance
+  // This reduces the amount of data transferred when querying bookings by date ranges
   async getBookings(filters) {
     let where = {};
 
@@ -273,6 +275,32 @@ class Prisma_Sqlite_DB extends Leedz_DB {
 
     if (filters?.startDate) {
       where.startDate = filters.startDate;
+    }
+
+    // 9/30/2025: Date range filtering - filter by startDate >= startDateFrom
+    if (filters?.startDateFrom) {
+      // Convert string to Date if necessary
+      const fromDate = filters.startDateFrom instanceof Date
+        ? filters.startDateFrom
+        : new Date(filters.startDateFrom);
+
+      where.startDate = {
+        ...where.startDate,
+        gte: fromDate  // Greater than or equal to (inclusive)
+      };
+    }
+
+    // 9/30/2025: Date range filtering - filter by startDate <= startDateTo
+    if (filters?.startDateTo) {
+      // Convert string to Date if necessary
+      const toDate = filters.startDateTo instanceof Date
+        ? filters.startDateTo
+        : new Date(filters.startDateTo);
+
+      where.startDate = {
+        ...where.startDate,
+        lte: toDate  // Less than or equal to (inclusive)
+      };
     }
 
     return await this.prisma.booking.findMany({

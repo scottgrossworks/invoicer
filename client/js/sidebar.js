@@ -1,7 +1,7 @@
 // sidebar.js — LeedzEx Sidebar Control Logic (Simplified for Debugging)
 
 import { StateFactory, mergePageData } from './state.js';
-import { initLogging, log, logError } from './logging.js';
+import { initLogging, log, logError, showToast } from './logging.js';
 
 import Booking from './db/Booking.js';
 import Client from './db/Client.js';
@@ -15,35 +15,6 @@ const PDF_RENDER_JS = 'js/render/PDF_render.js';
 
 const clientFields = Client.getFieldNames();
 const bookingFields = Booking.getFieldNames();
-
-
-// Toast notification function
-function showToast(message, type = 'info') {
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.textContent = message;
-  toast.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 12px 16px;
-    border-radius: 4px;
-    color: white;
-    font-weight: 500;
-    z-index: 10000;
-    max-width: 300px;
-    word-wrap: break-word;
-    ${type === 'error' ? 'background-color: #dc3545;' : 'background-color: #28a745;'}
-  `;
-  document.body.appendChild(toast);
-  
-  // Auto-remove after 4 seconds
-  setTimeout(() => {
-    if (toast.parentNode) {
-      toast.parentNode.removeChild(toast);
-    }
-  }, 4000);
-}
 
 
 //////////////////// START LOGGING  /////////////////////
@@ -67,7 +38,7 @@ async function initializeApp() {
   try {
     // Initialize state with persistence
     STATE = await StateFactory.create();
-    
+
     // Listen for storage changes from settings page
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName === 'local' && changes.currentBookingState) {
@@ -82,12 +53,16 @@ async function initializeApp() {
         }
       }
     });
-    
+
     // Wire up UI
     wireUI();
-    
-    // Initialize parser and reload
-    await reloadParsers();
+
+    // MCP page is default - load config and check server on startup
+    await loadMcpConfigAndCheckServer();
+
+    // Do NOT run parsers on load - MCP page is default
+    // Parsers only run when user switches to invoicer page and clicks reload
+    // await reloadParsers();
   } catch (error) {
     console.error('Failed to initialize app:', error);
     log('Initialization failed');
@@ -182,16 +157,19 @@ async function reloadParsers() {
           // log(`Parser ${p.name} did not match URL: ${url}`);
         }
       } catch (e) {
-        logError(`Parser ${p.name} failed:`, e);
+        // Parser failed - log to console but don't use logError (no red errors for expected failures)
+        console.log(`Parser ${p.name} check failed (expected on non-supported pages):`, e.message);
       }
     }
 
     if (!matched) {
-      log('No matching parser found for this page');
+      // No parser matched - this is normal on non-supported pages, just log
+      log('No parser available for this page');
     }
   } catch (error) {
-    logError('Error in reloadParsers:', error);
-    log('Parser error');
+    // Unexpected error in reloadParsers itself
+    console.log('Parser initialization error:', error.message);
+    log('Parser unavailable');
   } finally {
     hideLoadingSpinner();
   }
@@ -756,6 +734,7 @@ function clearForm() {
  * Converts user-edited key=value lines back into state on input.
  */
 function wireUI() {
+  // ===== INVOICER PAGE BUTTONS =====
   const cancelBtn = document.getElementById('cancelBtn');
   if (cancelBtn) cancelBtn.addEventListener('click', () => clearForm());
 
@@ -764,6 +743,433 @@ function wireUI() {
 
   const pdfBtn = document.getElementById('pdfBtn');
   if (pdfBtn) pdfBtn.addEventListener('click', () => onPdf());
+
+  // ===== PAGE NAVIGATION SYSTEM =====
+  setupPageSwitching();
+
+  // ===== MCP PAGE CONTROLS =====
+  setupMcpControls();
+}
+
+
+// ============================================================================
+// PAGE SWITCHING SYSTEM (Hamburger Menu Navigation)
+// ============================================================================
+
+/**
+ * Set up hamburger menu dropdown and page switching functionality.
+ * Handles click events for menu toggle and page navigation.
+ */
+function setupPageSwitching() {
+  const hamburger = document.querySelector('.leedz-hamburger');
+  const menu = document.querySelector('.hamburger-menu');
+
+  if (!hamburger || !menu) {
+    console.error('Hamburger menu elements not found');
+    return;
+  }
+
+  // Toggle dropdown menu when hamburger icon is clicked
+  hamburger.addEventListener('click', (e) => {
+    e.stopPropagation(); // Prevent event from bubbling to document
+    const isVisible = menu.style.display === 'block';
+    menu.style.display = isVisible ? 'none' : 'block';
+  });
+
+  // Close menu when clicking anywhere else on the page
+  document.addEventListener('click', () => {
+    menu.style.display = 'none';
+  });
+
+  // Wire up menu items to switch pages
+  document.querySelectorAll('.menu-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const pageName = item.dataset.page; // Get page name from data-page attribute
+      switchToPage(pageName);
+      menu.style.display = 'none'; // Close menu after selection
+    });
+  });
+}
+
+/**
+ * Switch to a different page in the sidebar.
+ * Hides all pages, shows the target page, and updates the app label.
+ *
+ * @param {string} pageName - Name of the page to switch to ('invoicer' or 'mcp')
+ */
+function switchToPage(pageName) {
+  // Hide all page containers
+  document.querySelectorAll('.page-content').forEach(page => {
+    page.style.display = 'none';
+  });
+
+  // Show the selected page
+  const targetPage = document.getElementById(`page-${pageName}`);
+  if (targetPage) {
+    targetPage.style.display = 'block';
+  } else {
+    console.error(`Page not found: page-${pageName}`);
+    return;
+  }
+
+  // Update app label text and color class
+  const label = document.querySelector('.app-label');
+  if (label) {
+    label.textContent = pageName;
+    // Remove all page-specific classes and add the current page class
+    label.className = `app-label ${pageName}`;
+  }
+
+  // Show/hide invoicer buttons based on active page
+  const invoicerButtons = document.getElementById('invoicer-buttons');
+  if (invoicerButtons) {
+    invoicerButtons.style.display = (pageName === 'invoicer') ? 'flex' : 'none';
+  }
+
+  // Auto-run parser when switching to invoicer page
+  if (pageName === 'invoicer') {
+    reloadParsers();
+  }
+
+  // Auto-load MCP config and check server when switching to Gmailer page
+  if (pageName === 'gmailer') {
+    loadMcpConfigAndCheckServer();
+  }
+}
+
+
+// ============================================================================
+// MCP PAGE CONTROLS (Gmail OAuth and Server Connection)
+// ============================================================================
+
+// Store current OAuth token for revocation
+let currentOAuthToken = null;
+
+/**
+ * Wire up MCP page button event handlers.
+ * Sets up the Enable/Disable Gmail button click handler.
+ */
+function setupMcpControls() {
+  const enableBtn = document.getElementById('enable-gmail-btn');
+  if (enableBtn) {
+    enableBtn.addEventListener('click', () => {
+      // Check button state and call appropriate function
+      if (enableBtn.textContent.trim() === 'Disable') {
+        disableGmailSending();
+      } else {
+        enableGmailSending();
+      }
+    });
+  }
+
+  // Set up input field change handlers to save to Config
+  const hostInput = document.getElementById('mcp-host');
+  const portInput = document.getElementById('mcp-port');
+
+  if (hostInput) {
+    hostInput.addEventListener('change', () => saveMcpConfig());
+  }
+
+  if (portInput) {
+    portInput.addEventListener('change', () => saveMcpConfig());
+  }
+}
+
+/**
+ * Load MCP configuration from database and check server health.
+ * Called when switching to MCP page.
+ *
+ * ORDER OF OPERATIONS:
+ * 1. Load Config from leedz_server (port 3000)
+ *    - If fails: show nice message, return gracefully
+ * 2. If Config loaded: ping MCP server (port 3001)
+ *    - Show MCP server status and details
+ * 3. If MCP responds: enable button
+ */
+async function loadMcpConfigAndCheckServer() {
+  const statusDiv = document.getElementById('mcp-status');
+  const enableBtn = document.getElementById('enable-gmail-btn');
+  const hostInput = document.getElementById('mcp-host');
+  const portInput = document.getElementById('mcp-port');
+
+  if (statusDiv && enableBtn && hostInput && portInput) {
+    console.log('Loading MCP config and checking server...');
+  }
+  // Step 1: Load Config from main database server
+  try {
+    await STATE.load();
+
+    // Populate input fields from Config
+    const mcpHost = STATE.Config?.mcp_host || '127.0.0.1';
+    const mcpPort = STATE.Config?.mcp_port || '3001';
+
+    if (hostInput) hostInput.value = mcpHost;
+    if (portInput) portInput.value = mcpPort;
+
+    if (hostInput.value && portInput.value) { 
+      console.log(`Loaded MCP config: ${hostInput.value}:${portInput.value}`);
+    }
+
+  } catch (error) {
+    // Main server not running - show nice message and return
+    if (enableBtn) enableBtn.disabled = true;
+    console.warn('Could not load MCP config - main server may be down:', error);
+
+    statusDiv.textContent = 'Database server not running. Please start the main server on port 3000.';
+    statusDiv.className = 'status-warning';
+
+    // No console.error - graceful handling
+    return;
+  }
+
+  // Step 2: Check MCP server health
+  const mcpHost = hostInput?.value || '127.0.0.1';
+  const mcpPort = portInput?.value || '3001';
+
+  try {
+    statusDiv.textContent = 'Checking MCP server...';
+    statusDiv.className = 'status-checking';
+
+    const serverUrl = `http://${mcpHost}:${mcpPort}`;
+    const healthResponse = await fetch(`${serverUrl}/health`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    if (healthResponse.ok) {
+      const healthData = await healthResponse.json();
+
+      // Step 3: Server is running - enable button
+      if (enableBtn) enableBtn.disabled = false;
+
+      // Build clear status message with line breaks
+      const serviceName = healthData.service || 'gmail-mcp';
+      const version = healthData.version ? ` v${healthData.version}` : '';
+      const authStatus = healthData.tokenValid ? 'Authorized and ready' : 'Ready to authorize';
+
+      statusDiv.innerHTML = `Connected to ${serviceName}${version}<br>IP: ${mcpHost}:${mcpPort}<br>${authStatus}`;
+      statusDiv.className = 'status-success';
+
+    } else {
+      throw new Error(`Server returned ${healthResponse.status}`);
+    }
+
+  } catch (error) {
+    // MCP server not running - disable button
+    if (enableBtn) enableBtn.disabled = true;
+
+    statusDiv.textContent = `MCP server not running at ${mcpHost}:${mcpPort}. Please start gmail_mcp server.`;
+    statusDiv.className = 'status-error';
+  }
+}
+
+/**
+ * Save MCP host/port configuration to database.
+ * Called when user changes input fields.
+ */
+async function saveMcpConfig() {
+  const hostInput = document.getElementById('mcp-host');
+  const portInput = document.getElementById('mcp-port');
+
+  if (!hostInput || !portInput) return;
+
+  try {
+    // Update State Config object
+    if (!STATE.Config) STATE.Config = {};
+    STATE.Config.mcp_host = hostInput.value.trim() || '127.0.0.1';
+    STATE.Config.mcp_port = portInput.value.trim() || '3001';
+
+    // Save to database
+    await STATE.save();
+
+    console.log('MCP config saved:', STATE.Config.mcp_host, STATE.Config.mcp_port);
+
+    // Re-check server health with new settings
+    await loadMcpConfigAndCheckServer();
+
+  } catch (error) {
+    console.error('Failed to save MCP config:', error);
+  }
+}
+
+/**
+ * Enable Gmail sending by obtaining OAuth token and sending to MCP server.
+ *
+ * FLOW:
+ * 1. Get host/port from input fields
+ * 2. Call chrome.identity.getAuthToken() to get Gmail OAuth token
+ * 3. POST token to MCP server at http://{host}:{port}/gmail-authorize
+ * 4. Display success/failure status
+ *
+ * Token expires after 1 hour - user must click button again to re-enable.
+ */
+async function enableGmailSending() {
+  const host = document.getElementById('mcp-host').value.trim() || '127.0.0.1';
+  const port = document.getElementById('mcp-port').value.trim() || '3001';
+  const statusDiv = document.getElementById('mcp-status');
+  const enableBtn = document.getElementById('enable-gmail-btn');
+
+  // Clear previous status
+  statusDiv.textContent = '';
+  statusDiv.className = '';
+
+  try {
+    // Update status to show we're starting
+    statusDiv.textContent = 'Requesting Gmail authorization...';
+    statusDiv.className = 'status-checking';
+
+    // Get OAuth token from Chrome identity API
+    const token = await new Promise((resolve, reject) => {
+      chrome.identity.getAuthToken({ interactive: true }, (token) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else {
+          resolve(token);
+        }
+      });
+    });
+
+    // Store token for later revocation
+    currentOAuthToken = token;
+
+    console.log('OAuth token obtained from Chrome identity');
+
+    // Send token to MCP server
+    const serverUrl = `http://${host}:${port}`;
+    const response = await fetch(`${serverUrl}/gmail-authorize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token })
+    });
+
+    if (!response.ok) {
+      throw new Error(`MCP server returned ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    // Calculate expiration time (1 hour from now)
+    const expiryTime = new Date(Date.now() + 60 * 60 * 1000);
+    const formattedTime = formatTime12Hour(expiryTime);
+
+    // Show success status with expiry time
+    statusDiv.innerHTML = `Gmail authorized successfully.<br>Authorization expires at ${formattedTime}.`;
+    statusDiv.className = 'status-success';
+
+    // Change button to "Disable" state
+    if (enableBtn) {
+      enableBtn.textContent = 'Disable';
+      enableBtn.style.backgroundColor = 'coral';
+    }
+
+    console.log('Gmail authorization successful:', result);
+
+  } catch (error) {
+    // Show user-friendly error status
+    statusDiv.innerHTML = 'Error obtaining authorization.<br>Are you logged into Gmail?';
+    statusDiv.className = 'status-error';
+
+    console.warn('Gmail authorization failed:', error);
+  }
+}
+
+/**
+ * Disable Gmail sending by revoking OAuth token
+ *
+ * Steps:
+ * 1. Show confirmation prompt
+ * 2. Revoke token via Google's OAuth revoke endpoint
+ * 3. Clear token from Chrome identity cache
+ * 4. Reset UI to "Enable" state
+ */
+async function disableGmailSending() {
+  const statusDiv = document.getElementById('mcp-status');
+  const enableBtn = document.getElementById('enable-gmail-btn');
+
+  // Show confirmation prompt
+  const confirmed = confirm('Disable Gmail sending?\n\nThis will revoke the authorization token. You will need to re-authorize to send emails again.');
+
+  if (!confirmed) {
+    return; // User cancelled
+  }
+
+  // Check if we have a token to revoke
+  if (!currentOAuthToken) {
+    console.warn('No token to revoke');
+    resetGmailUI();
+    return;
+  }
+
+  try {
+    statusDiv.textContent = 'Revoking authorization...';
+    statusDiv.className = 'status-checking';
+
+    // Revoke token via Google's OAuth revoke endpoint
+    const revokeResponse = await fetch(`https://accounts.google.com/o/oauth2/revoke?token=${currentOAuthToken}`, {
+      method: 'POST'
+    });
+
+    console.log('Token revoke response:', revokeResponse.status);
+
+    // Clear token from Chrome identity cache
+    chrome.identity.removeCachedAuthToken({ token: currentOAuthToken }, () => {
+      console.log('Token removed from Chrome cache');
+    });
+
+    // Clear stored token
+    currentOAuthToken = null;
+
+    // Reset UI
+    resetGmailUI();
+
+    // Show success status
+    statusDiv.textContent = 'Authorization revoked successfully.';
+    statusDiv.className = 'status-success';
+
+    console.log('Gmail authorization disabled');
+
+  } catch (error) {
+    console.warn('Error disabling Gmail:', error);
+
+    // Even on error, reset UI and clear token
+    currentOAuthToken = null;
+    resetGmailUI();
+
+    statusDiv.textContent = 'Authorization cleared.';
+    statusDiv.className = 'status-warning';
+  }
+}
+
+/**
+ * Reset Gmail UI to "Enable" state
+ */
+function resetGmailUI() {
+  const enableBtn = document.getElementById('enable-gmail-btn');
+
+  if (enableBtn) {
+    enableBtn.textContent = 'Enable Gmail Sending (1 hour)';
+    enableBtn.style.backgroundColor = '';
+  }
+}
+
+/**
+ * Format time in 12-hour US format (e.g., "9:14 PM")
+ * @param {Date} date - Date object to format
+ * @returns {string} Formatted time string
+ */
+function formatTime12Hour(date) {
+  let hours = date.getHours();
+  const minutes = date.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+
+  // Convert to 12-hour format
+  hours = hours % 12;
+  hours = hours ? hours : 12; // 0 should be 12
+
+  // Pad minutes with leading zero if needed
+  const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+
+  return `${hours}:${minutesStr} ${ampm}`;
 }
 
 

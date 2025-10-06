@@ -58,6 +58,8 @@ model Config {
   contactHandle     String?
   includeTerms      Boolean?
   terms             String?
+  mcp_host          String?  @default("127.0.0.1")
+  mcp_port          String?  @default("3001")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }

@@ -17,9 +17,18 @@
 <body class="leedz-sidebar">
 
   <header class="leedz-header">
+          <!-- Hamburger menu container with dropdown for page navigation -->
+          <div class="hamburger-container">
               <img src="icons/hamburger.png" alt="Menu" class="leedz-hamburger"/>
+              <!-- Dropdown menu - hidden by default, toggled by hamburger click -->
+              <div class="hamburger-menu" style="display:none;">
+                <div class="menu-item" data-page="gmailer">Gmailer</div>
+                <div class="menu-item" data-page="invoicer">Invoicer</div>
+              </div>
+          </div>
+          <!-- Logo container with app label that changes based on active page -->
           <div class="logo-container">
-            <div class="app-label">invoicer</div>
+            <div class="app-label gmailer">Gmailer</div>
             <img src="icons/logo_black.png" alt="The Leedz" class="leedz-logo"/>
           </div>
   </header>
@@ -27,56 +36,102 @@
 
   <main class="leedz-form-section">
 
-    <div class="section-header">
-      <label for="display_win">Capture Booking Information</label>
-      <div class="header-buttons">
-        <button id="reloadBtn" class="reload-button" title="Reload the parser">
-          <span>
-            <img src="icons/arrows_white.png" class="button-icon" alt="reload parser"/>
-          </span>
-        </button>
-        <button id="settingsBtn" class="settings-button" title="Open settings">
-          <span>
-            <img src="icons/settings.png" class="button-icon" alt="settings"/>
-          </span>
+    <!-- ========================================== -->
+    <!-- INVOICER PAGE (default/existing content)  -->
+    <!-- ========================================== -->
+    <div id="page-invoicer" class="page-content" style="display:none;">
+
+      <div class="section-header">
+        <label for="display_win">Capture Booking Information</label>
+        <div class="header-buttons">
+          <button id="reloadBtn" class="reload-button" title="Reload the parser">
+            <span>
+              <img src="icons/arrows_white.png" class="button-icon" alt="reload parser"/>
+            </span>
+          </button>
+          <button id="settingsBtn" class="settings-button" title="Open settings">
+            <span>
+              <img src="icons/settings.png" class="button-icon" alt="settings"/>
+            </span>
+          </button>
+        </div>
+      </div>
+            <div id="display_win" class="display-win">
+              <div id="loading_spinner" class="loading-spinner" style="display: none;">
+                <img src="icons/wait_spinner.gif" alt="Loading..." />
+                <span>Processing...</span>
+              </div>
+              <table id="booking_table" class="booking-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Value</th>
+                  </tr>
+                </thead>
+                <tbody id="booking_tbody">
+                  <!-- Dynamic rows will be inserted here -->
+                </tbody>
+              </table>
+            </div>
+
+    </div><!-- END page-invoicer -->
+
+
+    <!-- ========================================== -->
+    <!-- GMAILER PAGE (Gmail sending configuration) -->
+    <!-- ========================================== -->
+    <div id="page-gmailer" class="page-content" style="display:block;">
+
+      <div class="section-header">
+        <label>Authorize Gmail Access</label>
+      </div>
+
+      <!-- Brief explanation of what this does -->
+      <div class="mcp-explanation">
+        Click the button below to authorize the MCP server to send emails using your account for one hour.
+      </div>
+
+      <!-- MCP server connection controls -->
+      <div class="mcp-controls">
+        <!-- MCP server host input (defaults to localhost) -->
+        <label for="mcp-host">MCP Server Host:</label>
+        <input type="text" id="mcp-host" placeholder="127.0.0.1" value="127.0.0.1"/>
+
+        <!-- MCP server port input (defaults to 3001) -->
+        <label for="mcp-port">MCP Server Port:</label>
+        <input type="text" id="mcp-port" placeholder="3001" value="3001"/>
+
+        <!-- Status display area for connection/auth status messages -->
+        <div id="mcp-status">Initializing...</div>
+
+        <!-- Button to trigger Gmail OAuth and send token to MCP server -->
+        <!-- Token expires after 1 hour - user must re-enable -->
+        <!-- Initially disabled until server health check passes -->
+        <button id="enable-gmail-btn" class="sidebar-button" style="margin-top:20px;" disabled>
+          Enable Gmail Sending (1 hour)
         </button>
       </div>
-    </div>
-          <div id="display_win" class="display-win">
-            <div id="loading_spinner" class="loading-spinner" style="display: none;">
-              <img src="icons/wait_spinner.gif" alt="Loading..." />
-              <span>Processing...</span>
-            </div>
-            <table id="booking_table" class="booking-table">
-              <thead>
-                <tr>
-                  <th>Field</th>
-                  <th>Value</th>
-                </tr>
-              </thead>
-              <tbody id="booking_tbody">
-                <!-- Dynamic rows will be inserted here -->
-              </tbody>
-            </table>
-          </div>
 
-    <!-- BUTTONS -->
-    <div class="button-wrapper">
-      <button id="cancelBtn" class="sidebar-button" title="Clear and reset">
-        Clear
-      </button>
-
-      <button id="saveBtn" class="sidebar-button" title="Save to database">
-        Save
-      </button>
-
-      <button id="pdfBtn" class="sidebar-button" title="Render PDF">
-        PDF
-      </button>
-    </div>
+    </div><!-- END page-gmailer -->
 
 
   </main>
+
+  <!-- INVOICER BUTTONS - Fixed position outside scrolling area, above footer -->
+  <!-- Only visible when invoicer page is active -->
+  <div class="button-wrapper" id="invoicer-buttons" style="display:none;">
+    <button id="cancelBtn" class="sidebar-button" title="Clear and reset">
+      Clear
+    </button>
+
+    <button id="saveBtn" class="sidebar-button" title="Save to database">
+      Save
+    </button>
+
+    <button id="pdfBtn" class="sidebar-button" title="Render PDF">
+      PDF
+    </button>
+  </div>
 
     <footer class="leedz-footer" id="footer">
       <img src="icons/grass.png" alt="grass" class="leedz-grass" id="grass-toggle"/>

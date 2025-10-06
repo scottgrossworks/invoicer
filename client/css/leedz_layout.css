@@ -73,16 +73,84 @@ html, body {
   cursor: pointer;
 }
 
+/* ================================================== */
+/* HAMBURGER MENU DROPDOWN (page navigation)         */
+/* ================================================== */
+
+/* Container for hamburger icon and dropdown menu */
+.hamburger-container {
+  position: relative; /* For absolute positioning of dropdown */
+}
+
+/* Dropdown menu - positioned below hamburger icon */
+.hamburger-menu {
+  position: absolute;
+  top: 40px;              /* Position below hamburger icon */
+  left: 0;
+  background: darkgreen;  /* Dark green background */
+  border: 1px solid darkgreen;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  z-index: 1000;          /* Ensure menu appears above other content */
+  min-width: 150px;
+}
+
+/* Individual menu items in dropdown */
+.menu-item {
+  padding: 10px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,0.2); /* Subtle white separator */
+  transition: background-color 0.2s ease;
+  color: white;           /* White text */
+  font-weight: 600;       /* Bold text */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; /* System font for readability */
+  font-size: 14px;
+}
+
+/* Hover state for menu items - 30% lighter green */
+.menu-item:hover {
+  background-color: rgba(255,255,255,0.3); /* 30% lighter overlay effect */
+}
+
+/* Remove border from last menu item for cleaner look */
+.menu-item:last-child {
+  border-bottom: none;
+}
+
+/* ================================================== */
+/* APP LABEL COLOR VARIANTS (changes per page)       */
+/* ================================================== */
+
+/* Default invoicer page - dark green */
+.app-label.invoicer {
+  background-color: darkgreen;
+}
+
+/* Gmailer page - dark blue */
+.app-label.gmailer {
+  background-color: darkblue;
+}
+
+/* ================================================== */
+/* PAGE CONTENT CONTAINERS (multi-page system)       */
+/* ================================================== */
+
+/* Each page is a container div that can be shown/hidden */
+.page-content {
+  width: 100%;
+  /* Display toggled by JavaScript: block = visible, none = hidden */
+}
+
 /* Scrollable content section */
 .leedz-form-section {
   flex: 1 1 auto;     /* Grow to fill available space */
   display: flex;
   flex-direction: column;
-  overflow-y: auto;   /* Scroll if content overflows */
+  overflow-y: auto;   /* Scroll if content overflows - main scrollbar for entire page */
   min-height: 0;      /* Prevent flexbox overflow issues */
   padding: 10px;
   height:auto;
-  max-height:75vh;
+  max-height:75vh;    /* REVERTED: Back to original 75vh */
   width: 98%;
   margin: 0 auto;
   box-sizing: border-box;
@@ -129,8 +197,8 @@ html, body {
   flex: 1;
   margin: 2px 0 20px 0;
   min-height: 400px;
-  max-height: calc(100vh - 200px); /* Keep display-win height constrained */
-  overflow-y: auto;
+  max-height: none; /* Remove height constraint to prevent inner scrollbar */
+  overflow-y: visible; /* No inner scrollbar - parent handles scrolling */
   border: 1px solid #ccc;
   border-radius: 4px;
 }
@@ -398,12 +466,16 @@ input.invalid {
 }
 
 
+/* Button wrapper - fixed position outside scrolling area, above footer */
 .button-wrapper {
   margin-top: 0px;
   display: flex;
   justify-content: space-between;  /* This will space them evenly */
   align-items: center;
-  padding: 6px 12px;  /* Optional: adds some margin on the sides */
+  padding: 20px 12px;
+  background-color: white; /* Ensure buttons have solid background */
+  /* border-top: 1px solid #ddd; Subtle separator from scrolling content */
+  flex-shrink: 0; /* Prevent buttons from shrinking */
 }
 
 .sidebar-button {
@@ -428,7 +500,7 @@ input.invalid {
 
 
 .sidebar-button:active {
-  transform: scale(0.8);
+  transform: scale(0.98); /* Subtle 2% reduction on click */
 }
 
 
@@ -680,4 +752,128 @@ input.invalid {
 /* Internet Explorer */
 .leedz-sidebar :-ms-input-placeholder {
   color: lightgray !important;
+}
+
+/* ================================================== */
+/* MCP PAGE SPECIFIC STYLES (Gmail OAuth controls)   */
+/* ================================================== */
+
+/* Explanation text beneath header */
+.mcp-explanation {
+  padding: 10px;
+  font-weight: 400;
+  color: black;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* Container for all MCP control elements */
+.mcp-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;              /* Spacing between elements */
+  padding: 10px;
+}
+
+/* MCP text inputs (host/port) - use full width */
+.mcp-controls input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Status display area - shows connection/auth messages */
+#mcp-status {
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.6; /* More spacing between lines */
+  border-radius: 4px;
+  min-height: 40px;
+  border: 1px solid #ddd;
+  margin-top: 10px;
+  background-color: #f9f9f9; /* Default neutral background */
+  color: #333;
+}
+
+/* Status state classes - applied dynamically by JavaScript */
+#mcp-status.status-checking {
+  background-color: #f0f0f0;
+  color: black;
+  border-color: #ccc;
+}
+
+#mcp-status.status-success {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border-color: #a5d6a7;
+}
+
+#mcp-status.status-error {
+  background-color: #ffebee;
+  color: #c62828;
+  border-color: #ef9a9a;
+}
+
+#mcp-status.status-warning {
+  background-color: #fff3cd;
+  color: #856404;
+  border-color: #ffd54f;
+}
+
+/* Enable Gmail button - styled to match MCP page theme */
+#enable-gmail-btn {
+  background-color: darkblue; /* Match MCP app-label color */
+  color: white;               /* White text */
+  font-weight: 600;
+  padding: 12px 20px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+/* Hover state - slightly lighter blue */
+#enable-gmail-btn:hover:not(:disabled) {
+  background-color: #0000cd; /* Medium blue - lighter than darkblue */
+}
+
+/* Active/pressed state */
+#enable-gmail-btn:active:not(:disabled) {
+  background-color: #00008b; /* Darker blue when clicked */
+}
+
+/* Disabled state - when MCP server not connected */
+#enable-gmail-btn:disabled {
+  background-color: #cccccc; /* Gray background */
+  color: #666666;            /* Darker gray text */
+  cursor: not-allowed;       /* Show not-allowed cursor */
+  opacity: 0.6;
+}
+
+/* ================================================== */
+/* TOAST NOTIFICATIONS                                */
+/* ================================================== */
+
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 16px;
+  border-radius: 4px;
+  color: white;
+  font-weight: 500;
+  z-index: 10000;
+  max-width: 300px;
+  word-wrap: break-word;
+}
+
+.toast-success {
+  background-color: #28a745;
+}
+
+.toast-error {
+  background-color: #dc3545;
+}
+
+.toast-info {
+  background-color: #17a2b8;
 }
