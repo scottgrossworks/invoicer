@@ -173,10 +173,24 @@ const response = await fetch('http://localhost:1234/v1/chat/completions', {
 - Supports `initialize`, `tools/list`, `tools/call`, `prompts/list`, `resources/list`
 
 ### Natural Language Processing
+The MCP server uses Claude API as a **natural language → HTTP compiler**. The LLM is essentially a code generator - it generates executable HTTP protocol requests instead of traditional programming code. When a user says "find bookings about conference", the LLM compiles this to `GET /bookings/search/conference`, transforming natural language into executable HTTP code.
+
+The system prompt serves as the compiler specification, documenting available endpoints (GET /clients, POST /bookings, etc.) and their parameters. Claude reads this API documentation and translates user intent into the appropriate HTTP request with correct method, endpoint, and parameters - no hardcoded mapping logic required.
+
+**Architecture Flow:**
+1. Claude Desktop calls MCP server as a plugin/tool with natural language request
+2. MCP server sends request to Claude API with system prompt for compilation
+3. Claude API returns HTTP request structure (method, endpoint, params)
+4. **MCP server executes the HTTP request** against localhost:3000 database API
+5. MCP server returns raw JSON results to Claude Desktop
+6. Claude Desktop formats/analyzes results for user presentation
+
+The MCP server acts as the **execution harness** - it orchestrates the LLM compilation step and then runs the generated HTTP code locally. Claude API never touches localhost; it only provides the HTTP structure. The MCP server bridges the remote LLM compiler with the local database server.
+
 ```javascript
-// Translates natural language to API calls using Claude API
-const action = await translateWithClaude(userMessage);
-const result = await executeHttpRequest(action);
+// MCP server orchestrates: compile, then execute
+const action = await translateWithClaude(userMessage);  // Step 2-3: LLM compiles
+const result = await executeHttpRequest(action);        // Step 4: MCP executes
 ```
 
 ### Configuration Structure

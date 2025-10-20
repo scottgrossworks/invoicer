@@ -344,7 +344,7 @@ class PDFSettingsPage {
   /**
    * Show status message
    * @param {string} message - Message to show
-   * @param {string} type - Message type (success, error)
+   * @param {string} type - Message type (success, error, info)
    */
   showMessage(message, type = 'info') {
     // Create message element if it doesn't exist
@@ -352,35 +352,25 @@ class PDFSettingsPage {
     if (!messageEl) {
       messageEl = document.createElement('div');
       messageEl.id = 'statusMessage';
-      messageEl.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 12px 20px;
-        border-radius: 6px;
-        font-weight: 500;
-        z-index: 1000;
-        transition: opacity 0.3s;
-      `;
       document.body.appendChild(messageEl);
     }
 
-    // Style based on type
-    const colors = {
-      success: { bg: '#10b981', text: 'white' },
-      error: { bg: '#ef4444', text: 'white' },
-      info: { bg: '#3b82f6', text: 'white' }
-    };
+    // Clear existing type classes
+    messageEl.classList.remove('status-message-success', 'status-message-error', 'status-message-info');
 
-    const color = colors[type] || colors.info;
-    messageEl.style.backgroundColor = color.bg;
-    messageEl.style.color = color.text;
+    // Add appropriate type class
+    const typeClass = `status-message-${type}`;
+    messageEl.classList.add(typeClass);
+
+    // Set message text
     messageEl.textContent = message;
-    messageEl.style.opacity = '1';
+
+    // Make visible
+    messageEl.classList.add('status-message-visible');
 
     // Auto-hide after 3 seconds
     setTimeout(() => {
-      messageEl.style.opacity = '0';
+      messageEl.classList.remove('status-message-visible');
     }, 3000);
   }
 }

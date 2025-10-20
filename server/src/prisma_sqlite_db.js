@@ -25,31 +25,58 @@ class Prisma_Sqlite_DB extends Leedz_DB {
 
   // Client operations
   async createClient(data) {
+    // Separate valid fields from extra fields
+    const allowedFields = ['name', 'email', 'phone', 'company', 'clientNotes'];
+    const sanitizedData = {};
+    const extraFields = {};
+
+    for (const field in data) {
+      if (allowedFields.includes(field)) {
+        sanitizedData[field] = data[field];
+      } else {
+        extraFields[field] = data[field];
+      }
+    }
+
+    // If extra fields exist, append them to clientNotes
+    if (Object.keys(extraFields).length > 0) {
+      const extraFieldsText = Object.entries(extraFields)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join('\n');
+
+      const existingNotes = sanitizedData.clientNotes || '';
+      sanitizedData.clientNotes = existingNotes
+        ? `${existingNotes}\n\n--- Additional Fields ---\n${extraFieldsText}`
+        : `--- Additional Fields ---\n${extraFieldsText}`;
+
+      console.error(`[DB] Extra fields moved to clientNotes: ${Object.keys(extraFields).join(', ')}`);
+    }
+
     let existingClient = null;
 
     // 1. Try to find by email if available
-    if (data.email) {
+    if (sanitizedData.email) {
       existingClient = await this.prisma.client.findUnique({
-        where: { email: data.email },
+        where: { email: sanitizedData.email },
       });
     }
 
     // 2. If no client found by email, try to find by name and phone if both are available
-    if (!existingClient && data.name && data.phone) {
+    if (!existingClient && sanitizedData.name && sanitizedData.phone) {
       existingClient = await this.prisma.client.findFirst({
         where: {
-          name: data.name,
-          phone: data.phone,
+          name: sanitizedData.name,
+          phone: sanitizedData.phone,
         },
       });
     }
 
     // 3. If no client found by email or by name/phone, try to find by name and email (even if email was not primary search)
-    if (!existingClient && data.name && data.email) {
+    if (!existingClient && sanitizedData.name && sanitizedData.email) {
       existingClient = await this.prisma.client.findFirst({
         where: {
-          name: data.name,
-          email: data.email,
+          name: sanitizedData.name,
+          email: sanitizedData.email,
         },
       });
     }
@@ -58,11 +85,11 @@ class Prisma_Sqlite_DB extends Leedz_DB {
       // Update existing client
       return await this.prisma.client.update({
         where: { id: existingClient.id },
-        data,
+        data: sanitizedData,
       });
     } else {
       // Create new client
-      return await this.prisma.client.create({ data });
+      return await this.prisma.client.create({ data: sanitizedData });
     }
   }
 
@@ -83,16 +110,51 @@ class Prisma_Sqlite_DB extends Leedz_DB {
     }
 
     if (filters?.name) {
-      where.name = { contains: filters.name, mode: 'insensitive' };
+      where.name = { contains: filters.name };
     }
 
     return await this.prisma.client.findMany({ where });
   }
 
   async updateClient(id, data) {
+    // Separate valid fields from extra fields
+    const allowedFields = ['name', 'email', 'phone', 'company', 'clientNotes'];
+    const sanitizedData = {};
+    const extraFields = {};
+
+    for (const field in data) {
+      if (allowedFields.includes(field)) {
+        sanitizedData[field] = data[field];
+      } else {
+        extraFields[field] = data[field];
+      }
+    }
+
+    // If extra fields exist, append them to clientNotes
+    if (Object.keys(extraFields).length > 0) {
+      // Get existing client to preserve their notes
+      const existingClient = await this.prisma.client.findUnique({
+        where: { id }
+      });
+
+      const extraFieldsText = Object.entries(extraFields)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join('\n');
+
+      const existingNotes = sanitizedData.clientNotes !== undefined
+        ? sanitizedData.clientNotes
+        : (existingClient?.clientNotes || '');
+
+      sanitizedData.clientNotes = existingNotes
+        ? `${existingNotes}\n\n--- Additional Fields ---\n${extraFieldsText}`
+        : `--- Additional Fields ---\n${extraFieldsText}`;
+
+      console.error(`[DB] Extra fields moved to clientNotes: ${Object.keys(extraFields).join(', ')}`);
+    }
+
     return await this.prisma.client.update({
       where: { id },
-      data
+      data: sanitizedData
     });
   }
 
@@ -258,6 +320,7 @@ class Prisma_Sqlite_DB extends Leedz_DB {
 
   // 9/30/2025: Enhanced getBookings() with date range filtering to improve MCP server performance
   // This reduces the amount of data transferred when querying bookings by date ranges
+  // 10/6/2025: Added clientEmail filtering to enable querying by client email
   async getBookings(filters) {
     let where = {};
 
@@ -275,6 +338,13 @@ class Prisma_Sqlite_DB extends Leedz_DB {
 
     if (filters?.startDate) {
       where.startDate = filters.startDate;
+    }
+
+    // 10/6/2025: Client email filtering - filter by client.email using Prisma relation where
+    if (filters?.clientEmail) {
+      where.client = {
+        email: filters.clientEmail
+      };
     }
 
     // 9/30/2025: Date range filtering - filter by startDate >= startDateFrom
@@ -305,6 +375,26 @@ class Prisma_Sqlite_DB extends Leedz_DB {
 
     return await this.prisma.booking.findMany({
       where,
+      include: {
+        client: true
+      }
+    });
+  }
+
+  /**
+   * Search bookings by keyword across title, description, and notes
+   * @param {string} keyword - Search term to match (case-insensitive)
+   * @returns {Promise<Array>} Array of booking objects matching the keyword
+   */
+  async searchBookings(keyword) {
+    return await this.prisma.booking.findMany({
+      where: {
+        OR: [
+          { title: { contains: keyword } },
+          { description: { contains: keyword } },
+          { notes: { contains: keyword } }
+        ]
+      },
       include: {
         client: true
       }

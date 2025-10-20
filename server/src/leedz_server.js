@@ -263,15 +263,18 @@ app.post("/bookings", asyncRoute(async (req, res) => {
 /**
  * GET /bookings
  * Retrieves bookings from database with optional filtering
- * Supports query parameters: clientId, status, startDateFrom, startDateTo
+ * Supports query parameters: clientId, status, startDateFrom, startDateTo, clientEmail
  * 9/30/2025: Added date range filtering (startDateFrom, startDateTo) to improve MCP performance
+ * 10/6/2025: Added clientEmail filtering to enable querying by client email
  * Example: GET /bookings?startDateFrom=2025-01-01&startDateTo=2025-03-31
+ * Example: GET /bookings?clientEmail=john@example.com
  */
 app.get("/bookings", asyncRoute(async (req, res) => {
-  const { clientId, status, startDateFrom, startDateTo } = req.query;
+  const { clientId, status, startDateFrom, startDateTo, clientEmail } = req.query;
 
   // 9/30/2025: Build filters object with date range support
-  const filters = { clientId, status };
+  // 10/6/2025: Added clientEmail to filters
+  const filters = { clientId, status, clientEmail };
 
   // 9/30/2025: Convert date string parameters to Date objects if provided
   if (startDateFrom) {
@@ -300,6 +303,16 @@ app.get("/bookings/:id", asyncRoute(async (req, res) => {
 
   res.status(200).json(booking);
 }, "GET /bookings/:id"));
+
+/**
+ * GET /bookings/search/:keyword
+ * Searches bookings by keyword across title, description, and notes
+ */
+app.get("/bookings/search/:keyword", asyncRoute(async (req, res) => {
+  const { keyword } = req.params;
+  const results = await db.searchBookings(keyword);
+  res.status(200).json(results);
+}, "GET /bookings/search/:keyword"));
 
 /**
  * PUT /bookings/:id

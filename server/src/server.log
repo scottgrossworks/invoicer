@@ -1881,3 +1881,562 @@ Argument `[32mstatus[39m` must not be [31mnull[39m.
 [2025-10-06T21:04:38.560Z] GET /config
 [2025-10-06T21:10:43.672Z] GET /config
 [2025-10-06T21:10:43.679Z] GET /config
+[2025-10-06T23:10:29.223Z] GET /style.css
+[2025-10-06T23:13:33.643Z] GET /config
+[2025-10-06T23:13:33.651Z] GET /config
+[2025-10-07T03:11:37.244Z] Received SIGINT, shutting down gracefully...
+[2025-10-07T03:23:18.148Z] Database connected successfully
+[2025-10-07T03:23:18.152Z] ! Local API running on http://localhost:3000
+[2025-10-07T03:36:06.093Z] GET /bookings
+[2025-10-07T03:39:56.159Z] DELETE /bookings/cmfx9lrtg0002nm5tbaw0limm
+[2025-10-07T03:40:03.178Z] DELETE /bookings/cmfx9lvjz0003nm5tg8u3777f
+[2025-10-07T03:40:23.386Z] DELETE /bookings/cmfx9m2x00004nm5ta3byjeze
+[2025-10-07T03:40:58.375Z] DELETE /bookings/cmfx9m8ti0005nm5tbbt0skq3
+[2025-10-07T03:41:18.577Z] Received SIGINT, shutting down gracefully...
+[2025-10-07T03:41:20.514Z] Database connected successfully
+[2025-10-07T03:41:20.519Z] ! Local API running on http://localhost:3000
+[2025-10-07T03:59:38.264Z] GET /bookings/search/Sunshine%20Kids
+[2025-10-07T03:59:38.284Z] GET /bookings/search/:keyword failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.booking.findMany()`[22m invocation in[39m
+[4mC:\Users\Scott\DESKTOP\WKG\INVOICER\server\src\prisma_sqlite_db.js:328:38[24m
+
+  [2m[90m325[39m  * @returns [34m{[39mPromise<Array>[34m}[39m Array [36mof[39m booking objects matching the keyword[22m
+  [2m[90m326[39m  */[22m
+  [2m[90m327[39m [36masync[39m [36msearchBookings[39m[34m([39mkeyword[34m)[39m [34m{[39m[22m
+[1m[31m→[39m[22m [2m[90m328[39m   [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mbooking[34m.[39m[36mfindMany[39m[34m([39m[22m{
+          where: {
+            OR: [
+              {
+                title: {
+                  contains: "Sunshine Kids",
+                  mode: "insensitive"
+                }
+              },
+              {
+                description: {
+                  contains: "Sunshine Kids",
+                  mode: "insensitive"
+                }
+              },
+              {
+                notes: {
+                  contains: "Sunshine Kids",
+                  mode: "insensitive"
+                }
+              }
+            ]
+          },
+          include: {
+            client: true
+          }
+        }[2m)[22m
+
+Unknown argument `[31mmode[39m`. Did you mean `[32mlte[39m`? Available options are listed in [32mgreen[39m.
+    at wn (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.searchBookings (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\src\prisma_sqlite_db.js:328:12)
+    at async C:\Users\Scott\DESKTOP\WKG\INVOICER\server\src\leedz_server.js:313:19
+    at async C:\Users\Scott\DESKTOP\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-10-07T03:59:45.032Z] GET /bookings/search/Sunshine%20Kids
+[2025-10-07T03:59:45.038Z] GET /bookings/search/:keyword failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.booking.findMany()`[22m invocation in[39m
+[4mC:\Users\Scott\DESKTOP\WKG\INVOICER\server\src\prisma_sqlite_db.js:328:38[24m
+
+  [2m[90m325[39m  * @returns [34m{[39mPromise<Array>[34m}[39m Array [36mof[39m booking objects matching the keyword[22m
+  [2m[90m326[39m  */[22m
+  [2m[90m327[39m [36masync[39m [36msearchBookings[39m[34m([39mkeyword[34m)[39m [34m{[39m[22m
+[1m[31m→[39m[22m [2m[90m328[39m   [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mbooking[34m.[39m[36mfindMany[39m[34m([39m[22m{
+          where: {
+            OR: [
+              {
+                title: {
+                  contains: "Sunshine Kids",
+                  mode: "insensitive"
+                }
+              },
+              {
+                description: {
+                  contains: "Sunshine Kids",
+                  mode: "insensitive"
+                }
+              },
+              {
+                notes: {
+                  contains: "Sunshine Kids",
+                  mode: "insensitive"
+                }
+              }
+            ]
+          },
+          include: {
+            client: true
+          }
+        }[2m)[22m
+
+Unknown argument `[31mmode[39m`. Did you mean `[32mlte[39m`? Available options are listed in [32mgreen[39m.
+    at wn (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.searchBookings (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\src\prisma_sqlite_db.js:328:12)
+    at async C:\Users\Scott\DESKTOP\WKG\INVOICER\server\src\leedz_server.js:313:19
+    at async C:\Users\Scott\DESKTOP\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-10-07T03:59:52.806Z] GET /clients?name=Laura%20Mazariegos
+[2025-10-07T03:59:52.811Z] GET /clients failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.client.findMany()`[22m invocation in[39m
+[4mC:\Users\Scott\DESKTOP\WKG\INVOICER\server\src\prisma_sqlite_db.js:89:37[24m
+
+  [2m[90m86[39m   where[34m.[39mname = [34m{[39m contains[34m:[39m filters[34m.[39mname[34m,[39m mode[34m:[39m [1m[32m'insensitive'[39m[22m[2m [34m}[39m[34m;[39m[22m
+  [2m[90m87[39m [34m}[39m[22m
+  [2m[90m88[39m [22m
+[1m[31m→[39m[22m [2m[90m89[39m [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mclient[34m.[39m[36mfindMany[39m[34m([39m[22m{
+       where: {
+         name: {
+           contains: "Laura Mazariegos",
+           [31mmode[39m: "insensitive",
+           [31m~~~~[39m
+     [32m?[39m     [32mequals[39m[32m?[39m[32m: [39m[32mString | StringFieldRefInput[39m,
+     [32m?[39m     [32min[39m[32m?[39m[32m: [39m[32mString[][39m,
+     [32m?[39m     [32mnotIn[39m[32m?[39m[32m: [39m[32mString[][39m,
+     [32m?[39m     [32mlt[39m[32m?[39m[32m: [39m[32mString | StringFieldRefInput[39m,
+     [32m?[39m     [32mlte[39m[32m?[39m[32m: [39m[32mString | StringFieldRefInput[39m,
+     [32m?[39m     [32mgt[39m[32m?[39m[32m: [39m[32mString | StringFieldRefInput[39m,
+     [32m?[39m     [32mgte[39m[32m?[39m[32m: [39m[32mString | StringFieldRefInput[39m,
+     [32m?[39m     [32mstartsWith[39m[32m?[39m[32m: [39m[32mString | StringFieldRefInput[39m,
+     [32m?[39m     [32mendsWith[39m[32m?[39m[32m: [39m[32mString | StringFieldRefInput[39m,
+     [32m?[39m     [32mnot[39m[32m?[39m[32m: [39m[32mString | NestedStringFilter[39m
+         }
+       }
+     }[2m)[22m
+
+Unknown argument `[31mmode[39m`. Did you mean `[32mlte[39m`? Available options are listed in [32mgreen[39m.
+    at wn (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.getClients (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\src\prisma_sqlite_db.js:89:12)
+    at async C:\Users\Scott\DESKTOP\WKG\INVOICER\server\src\leedz_server.js:130:19
+    at async C:\Users\Scott\DESKTOP\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-10-07T04:00:01.396Z] GET /stats
+[2025-10-07T04:00:15.072Z] GET /bookings/search/Sunshine%20Kids
+[2025-10-07T04:00:15.075Z] GET /bookings/search/:keyword failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.booking.findMany()`[22m invocation in[39m
+[4mC:\Users\Scott\DESKTOP\WKG\INVOICER\server\src\prisma_sqlite_db.js:328:38[24m
+
+  [2m[90m325[39m  * @returns [34m{[39mPromise<Array>[34m}[39m Array [36mof[39m booking objects matching the keyword[22m
+  [2m[90m326[39m  */[22m
+  [2m[90m327[39m [36masync[39m [36msearchBookings[39m[34m([39mkeyword[34m)[39m [34m{[39m[22m
+[1m[31m→[39m[22m [2m[90m328[39m   [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mbooking[34m.[39m[36mfindMany[39m[34m([39m[22m{
+          where: {
+            OR: [
+              {
+                title: {
+                  contains: "Sunshine Kids",
+                  mode: "insensitive"
+                }
+              },
+              {
+                description: {
+                  contains: "Sunshine Kids",
+                  mode: "insensitive"
+                }
+              },
+              {
+                notes: {
+                  contains: "Sunshine Kids",
+                  mode: "insensitive"
+                }
+              }
+            ]
+          },
+          include: {
+            client: true
+          }
+        }[2m)[22m
+
+Unknown argument `[31mmode[39m`. Did you mean `[32mlte[39m`? Available options are listed in [32mgreen[39m.
+    at wn (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.searchBookings (C:\Users\Scott\DESKTOP\WKG\INVOICER\server\src\prisma_sqlite_db.js:328:12)
+    at async C:\Users\Scott\DESKTOP\WKG\INVOICER\server\src\leedz_server.js:313:19
+    at async C:\Users\Scott\DESKTOP\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-10-07T04:00:26.805Z] GET /bookings
+[2025-10-07T04:02:42.040Z] Received SIGINT, shutting down gracefully...
+[2025-10-07T04:02:46.822Z] Database connected successfully
+[2025-10-07T04:02:46.827Z] ! Local API running on http://localhost:3000
+[2025-10-07T04:03:35.832Z] GET /bookings/search/Sunshine%20Kids
+[2025-10-07T04:03:42.669Z] GET /bookings/search/Sunshine%20Kids
+[2025-10-07T04:03:50.090Z] GET /clients?name=Laura%20Mazariegos
+[2025-10-07T04:03:59.008Z] GET /bookings/search/Sunshine%20Kids
+[2025-10-07T04:05:52.826Z] GET /bookings?clientEmail=laura@sunshinekids.org
+[2025-10-07T04:08:05.153Z] PUT /bookings/cmfm0x5ms00016qut6l40vfio
+[2025-10-07T04:08:12.956Z] PUT /bookings/cmfm0x5ms00016qut6l40vfio
+[2025-10-07T04:08:21.884Z] DELETE /bookings/cmg6v4944001b4pubewl4mpyx
+[2025-10-07T04:09:39.462Z] PUT /bookings/cmfm0x5ms00016qut6l40vfio
+[2025-10-07T04:13:50.947Z] GET /config
+[2025-10-07T04:13:50.955Z] GET /config
+[2025-10-07T04:14:39.621Z] POST /clients
+[2025-10-07T04:14:39.647Z] POST /bookings
+[2025-10-07T04:14:39.669Z] POST /config
+[2025-10-07T04:15:28.069Z] GET /clients?name=Kyle%20Walker
+[2025-10-07T04:17:14.117Z] POST /clients
+[2025-10-07T04:17:14.138Z] POST /bookings
+[2025-10-07T04:17:14.160Z] POST /config
+[2025-10-07T04:19:39.720Z] POST /clients
+[2025-10-07T04:19:39.742Z] POST /bookings
+[2025-10-07T04:19:39.761Z] POST /config
+[2025-10-07T04:20:24.931Z] GET /clients?name=Imelda%20Rojas
+[2025-10-07T04:22:24.947Z] POST /clients
+[2025-10-07T04:22:24.973Z] POST /bookings
+[2025-10-07T04:22:24.993Z] POST /config
+[2025-10-07T04:22:51.327Z] GET /clients?name=Alyssa%20Ontiveros
+[2025-10-07T04:23:26.308Z] GET /clients?name=Alisha%20Cohen
+[2025-10-07T04:25:35.250Z] POST /clients
+[2025-10-07T04:25:35.274Z] POST /bookings
+[2025-10-07T04:25:35.293Z] POST /config
+[2025-10-07T04:27:39.655Z] POST /clients
+[2025-10-07T04:27:39.680Z] POST /bookings
+[2025-10-07T04:27:39.702Z] POST /config
+[2025-10-07T04:28:39.556Z] POST /clients
+[2025-10-07T04:28:39.571Z] POST /bookings
+[2025-10-07T04:28:39.589Z] POST /config
+[2025-10-07T04:28:52.578Z] POST /clients
+[2025-10-07T04:28:52.594Z] POST /bookings
+[2025-10-07T04:28:52.614Z] POST /config
+[2025-10-07T04:30:34.793Z] POST /clients
+[2025-10-07T04:30:34.815Z] POST /bookings
+[2025-10-07T04:30:34.836Z] POST /config
+[2025-10-07T04:31:07.459Z] GET /clients?name=Cynthia%20Cosme
+[2025-10-07T04:32:38.467Z] POST /clients
+[2025-10-07T04:32:38.493Z] POST /bookings
+[2025-10-07T04:32:38.512Z] POST /config
+[2025-10-07T04:33:24.620Z] POST /clients
+[2025-10-07T04:33:24.643Z] POST /bookings
+[2025-10-07T04:33:24.663Z] POST /config
+[2025-10-07T04:37:32.504Z] POST /clients
+[2025-10-07T04:37:57.674Z] POST /clients
+[2025-10-07T04:38:13.223Z] POST /clients
+[2025-10-07T04:38:13.239Z] POST /bookings
+[2025-10-07T04:38:13.256Z] POST /config
+[2025-10-07T04:40:22.379Z] GET /clients?name=Maryl%20Fleisher
+[2025-10-07T04:43:23.080Z] POST /clients
+[2025-10-07T04:43:23.098Z] POST /bookings
+[2025-10-07T04:43:23.115Z] POST /config
+[2025-10-07T04:44:07.596Z] POST /clients
+[2025-10-07T04:44:07.617Z] POST /bookings
+[2025-10-07T04:44:07.638Z] POST /config
+[2025-10-07T04:44:59.846Z] POST /clients
+[2025-10-07T04:44:59.866Z] POST /bookings
+[2025-10-07T04:44:59.886Z] POST /config
+[2025-10-07T04:46:20.830Z] POST /clients
+[2025-10-07T04:46:20.853Z] POST /bookings
+[2025-10-07T04:46:20.874Z] POST /config
+[2025-10-07T04:47:38.416Z] POST /clients
+[2025-10-07T04:47:38.436Z] POST /bookings
+[2025-10-07T04:47:38.454Z] POST /config
+[2025-10-07T05:58:30.227Z] POST /clients
+[2025-10-07T05:58:47.202Z] POST /clients
+[2025-10-07T05:58:59.598Z] POST /clients
+[2025-10-07T05:59:07.627Z] POST /clients
+[2025-10-07T05:59:07.647Z] POST /bookings
+[2025-10-07T05:59:07.673Z] POST /config
+[2025-10-07T05:59:33.402Z] POST /clients
+[2025-10-07T05:59:33.427Z] POST /bookings
+[2025-10-07T05:59:33.449Z] POST /config
+[2025-10-07T06:03:12.816Z] GET /config
+[2025-10-07T06:03:12.824Z] GET /config
+[2025-10-07T06:03:38.332Z] POST /clients
+[2025-10-07T06:03:38.352Z] POST /bookings
+[2025-10-07T06:03:38.372Z] POST /config
+[2025-10-07T06:06:30.521Z] POST /clients
+[2025-10-07T06:06:30.547Z] POST /bookings
+[2025-10-07T06:06:30.565Z] POST /config
+[2025-10-07T06:10:17.115Z] POST /clients
+[2025-10-07T06:10:17.136Z] POST /bookings
+[2025-10-07T06:10:17.157Z] POST /config
+[2025-10-07T06:12:32.403Z] POST /clients
+[2025-10-07T06:12:32.422Z] POST /bookings
+[2025-10-07T06:12:32.444Z] POST /config
+[2025-10-07T06:15:00.285Z] POST /clients
+[2025-10-07T06:15:00.309Z] POST /bookings
+[2025-10-07T06:15:00.329Z] POST /config
+[2025-10-07T06:16:14.795Z] POST /clients
+[2025-10-07T06:16:14.813Z] POST /bookings
+[2025-10-07T06:16:14.832Z] POST /config
+[2025-10-07T06:18:24.721Z] POST /clients
+[2025-10-07T06:18:24.745Z] POST /bookings
+[2025-10-07T06:18:24.762Z] POST /config
+[2025-10-07T06:18:59.001Z] POST /clients
+[2025-10-07T06:18:59.023Z] POST /bookings
+[2025-10-07T06:18:59.045Z] POST /config
+[2025-10-07T06:21:05.416Z] POST /clients
+[2025-10-07T06:21:14.010Z] POST /clients
+[2025-10-07T06:21:16.071Z] POST /clients
+[2025-10-07T06:21:19.738Z] POST /clients
+[2025-10-07T06:21:19.755Z] POST /bookings
+[2025-10-07T06:21:19.774Z] POST /config
+[2025-10-07T06:21:26.172Z] POST /clients
+[2025-10-07T06:21:26.187Z] POST /bookings
+[2025-10-07T06:21:26.206Z] POST /config
+[2025-10-07T06:22:10.211Z] POST /clients
+[2025-10-07T06:22:10.235Z] POST /bookings
+[2025-10-07T06:22:10.254Z] POST /config
+[2025-10-07T06:23:28.590Z] POST /clients
+[2025-10-07T06:23:28.615Z] POST /bookings
+[2025-10-07T06:23:28.634Z] POST /config
+[2025-10-07T06:24:06.406Z] POST /clients
+[2025-10-07T06:24:06.425Z] POST /bookings
+[2025-10-07T06:24:06.442Z] POST /config
+[2025-10-07T06:25:49.007Z] POST /clients
+[2025-10-07T06:25:49.034Z] POST /bookings
+[2025-10-07T06:25:49.053Z] POST /config
+[2025-10-07T06:28:09.205Z] POST /clients
+[2025-10-07T06:28:09.229Z] POST /bookings
+[2025-10-07T06:28:09.251Z] POST /config
+[2025-10-07T06:29:25.135Z] GET /bookings
+[2025-10-07T16:35:25.645Z] POST /clients
+[2025-10-07T16:35:25.681Z] POST /bookings
+[2025-10-07T16:35:25.710Z] POST /config
+[2025-10-07T16:37:51.921Z] GET /bookings/search/birthday
+[2025-10-07T16:40:41.935Z] PUT /bookings/cmg5reqwr000h4pubeguk6cf1
+[2025-10-07T16:41:17.430Z] GET /bookings/cmg6udmga00184pubshz1d2om
+[2025-10-07T16:42:56.872Z] PUT /bookings/cmg6udmga00184pubshz1d2om
+[2025-10-07T16:44:44.665Z] GET /bookings/cmg6u8yi400144pubmrdgll2n
+[2025-10-07T16:45:19.643Z] PUT /bookings/cmg6u8yi400144pubmrdgll2n
+[2025-10-07T16:46:26.019Z] GET /bookings/search/birthday
+[2025-10-07T17:02:47.868Z] GET /bookings/search/Esperanza%20Garcia%20daughter's%20first%20birthday%20party
+[2025-10-07T17:02:55.294Z] GET /bookings?clientEmail=esperanzagarcia29@gmail.com
+[2025-10-07T17:03:06.097Z] GET /bookings?clientEmail=vcmullen23@gmail.com
+[2025-10-07T17:08:24.713Z] GET /bookings?clientEmail=doughboiwizz@gmail.com
+[2025-10-07T17:10:29.762Z] GET /bookings?clientEmail=doughboiwizz@gmail.com
+[2025-10-07T18:06:22.123Z] GET /bookings?clientEmail=falafelgirl993@gmail.com
+[2025-10-07T18:08:19.609Z] GET /bookings?clientEmail=ajimobiaa@icloud.com
+[2025-10-07T18:09:14.087Z] GET /bookings?clientEmail=liz@gmajormgmt.com
+[2025-10-07T18:11:13.588Z] GET /bookings?clientEmail=miss.privas@yahoo.com
+[2025-10-07T18:13:27.326Z] GET /bookings?clientEmail=miss.privas@yahoo.com
+[2025-10-07T18:32:27.227Z] GET /bookings/search/birthday
+[2025-10-08T17:26:25.970Z] GET /stats
+[2025-10-08T17:31:05.043Z] GET /bookings?startDateFrom=2022-11-01&startDateTo=2022-11-30
+[2025-10-08T17:31:13.271Z] GET /bookings?startDateFrom=2023-11-01&startDateTo=2023-11-30
+[2025-10-08T17:31:24.850Z] GET /bookings?startDateFrom=2024-11-01&startDateTo=2024-11-30
+[2025-10-08T17:49:58.876Z] GET /bookings/search/birthday
+[2025-10-08T17:50:10.937Z] GET /bookings?startDateFrom=2022-12-01&startDateTo=2022-12-31
+[2025-10-08T17:50:20.682Z] GET /bookings?startDateFrom=2023-12-01&startDateTo=2023-12-31
+[2025-10-08T17:50:33.299Z] GET /bookings?startDateFrom=2024-12-01&startDateTo=2024-12-31
+[2025-10-12T17:29:32.456Z] GET /style.css
+[2025-10-13T17:09:24.413Z] Received SIGINT, shutting down gracefully...
+[2025-10-13T17:09:26.635Z] Database connected successfully
+[2025-10-13T17:09:26.643Z] ! Local API running on http://localhost:3000
+[2025-10-13T19:59:55.159Z] GET /stats
+[2025-10-13T20:49:09.601Z] Received SIGINT, shutting down gracefully...
+[2025-10-14T16:38:47.238Z] Database connected successfully
+[2025-10-14T16:38:47.246Z] ! Local API running on http://localhost:3000
+[2025-10-14T16:39:07.397Z] POST /clients
+[2025-10-14T16:39:18.683Z] POST /bookings
+[2025-10-14T16:44:28.889Z] POST /clients
+[2025-10-14T16:44:38.844Z] POST /bookings
+[2025-10-14T16:46:39.938Z] Received SIGINT, shutting down gracefully...
+[2025-10-14T16:46:41.627Z] Database connected successfully
+[2025-10-14T16:46:41.633Z] ! Local API running on http://localhost:3000
+[2025-10-14T16:48:46.069Z] GET /config
+[2025-10-14T16:48:46.086Z] GET /config
+[2025-10-14T16:50:20.166Z] POST /clients
+[2025-10-14T16:50:20.191Z] POST /bookings
+[2025-10-14T16:50:20.215Z] POST /config
+[2025-10-14T16:51:12.062Z] GET /clients?name=Erica%20Zollo
+[2025-10-14T16:51:20.968Z] GET /bookings?clientEmail=cmgg6hoqk001gff8o3w08pptz
+[2025-10-14T16:51:31.723Z] GET /bookings?clientEmail=ericalzollo@gmail.com
+[2025-10-14T16:51:44.929Z] GET /bookings?clientEmail=EricaLZollo@gmail.com
+[2025-10-14T16:53:07.975Z] GET /clients?email=EricaLZollo@gmail.com
+[2025-10-14T16:54:49.762Z] DELETE /bookings/cmgqslgsg0002bz6bkdlzffu2
+[2025-10-14T17:02:07.455Z] POST /clients
+[2025-10-14T17:02:07.485Z] POST /bookings
+[2025-10-14T17:02:07.501Z] POST /config
+[2025-10-14T17:04:17.218Z] POST /clients
+[2025-10-14T17:04:17.259Z] POST /bookings
+[2025-10-14T17:04:17.276Z] POST /config
+[2025-10-14T17:19:28.973Z] POST /clients
+[2025-10-14T17:19:28.996Z] POST /bookings
+[2025-10-14T17:19:29.018Z] POST /config
+[2025-10-14T17:34:29.404Z] POST /clients
+[2025-10-14T17:34:29.439Z] POST /bookings
+[2025-10-14T17:34:29.460Z] POST /config
+[2025-10-15T16:36:27.676Z] Database connected successfully
+[2025-10-15T16:36:27.685Z] ! Local API running on http://localhost:3000
+[2025-10-15T19:29:30.118Z] POST /clients
+[2025-10-15T19:29:30.238Z] POST /bookings
+[2025-10-15T19:29:30.274Z] POST /config
+[2025-10-15T19:32:21.003Z] POST /clients
+[2025-10-15T19:32:21.030Z] POST /bookings
+[2025-10-15T19:32:21.059Z] POST /config
+[2025-10-16T17:11:19.336Z] Database connected successfully
+[2025-10-16T17:11:19.353Z] ! Local API running on http://localhost:3000
+[2025-10-16T17:12:22.544Z] POST /clients
+[2025-10-16T17:12:22.650Z] POST /bookings
+[2025-10-16T17:12:22.686Z] POST /config
+[2025-10-16T17:14:35.263Z] POST /clients
+[2025-10-16T17:14:35.292Z] POST /bookings
+[2025-10-16T17:14:35.318Z] POST /config
+[2025-10-16T19:30:41.720Z] POST /clients
+[2025-10-16T19:30:41.769Z] POST /bookings
+[2025-10-16T19:30:41.798Z] POST /config
+[2025-10-16T19:30:50.303Z] POST /clients
+[2025-10-16T19:30:50.330Z] POST /bookings
+[2025-10-16T19:30:50.351Z] POST /config
+[2025-10-16T19:32:32.690Z] GET /clients?name=SeDiver
+[2025-10-16T19:50:11.462Z] POST /clients
+[2025-10-16T19:50:11.590Z] POST /clients failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.client.create()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:65:39[24m
+
+  [2m[90m62[39m   [34m}[39m[34m)[39m[34m;[39m[22m
+  [2m[90m63[39m [34m}[39m [36melse[39m [34m{[39m[22m
+  [2m[90m64[39m   [90m// Create new client[39m[22m
+[1m[31m→[39m[22m [2m[90m65[39m   [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mclient[34m.[39m[36mcreate[39m[34m([39m[22m{
+         data: {
+           name: "Nancy Amenero",
+           [31mtitle[39m: "Vice President West Zone",
+           [31m~~~~~[39m
+           company: "Little Caesar Enterprises, Inc.",
+           phone: "657-366-0510",
+           email: "Nancy.Amenero@LCEcorp.com",
+           address: "120 South Chaparral Ct., Suite 130, Anaheim, CA 92808",
+       [32m?[39m   [32mid[39m[32m?[39m[32m: [39m[32mString[39m,
+       [32m?[39m   [32mclientNotes[39m[32m?[39m[32m: [39m[32mString | Null[39m,
+       [32m?[39m   [32mcreatedAt[39m[32m?[39m[32m: [39m[32mDateTime[39m,
+       [32m?[39m   [32mupdatedAt[39m[32m?[39m[32m: [39m[32mDateTime[39m,
+       [32m?[39m   [32mbookings[39m[32m?[39m[32m: [39m[32mBookingCreateNestedManyWithoutClientInput[39m
+         }
+       }[2m)[22m
+
+Unknown argument `[31mtitle[39m`. Available options are listed in [32mgreen[39m.
+    at wn (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createClient (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:65:14)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:117:18
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-10-16T19:51:13.030Z] POST /clients
+[2025-10-16T19:51:13.046Z] POST /clients failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.client.create()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:65:39[24m
+
+  [2m[90m62[39m   [34m}[39m[34m)[39m[34m;[39m[22m
+  [2m[90m63[39m [34m}[39m [36melse[39m [34m{[39m[22m
+  [2m[90m64[39m   [90m// Create new client[39m[22m
+[1m[31m→[39m[22m [2m[90m65[39m   [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mclient[34m.[39m[36mcreate[39m[34m([39m[22m{
+         data: {
+           name: "Nancy Amenero",
+           [31mtitle[39m: "Vice President West Zone",
+           [31m~~~~~[39m
+           company: "Little Caesar Enterprises, Inc.",
+           phone: "657-366-0510",
+           email: "Nancy.Amenero@LCEcorp.com",
+           address: "120 South Chaparral Ct., Suite 130, Anaheim, CA 92808",
+       [32m?[39m   [32mid[39m[32m?[39m[32m: [39m[32mString[39m,
+       [32m?[39m   [32mclientNotes[39m[32m?[39m[32m: [39m[32mString | Null[39m,
+       [32m?[39m   [32mcreatedAt[39m[32m?[39m[32m: [39m[32mDateTime[39m,
+       [32m?[39m   [32mupdatedAt[39m[32m?[39m[32m: [39m[32mDateTime[39m,
+       [32m?[39m   [32mbookings[39m[32m?[39m[32m: [39m[32mBookingCreateNestedManyWithoutClientInput[39m
+         }
+       }[2m)[22m
+
+Unknown argument `[31mtitle[39m`. Available options are listed in [32mgreen[39m.
+    at wn (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createClient (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:65:14)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:117:18
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-10-16T19:53:59.386Z] POST /clients
+[2025-10-16T19:53:59.395Z] POST /clients failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.client.create()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:65:39[24m
+
+  [2m[90m62[39m   [34m}[39m[34m)[39m[34m;[39m[22m
+  [2m[90m63[39m [34m}[39m [36melse[39m [34m{[39m[22m
+  [2m[90m64[39m   [90m// Create new client[39m[22m
+[1m[31m→[39m[22m [2m[90m65[39m   [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mclient[34m.[39m[36mcreate[39m[34m([39m[22m{
+         data: {
+           name: "Nancy Amenero",
+           company: "Little Caesar Enterprises, Inc.",
+           phone: "657-366-0510",
+           email: "Nancy.Amenero@LCEcorp.com",
+           [31mnotes[39m: "Vice President West Zone",
+           [31m~~~~~[39m
+           address: "120 South Chaparral Ct., Suite 130, Anaheim, CA 92808",
+       [32m?[39m   [32mid[39m[32m?[39m[32m: [39m[32mString[39m,
+       [32m?[39m   [32mclientNotes[39m[32m?[39m[32m: [39m[32mString | Null[39m,
+       [32m?[39m   [32mcreatedAt[39m[32m?[39m[32m: [39m[32mDateTime[39m,
+       [32m?[39m   [32mupdatedAt[39m[32m?[39m[32m: [39m[32mDateTime[39m,
+       [32m?[39m   [32mbookings[39m[32m?[39m[32m: [39m[32mBookingCreateNestedManyWithoutClientInput[39m
+         }
+       }[2m)[22m
+
+Unknown argument `[31mnotes[39m`. Did you mean `[32mname[39m`? Available options are listed in [32mgreen[39m.
+    at wn (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createClient (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:65:14)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:117:18
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-10-16T19:54:09.596Z] Received SIGINT, shutting down gracefully...
+[2025-10-16T19:54:10.989Z] Database connected successfully
+[2025-10-16T19:54:10.993Z] ! Local API running on http://localhost:3000
+[2025-10-16T19:55:50.819Z] POST /clients
+[2025-10-16T19:57:09.616Z] Received SIGINT, shutting down gracefully...
+[2025-10-16T19:57:23.070Z] Database connected successfully
+[2025-10-16T19:57:23.074Z] ! Local API running on http://localhost:3000
+[2025-10-16T19:59:54.970Z] POST /clients
+[2025-10-16T20:00:04.622Z] POST /clients
+[2025-10-16T20:00:24.284Z] POST /clients
+[2025-10-16T20:01:44.874Z] POST /clients
+[2025-10-16T20:02:26.375Z] POST /clients
+[2025-10-16T20:03:10.209Z] GET /clients?email=kevin.jackson@littlecaesars.com
+[2025-10-16T20:03:22.130Z] PUT /clients/cmgtujj65000014gld6lzqykz
+[2025-10-16T20:03:31.800Z] PUT /clients/cmgtujj65000014gld6lzqykz
+[2025-10-16T20:04:03.922Z] GET /clients?name=Kevin%20Jackson
+[2025-10-16T20:04:12.683Z] PUT /clients/cmgtujj65000014gld6lzqykz
+[2025-10-17T19:58:05.938Z] GET /stats
+[2025-10-17T20:29:02.504Z] POST /clients
+[2025-10-17T20:29:12.451Z] POST /clients
+[2025-10-17T20:29:23.394Z] POST /clients
+[2025-10-17T20:29:36.498Z] POST /clients
+[2025-10-17T20:29:50.732Z] POST /clients
+[2025-10-17T20:32:29.073Z] POST /clients
+[2025-10-17T20:38:54.281Z] POST /clients
+[2025-10-17T20:39:34.532Z] POST /clients
+[2025-10-17T20:39:41.256Z] POST /clients
+[2025-10-17T20:39:50.473Z] POST /clients
+[2025-10-17T20:41:09.863Z] POST /clients
+[2025-10-17T20:41:17.127Z] POST /clients
+[2025-10-17T20:45:44.488Z] POST /clients
+[2025-10-17T20:46:44.487Z] POST /clients
+[2025-10-17T20:50:23.506Z] POST /bookings
+[2025-10-17T22:04:48.844Z] GET /stats
+[2025-10-17T22:11:59.949Z] POST /clients
+[2025-10-17T22:12:09.856Z] POST /bookings
+[2025-10-17T22:20:14.248Z] POST /clients
+[2025-10-17T22:20:23.807Z] POST /bookings
+[2025-10-20T22:19:29.750Z] Received SIGINT, shutting down gracefully...
+[2025-10-20T22:19:33.906Z] Database connected successfully
+[2025-10-20T22:19:33.910Z] ! Local API running on http://localhost:3000
+[2025-10-20T22:35:51.941Z] GET /clients?email=musiclovephilosophy@gmail.com
+[2025-10-20T22:38:16.550Z] GET /clients?email=musiclovephilosophy@gmail.com
+[2025-10-20T22:38:58.128Z] GET /clients?email=musiclovephilosophy@gmail.com
+[2025-10-20T22:41:04.968Z] GET /clients?name=Andrea%20Cruz
+[2025-10-20T22:41:15.242Z] GET /bookings?clientEmail=cmg5sjm1k000k4pubii6elu17

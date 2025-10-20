@@ -43,12 +43,14 @@ class ClientFilters {
 
 // 9/30/2025: Added startDateFrom and startDateTo parameters to support date range filtering
 // This improves MCP server performance by reducing the amount of data transferred
+// 10/6/2025: Added clientEmail parameter to support filtering bookings by client email
 class BookingFilters {
-  constructor(clientId, status, startDateFrom, startDateTo) {
+  constructor(clientId, status, startDateFrom, startDateTo, clientEmail) {
     this.clientId = clientId;
     this.status = status;
     this.startDateFrom = startDateFrom; // Optional: Filter bookings with startDate >= this date
     this.startDateTo = startDateTo;     // Optional: Filter bookings with startDate <= this date
+    this.clientEmail = clientEmail;     // Optional: Filter bookings by client email address
   }
 }
 
@@ -130,14 +132,24 @@ class Leedz_DB {
   /**
    * Get bookings with optional filtering
    * 9/30/2025: Added date range filtering support to improve query performance
+   * 10/6/2025: Added clientEmail filtering to enable querying by client email
    * @param {Object} filters - Filter criteria
    * @param {string} [filters.clientId] - Filter by client ID
    * @param {string} [filters.status] - Filter by booking status
    * @param {Date|string} [filters.startDateFrom] - Filter bookings with startDate >= this date (inclusive)
    * @param {Date|string} [filters.startDateTo] - Filter bookings with startDate <= this date (inclusive)
+   * @param {string} [filters.clientEmail] - Filter bookings by client email address
    * @returns {Promise<Array>} Array of booking objects matching the filters
    */
   async getBookings(filters) { throw new Error('Method not implemented'); }
+
+  /**
+   * Search bookings by keyword across title, description, and notes
+   * @param {string} keyword - Search term to match (case-insensitive)
+   * @returns {Promise<Array>} Array of booking objects matching the keyword
+   */
+  async searchBookings(keyword) { throw new Error('Method not implemented'); }
+
   async updateBooking(id, data) { throw new Error('Method not implemented'); }
   async deleteBooking(id) { throw new Error('Method not implemented'); }
 

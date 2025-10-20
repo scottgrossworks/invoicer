@@ -138,7 +138,12 @@ html, body {
 /* Each page is a container div that can be shown/hidden */
 .page-content {
   width: 100%;
-  /* Display toggled by JavaScript: block = visible, none = hidden */
+  display: none; /* Hidden by default - JavaScript shows the default page */
+}
+
+/* Invoicer button wrapper - hidden by default */
+#invoicer-buttons {
+  display: none; /* Hidden by default - JavaScript shows when invoicer page is active */
 }
 
 /* Scrollable content section */
@@ -182,7 +187,7 @@ html, body {
   font-size: 14px;
   margin-top: 2px;
   margin-bottom: 2px;
-  border: 1px solid #ccc;
+  border: 1px solid silver;
   border-radius: 4px;
   box-sizing: border-box;
   position: relative; /* For arrow positioning */
@@ -199,7 +204,7 @@ html, body {
   min-height: 400px;
   max-height: none; /* Remove height constraint to prevent inner scrollbar */
   overflow-y: visible; /* No inner scrollbar - parent handles scrolling */
-  border: 1px solid #ccc;
+  border: 1px solid silver;
   border-radius: 4px;
 }
 
@@ -211,17 +216,17 @@ html, body {
 }
 
 .booking-table th {
-  background-color: #f5f5f5;
+  background-color: whitesmoke;
   padding: 8px;
   text-align: left;
-  border-bottom: 2px solid #ddd;
+  border-bottom: 2px solid gainsboro;
   font-weight: bold;
 }
 
 .booking-table td {
   padding: 6px 8px;
-  border-bottom: 1px solid #ddd;
-  border-right: 1px solid #ddd;
+  border-bottom: 1px solid gainsboro;
+  border-right: 1px solid gainsboro;
   vertical-align: top;
 }
 
@@ -252,7 +257,7 @@ html, body {
 }
 
 .booking-table input:focus {
-  background-color: #fff;
+  background-color: white;
   border: 1px solid #007cba;
   outline: none;
 }
@@ -280,7 +285,7 @@ html, body {
   display: block;
   font-size: 15px;
   font-weight: 600;
-  color: #666;
+  color: dimgray;
 }
 
 .status-bar {
@@ -474,7 +479,7 @@ input.invalid {
   align-items: center;
   padding: 20px 12px;
   background-color: white; /* Ensure buttons have solid background */
-  /* border-top: 1px solid #ddd; Subtle separator from scrolling content */
+  /* border-top: 1px solid gainsboro; Subtle separator from scrolling content */
   flex-shrink: 0; /* Prevent buttons from shrinking */
 }
 
@@ -596,7 +601,7 @@ input.invalid {
 }
 
 .settings-button:hover {
-  background-color: #ccc;
+  background-color: silver;
 }
 
 
@@ -789,7 +794,7 @@ input.invalid {
   line-height: 1.6; /* More spacing between lines */
   border-radius: 4px;
   min-height: 40px;
-  border: 1px solid #ddd;
+  border: 1px solid gainsboro;
   margin-top: 10px;
   background-color: #f9f9f9; /* Default neutral background */
   color: #333;
@@ -799,7 +804,7 @@ input.invalid {
 #mcp-status.status-checking {
   background-color: #f0f0f0;
   color: black;
-  border-color: #ccc;
+  border-color: silver;
 }
 
 #mcp-status.status-success {
@@ -833,20 +838,29 @@ input.invalid {
 
 /* Hover state - slightly lighter blue */
 #enable-gmail-btn:hover:not(:disabled) {
-  background-color: #0000cd; /* Medium blue - lighter than darkblue */
+  background-color: mediumblue;
 }
 
 /* Active/pressed state */
 #enable-gmail-btn:active:not(:disabled) {
-  background-color: #00008b; /* Darker blue when clicked */
+  background-color: darkblue;
 }
 
 /* Disabled state - when MCP server not connected */
 #enable-gmail-btn:disabled {
-  background-color: #cccccc; /* Gray background */
-  color: #666666;            /* Darker gray text */
-  cursor: not-allowed;       /* Show not-allowed cursor */
+  background-color: silver;
+  color: dimgray;
+  cursor: not-allowed;
   opacity: 0.6;
+}
+
+/* Enabled/Active state - after successful Gmail authorization */
+#enable-gmail-btn.gmail-enabled {
+  background-color: royalblue;
+}
+
+#enable-gmail-btn.gmail-enabled:hover:not(:disabled) {
+  background-color: rgb(54, 86, 180);
 }
 
 /* ================================================== */
@@ -871,9 +885,49 @@ input.invalid {
 }
 
 .toast-error {
-  background-color: #dc3545;
+  background-color: crimson;
 }
 
 .toast-info {
   background-color: #17a2b8;
+}
+
+/* ================================================== */
+/* STATUS MESSAGE (PDF Settings Page)                 */
+/* ================================================== */
+
+/* Base status message structure */
+#statusMessage {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+/* Visible state */
+#statusMessage.status-message-visible {
+  opacity: 1;
+}
+
+/* Success state */
+#statusMessage.status-message-success {
+  background-color: #10b981;
+  color: white;
+}
+
+/* Error state */
+#statusMessage.status-message-error {
+  background-color: #ef4444;
+  color: white;
+}
+
+/* Info state */
+#statusMessage.status-message-info {
+  background-color: #3b82f6;
+  color: white;
 }

@@ -12,9 +12,86 @@ import { getParsers } from './provider_registry.js';
 const PDF_SETTINGS_JS = './settings/PDF_settings.js';
 const PDF_RENDER_JS = 'js/render/PDF_render.js';
 
-
 const clientFields = Client.getFieldNames();
 const bookingFields = Booking.getFieldNames();
+
+// CONFIGURATION - Load defaultPage from invoicer_config.json
+let INVOICER_CONFIG = null;
+
+/**
+ * Load and validate invoicer_config.json
+ * @throws {Error} If config file missing or defaultPage not specified
+ */
+async function loadInvoicerConfig() {
+  try {
+    const configUrl = chrome.runtime.getURL('invoicer_config.json');
+    const response = await fetch(configUrl);
+
+    if (!response.ok) {
+      throw new Error(`Failed to load invoicer_config.json (HTTP ${response.status}).
+
+CONFIG FILE ERROR:
+==================
+Cannot find configuration file at: ${configUrl}
+
+This file is required for the Leedz Invoicer extension to run.
+Please ensure invoicer_config.json exists in the extension root directory.
+
+Extension will not initialize without valid configuration.`);
+    }
+
+    const config = await response.json();
+
+    // Validate that ui.defaultPage exists
+    if (!config.ui || !config.ui.defaultPage) {
+      throw new Error(`Invalid invoicer_config.json - missing required setting.
+
+CONFIG VALIDATION ERROR:
+========================
+The configuration file exists but is missing the required 'ui.defaultPage' setting.
+
+Expected structure in invoicer_config.json:
+{
+  "ui": {
+    "defaultPage": "gmailer"   // or "invoicer"
+  },
+  ...
+}
+
+Current config.ui value: ${JSON.stringify(config.ui, null, 2)}
+
+Please add the 'ui.defaultPage' setting to invoicer_config.json.
+Valid values: "gmailer" or "invoicer"
+
+Extension will not initialize without valid configuration.`);
+    }
+
+    // Validate that defaultPage has a valid value
+    const validPages = ['gmailer', 'invoicer'];
+    if (!validPages.includes(config.ui.defaultPage)) {
+      throw new Error(`Invalid invoicer_config.json - defaultPage has invalid value.
+
+CONFIG VALIDATION ERROR:
+========================
+The 'ui.defaultPage' setting has an invalid value: "${config.ui.defaultPage}"
+
+Valid values are: ${validPages.join(', ')}
+
+Please update invoicer_config.json to use one of these valid page names.
+
+Extension will not initialize without valid configuration.`);
+    }
+
+    INVOICER_CONFIG = config;
+    console.log(`Loaded config - default page: ${config.ui.defaultPage}`);
+
+    return config;
+
+  } catch (error) {
+    // Re-throw with original error message (already verbose)
+    throw error;
+  }
+}
 
 
 //////////////////// START LOGGING  /////////////////////
@@ -36,6 +113,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function initializeApp() {
   try {
+    // Load configuration FIRST - abort if missing or invalid
+    await loadInvoicerConfig();
+
     // Initialize state with persistence
     STATE = await StateFactory.create();
 
@@ -57,15 +137,13 @@ async function initializeApp() {
     // Wire up UI
     wireUI();
 
-    // MCP page is default - load config and check server on startup
-    await loadMcpConfigAndCheckServer();
-
-    // Do NOT run parsers on load - MCP page is default
-    // Parsers only run when user switches to invoicer page and clicks reload
-    // await reloadParsers();
+    // Initialize default page from config
+    switchToPage(INVOICER_CONFIG.ui.defaultPage);
   } catch (error) {
     console.error('Failed to initialize app:', error);
     log('Initialization failed');
+    // Re-throw to prevent extension from running with invalid config
+    throw error;
   }
 }
 
@@ -1059,7 +1137,7 @@ async function enableGmailSending() {
     // Change button to "Disable" state
     if (enableBtn) {
       enableBtn.textContent = 'Disable';
-      enableBtn.style.backgroundColor = 'coral';
+      enableBtn.classList.add('gmail-enabled');
     }
 
     console.log('Gmail authorization successful:', result);
@@ -1148,7 +1226,7 @@ function resetGmailUI() {
 
   if (enableBtn) {
     enableBtn.textContent = 'Enable Gmail Sending (1 hour)';
-    enableBtn.style.backgroundColor = '';
+    enableBtn.classList.remove('gmail-enabled');
   }
 }
 
@@ -1194,8 +1272,8 @@ async function onSave() {
   } catch (e) {
     logError('Save failed:', e);
     showToast('Save failed. You can still generate and preview invoices.', 'error');
-    console.error('Error details:', e);
-    console.error('State at time of failure:', JSON.stringify(STATE.toObject(), null, 2));
+    console.warn('Error details:', e);
+    // console.warn('State at time of failure:', JSON.stringify(STATE.toObject(), null, 2));
   }
 };
 
