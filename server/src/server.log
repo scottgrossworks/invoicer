@@ -2440,3 +2440,7 @@ Unknown argument `[31mnotes[39m`. Did you mean `[32mname[39m`? Available opt
 [2025-10-20T22:38:58.128Z] GET /clients?email=musiclovephilosophy@gmail.com
 [2025-10-20T22:41:04.968Z] GET /clients?name=Andrea%20Cruz
 [2025-10-20T22:41:15.242Z] GET /bookings?clientEmail=cmg5sjm1k000k4pubii6elu17
+[2025-10-20T22:45:52.834Z] GET /bookings/search/Cash%20Dinosaur%20theme%20party
+[2025-10-20T22:46:45.086Z] GET /stats
+[2025-10-20T22:46:51.447Z] GET /bookings?clientEmail=musiclovephilosophy@gmail.com
+[2025-10-20T22:54:11.047Z] GET /bookings/search/Alisha%20Cohen%20Holiday%20Party

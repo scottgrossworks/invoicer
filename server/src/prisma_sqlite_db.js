@@ -382,7 +382,11 @@ class Prisma_Sqlite_DB extends Leedz_DB {
   }
 
   /**
-   * Search bookings by keyword across title, description, and notes
+   * Search bookings by keyword across title, description, notes, client name, and client email
+   *
+   * ENHANCED 10/20/2025: Now searches both booking fields AND related client fields
+   * This allows queries like "Find bookings for Andrea Cruz" to work by searching client name
+   *
    * @param {string} keyword - Search term to match (case-insensitive)
    * @returns {Promise<Array>} Array of booking objects matching the keyword
    */
@@ -390,9 +394,15 @@ class Prisma_Sqlite_DB extends Leedz_DB {
     return await this.prisma.booking.findMany({
       where: {
         OR: [
+          // Booking fields
           { title: { contains: keyword } },
           { description: { contains: keyword } },
-          { notes: { contains: keyword } }
+          { notes: { contains: keyword } },
+          { location: { contains: keyword } },
+          // Client fields (nested relation search)
+          { client: { name: { contains: keyword } } },
+          { client: { email: { contains: keyword } } },
+          { client: { company: { contains: keyword } } }
         ]
       },
       include: {
