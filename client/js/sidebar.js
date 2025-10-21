@@ -264,25 +264,27 @@ async function reloadParsers() {
 
 /**
  * Show the loading spinner overlay
+ * Completely hides table to show only spinner on white background
  */
 function showLoadingSpinner() {
   const spinner = document.getElementById('loading_spinner');
   const table = document.getElementById('booking_table');
   if (spinner && table) {
-    table.style.opacity = '0.3';
+    table.style.display = 'none';
     spinner.style.display = 'block';
   }
 }
 
 /**
  * Hide the loading spinner overlay
+ * Restores table visibility when data is ready
  */
 function hideLoadingSpinner() {
   const spinner = document.getElementById('loading_spinner');
   const table = document.getElementById('booking_table');
   if (spinner && table) {
     spinner.style.display = 'none';
-    table.style.opacity = '1';
+    table.style.display = 'table';
   }
 }
 

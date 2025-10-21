@@ -14,7 +14,9 @@
       "Bash(git rm:*)",
       "Bash(npx prisma migrate reset:*)",
       "Bash(sqlite3:*)",
-      "Bash(npx prisma db push:*)"
+      "Bash(npx prisma db push:*)",
+      "Bash(tasklist)",
+      "Bash(findstr node)"
     ],
     "deny": [],
     "ask": []

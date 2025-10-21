@@ -213,19 +213,59 @@ app.get("/clients/:id/stats", asyncRoute(async (req, res) => {
 /**
  * POST /bookings
  * Creates a new booking in the database or updates existing duplicate
+ *
+ * ENHANCED 10/20/2025: Accepts EITHER:
+ *   1. clientId (direct booking creation)
+ *   2. Client details (name, email, etc.) - creates/finds client first, then creates booking
+ *
+ * This eliminates need for MCP server to make separate client creation calls.
  * Converts string dates to Date objects and validates booking data
  * Checks for duplicates based on clientId + location + startDate
  */
 app.post("/bookings", asyncRoute(async (req, res) => {
-  const bookingData = convertBookingDates(req.body);
+  let bookingData = convertBookingDates(req.body);
 
-  // Validate booking data
-  const validation = Booking.validate(bookingData);
-  if (!validation.isValid) {
-    return res.status(400).json({ error: "Validation failed", errors: validation.errors });
+  // STEP 1: Handle client creation if client details provided instead of clientId
+  if (!bookingData.clientId && (bookingData.name || bookingData.email)) {
+    // Extract client fields from booking data
+    const clientData = {
+      name: bookingData.name,
+      email: bookingData.email,
+      phone: bookingData.phone,
+      company: bookingData.company,
+      clientNotes: bookingData.clientNotes
+    };
+
+    // Validate client data
+    const clientValidation = Client.validate(clientData);
+    if (!clientValidation.isValid) {
+      return res.status(400).json({
+        error: "Client validation failed",
+        errors: clientValidation.errors
+      });
+    }
+
+    // Create or find existing client (createClient handles find-or-create logic)
+    const client = await db.createClient(clientData);
+
+    // Add clientId to booking data
+    bookingData.clientId = client.id;
+
+    // Remove client fields from booking data to avoid Prisma errors
+    delete bookingData.name;
+    delete bookingData.email;
+    delete bookingData.phone;
+    delete bookingData.company;
+    delete bookingData.clientNotes;
   }
 
-  // Check for duplicate bookings
+  // STEP 2: Validate booking data (now with clientId)
+  const validation = Booking.validate(bookingData);
+  if (!validation.isValid) {
+    return res.status(400).json({ error: "Booking validation failed", errors: validation.errors });
+  }
+
+  // STEP 3: Check for duplicate bookings
   let isUpdate = false;
   let result;
 
@@ -239,11 +279,26 @@ app.post("/bookings", asyncRoute(async (req, res) => {
     if (existingBookings.length > 0) {
       // Duplicate found - update existing booking
       const existingBooking = existingBookings[0];
-      const updateValidation = Booking.validateUpdate(bookingData);
+
+      // Filter out any fields that aren't in Prisma schema to prevent errors
+      const allowedFields = [
+        'title', 'description', 'notes', 'location',
+        'startDate', 'endDate', 'startTime', 'endTime',
+        'duration', 'hourlyRate', 'flatRate', 'totalAmount',
+        'status', 'source'
+      ];
+      const filteredData = {};
+      allowedFields.forEach(field => {
+        if (bookingData[field] !== undefined) {
+          filteredData[field] = bookingData[field];
+        }
+      });
+
+      const updateValidation = Booking.validateUpdate(filteredData);
       if (!updateValidation.isValid) {
         return res.status(400).json({ error: "Update validation failed", errors: updateValidation.errors });
       }
-      result = await db.updateBooking(existingBooking.id, bookingData);
+      result = await db.updateBooking(existingBooking.id, filteredData);
       isUpdate = true;
     } else {
       // No duplicate - create new booking
