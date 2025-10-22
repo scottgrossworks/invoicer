@@ -347,6 +347,27 @@ class Prisma_Sqlite_DB extends Leedz_DB {
       };
     }
 
+    // 10/22/2025: Client name filtering - filter by client.name using Prisma relation where
+    if (filters?.clientName) {
+      // If client filter already exists (from clientEmail), merge the conditions
+      if (where.client) {
+        where.client = {
+          ...where.client,
+          name: {
+            contains: filters.clientName,
+            mode: 'insensitive'  // Case-insensitive partial match
+          }
+        };
+      } else {
+        where.client = {
+          name: {
+            contains: filters.clientName,
+            mode: 'insensitive'  // Case-insensitive partial match
+          }
+        };
+      }
+    }
+
     // 9/30/2025: Date range filtering - filter by startDate >= startDateFrom
     if (filters?.startDateFrom) {
       // Convert string to Date if necessary

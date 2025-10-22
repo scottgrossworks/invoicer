@@ -270,10 +270,19 @@ app.post("/bookings", asyncRoute(async (req, res) => {
   let result;
 
   if (bookingData.clientId && bookingData.location && bookingData.startDate) {
+    // 10/22/2025: Use date range query to check for duplicates on the same calendar day
+    // This prevents duplicates while preserving time information in the database
+    const startOfDay = new Date(bookingData.startDate);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(bookingData.startDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
     const existingBookings = await db.getBookings({
       clientId: bookingData.clientId,
       location: bookingData.location,
-      startDate: bookingData.startDate
+      startDateFrom: startOfDay,
+      startDateTo: endOfDay
     });
 
     if (existingBookings.length > 0) {
@@ -318,18 +327,21 @@ app.post("/bookings", asyncRoute(async (req, res) => {
 /**
  * GET /bookings
  * Retrieves bookings from database with optional filtering
- * Supports query parameters: clientId, status, startDateFrom, startDateTo, clientEmail
+ * Supports query parameters: clientId, status, startDateFrom, startDateTo, clientEmail, clientName
  * 9/30/2025: Added date range filtering (startDateFrom, startDateTo) to improve MCP performance
  * 10/6/2025: Added clientEmail filtering to enable querying by client email
+ * 10/22/2025: Added clientName filtering to enable querying by client name
  * Example: GET /bookings?startDateFrom=2025-01-01&startDateTo=2025-03-31
  * Example: GET /bookings?clientEmail=john@example.com
+ * Example: GET /bookings?clientName=Bob Jones
  */
 app.get("/bookings", asyncRoute(async (req, res) => {
-  const { clientId, status, startDateFrom, startDateTo, clientEmail } = req.query;
+  const { clientId, status, startDateFrom, startDateTo, clientEmail, clientName } = req.query;
 
   // 9/30/2025: Build filters object with date range support
   // 10/6/2025: Added clientEmail to filters
-  const filters = { clientId, status, clientEmail };
+  // 10/22/2025: Added clientName to filters
+  const filters = { clientId, status, clientEmail, clientName };
 
   // 9/30/2025: Convert date string parameters to Date objects if provided
   if (startDateFrom) {
