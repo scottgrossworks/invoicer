@@ -269,7 +269,9 @@ async function reloadParsers() {
 function showLoadingSpinner() {
   const spinner = document.getElementById('loading_spinner');
   const table = document.getElementById('booking_table');
-  if (spinner && table) {
+  const displayWin = document.getElementById('display_win');
+  if (spinner && table && displayWin) {
+    displayWin.classList.add('loading');
     table.style.display = 'none';
     spinner.style.display = 'block';
   }
@@ -282,7 +284,9 @@ function showLoadingSpinner() {
 function hideLoadingSpinner() {
   const spinner = document.getElementById('loading_spinner');
   const table = document.getElementById('booking_table');
-  if (spinner && table) {
+  const displayWin = document.getElementById('display_win');
+  if (spinner && table && displayWin) {
+    displayWin.classList.remove('loading');
     spinner.style.display = 'none';
     table.style.display = 'table';
   }
@@ -942,6 +946,14 @@ function setupMcpControls() {
     });
   }
 
+  // Wire up Refresh button
+  const refreshBtn = document.getElementById('refresh-gmail-btn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', () => {
+      refreshGmailToken();
+    });
+  }
+
   // Set up input field change handlers to save to Config
   const hostInput = document.getElementById('mcp-host');
   const portInput = document.getElementById('mcp-port');
@@ -969,6 +981,7 @@ function setupMcpControls() {
 async function loadMcpConfigAndCheckServer() {
   const statusDiv = document.getElementById('mcp-status');
   const enableBtn = document.getElementById('enable-gmail-btn');
+  const refreshBtn = document.getElementById('refresh-gmail-btn');
   const hostInput = document.getElementById('mcp-host');
   const portInput = document.getElementById('mcp-port');
 
@@ -993,6 +1006,7 @@ async function loadMcpConfigAndCheckServer() {
   } catch (error) {
     // Main server not running - show nice message and return
     if (enableBtn) enableBtn.disabled = true;
+    if (refreshBtn) refreshBtn.disabled = true;
     console.warn('Could not load MCP config - main server may be down:', error);
 
     statusDiv.textContent = 'Database server not running. Please start the main server on port 3000.';
@@ -1022,6 +1036,11 @@ async function loadMcpConfigAndCheckServer() {
       // Step 3: Server is running - enable button
       if (enableBtn) enableBtn.disabled = false;
 
+      // Enable refresh button if token already valid
+      if (refreshBtn) {
+        refreshBtn.disabled = !healthData.tokenValid;
+      }
+
       // Build clear status message with line breaks
       const serviceName = healthData.service || 'gmail-mcp';
       const version = healthData.version ? ` v${healthData.version}` : '';
@@ -1035,8 +1054,9 @@ async function loadMcpConfigAndCheckServer() {
     }
 
   } catch (error) {
-    // MCP server not running - disable button
+    // MCP server not running - disable buttons
     if (enableBtn) enableBtn.disabled = true;
+    if (refreshBtn) refreshBtn.disabled = true;
 
     statusDiv.textContent = `MCP server not running at ${mcpHost}:${mcpPort}. Please start gmail_mcp server.`;
     statusDiv.className = 'status-error';
@@ -1142,6 +1162,12 @@ async function enableGmailSending() {
       enableBtn.classList.add('gmail-enabled');
     }
 
+    // Enable the Refresh button
+    const refreshBtn = document.getElementById('refresh-gmail-btn');
+    if (refreshBtn) {
+      refreshBtn.disabled = false;
+    }
+
     console.log('Gmail authorization successful:', result);
 
   } catch (error) {
@@ -1150,6 +1176,77 @@ async function enableGmailSending() {
     statusDiv.className = 'status-error';
 
     console.warn('Gmail authorization failed:', error);
+  }
+}
+
+/**
+ * Refresh Gmail OAuth token and send to MCP server
+ *
+ * Re-authorizes with Gmail and sends new token to MCP server,
+ * allowing existing MCP session to continue without disable/enable cycle.
+ *
+ * FLOW:
+ * 1. Get host/port from input fields
+ * 2. Call chrome.identity.getAuthToken({ interactive: false }) to refresh token
+ * 3. POST token to MCP server at http://{host}:{port}/gmail-authorize
+ * 4. Update expiry time display
+ */
+async function refreshGmailToken() {
+  const host = document.getElementById('mcp-host').value.trim() || '127.0.0.1';
+  const port = document.getElementById('mcp-port').value.trim() || '3001';
+  const statusDiv = document.getElementById('mcp-status');
+
+  try {
+    // Update status
+    statusDiv.textContent = 'Refreshing Gmail authorization...';
+    statusDiv.className = 'status-checking';
+
+    // Get fresh OAuth token (non-interactive refresh)
+    const token = await new Promise((resolve, reject) => {
+      chrome.identity.getAuthToken({ interactive: false }, (token) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else {
+          resolve(token);
+        }
+      });
+    });
+
+    // Update stored token for later revocation
+    currentOAuthToken = token;
+
+    console.log('Refreshed OAuth token from Chrome identity');
+
+    // Send token to MCP server
+    const serverUrl = `http://${host}:${port}`;
+    const response = await fetch(`${serverUrl}/gmail-authorize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token })
+    });
+
+    if (!response.ok) {
+      throw new Error(`MCP server returned ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    // Calculate new expiration time (1 hour from now)
+    const expiryTime = new Date(Date.now() + 60 * 60 * 1000);
+    const formattedTime = formatTime12Hour(expiryTime);
+
+    // Show success status
+    statusDiv.innerHTML = `Gmail authorization refreshed successfully.<br>New expiration: ${formattedTime}.`;
+    statusDiv.className = 'status-success';
+
+    console.log('Gmail token refreshed successfully:', result);
+
+  } catch (error) {
+    // Show error status
+    statusDiv.innerHTML = 'Failed to refresh authorization.<br>Please use Enable button to re-authorize.';
+    statusDiv.className = 'status-error';
+
+    console.warn('Gmail token refresh failed:', error);
   }
 }
 
@@ -1229,6 +1326,12 @@ function resetGmailUI() {
   if (enableBtn) {
     enableBtn.textContent = 'Enable Gmail Sending (1 hour)';
     enableBtn.classList.remove('gmail-enabled');
+  }
+
+  // Disable the Refresh button
+  const refreshBtn = document.getElementById('refresh-gmail-btn');
+  if (refreshBtn) {
+    refreshBtn.disabled = true;
   }
 }
 

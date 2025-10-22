@@ -2607,3 +2607,52 @@ Unknown argument `[31mclientName[39m`. Available options are listed in [32mgr
     at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:246:16
     at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
 [2025-10-21T16:35:17.102Z] Received SIGINT, shutting down gracefully...
+[2025-10-21T22:06:34.822Z] Database connected successfully
+[2025-10-21T22:06:34.832Z] ! Local API running on http://localhost:3000
+[2025-10-21T22:09:52.784Z] GET /clients?name=Michael%20Gapinski
+[2025-10-21T22:10:47.450Z] GET /clients?name=Susan%20Hain
+[2025-10-21T22:11:36.542Z] GET /clients?name=Susan%20Hain
+[2025-10-21T22:12:17.857Z] GET /clients?name=Grand%20National%20Roadster%20Show
+[2025-10-21T22:12:24.155Z] POST /clients
+[2025-10-21T22:12:38.404Z] POST /clients
+[2025-10-21T22:13:38.349Z] PUT /clients/cmh14e8av000014a49e59pjm0
+[2025-10-21T22:21:48.214Z] Received SIGINT, shutting down gracefully...
+[2025-10-21T22:32:02.687Z] Database connected successfully
+[2025-10-21T22:32:02.693Z] ! Local API running on http://localhost:3000
+[2025-10-21T22:32:57.769Z] GET /clients?name=Chain%20of%20Events%20Inc.
+[2025-10-21T22:34:50.201Z] GET /clients?name=CBQ%20Events
+[2025-10-21T22:34:56.742Z] GET /bookings/search/CBQ%20Events
+[2025-10-21T22:35:55.703Z] GET /clients?name=Grand%20National%20Roadster%20Show
+[2025-10-21T22:37:22.800Z] GET /bookings/search/Grand%20National%20Roadster%20Show
+[2025-10-21T22:38:07.097Z] GET /clients?name=Kym%20De%20Lorenzo
+[2025-10-21T22:38:13.866Z] GET /bookings/search/Kym%20De%20Lorenzo
+[2025-10-21T22:39:48.143Z] GET /bookings/search/Kym%20De%20Lorenzo
+[2025-10-21T22:39:54.459Z] PUT /bookings/cmfudcmoz0004a7k1ijhpvh47
+[2025-10-21T22:40:35.552Z] GET /config
+[2025-10-21T22:41:19.046Z] POST /clients
+[2025-10-21T22:41:19.087Z] POST /bookings
+[2025-10-21T22:41:19.117Z] POST /config
+[2025-10-21T22:46:15.600Z] GET /clients?name=Rachel%20Cheng
+[2025-10-21T22:47:06.916Z] GET /config
+[2025-10-21T22:51:15.580Z] POST /clients
+[2025-10-21T22:51:15.615Z] POST /bookings
+[2025-10-21T22:51:15.646Z] POST /config
+[2025-10-21T22:51:22.664Z] POST /clients
+[2025-10-21T22:51:22.691Z] POST /bookings
+[2025-10-21T22:51:22.716Z] POST /config
+[2025-10-21T22:52:43.676Z] GET /clients?name=Mary%20Welsh
+[2025-10-21T22:52:49.605Z] GET /clients?name=Mary%20Welsh
+[2025-10-21T22:53:07.745Z] GET /clients?name=Maryann%20Welsh
+[2025-10-21T22:53:32.248Z] GET /clients?name=Maryann%20Welsh%20(EXT-Nokia)
+[2025-10-21T22:53:38.965Z] GET /clients?name=Maryann%20Welsh
+[2025-10-22T05:36:06.559Z] GET /clients?name=Maryann%20Welsh
+[2025-10-22T05:39:15.508Z] PUT /clients/cmh15rw95000238y73awhdn1i
+[2025-10-22T17:56:17.015Z] Received SIGINT, shutting down gracefully...
+[2025-10-22T17:56:50.055Z] Database connected successfully
+[2025-10-22T17:56:50.060Z] ! Local API running on http://localhost:3000
+[2025-10-22T17:57:03.859Z] GET /config
+[2025-10-22T18:18:23.486Z] POST /bookings
+[2025-10-22T18:18:30.593Z] POST /clients
+[2025-10-22T18:18:39.271Z] POST /bookings
+[2025-10-22T18:18:46.600Z] POST /clients
+[2025-10-22T18:18:54.218Z] POST /bookings

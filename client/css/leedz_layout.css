@@ -208,6 +208,10 @@ html, body {
   border-radius: 4px;
 }
 
+.display-win.loading {
+  border: none;
+}
+
 .booking-table {
   width: 100%;
   border-collapse: collapse;
@@ -857,6 +861,32 @@ input.invalid {
 
 #enable-gmail-btn.gmail-enabled:hover:not(:disabled) {
   background-color: rgb(54, 86, 180);
+}
+
+/* Refresh Gmail button - renew token without disabling */
+#refresh-gmail-btn {
+  background-color: var(--LEEDZ_GREEN);
+  color: black;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+/* Hover state - slightly darker green */
+#refresh-gmail-btn:hover:not(:disabled) {
+  background-color: var(--LEEDZ_DARKGREEN);
+}
+
+/* Active/pressed state */
+#refresh-gmail-btn:active:not(:disabled) {
+  background-color: var(--LEEDZ_EMERALD);
+}
+
+/* Disabled state - when not authorized */
+#refresh-gmail-btn:disabled {
+  background-color: silver;
+  color: dimgray;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 /* ================================================== */
