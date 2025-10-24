@@ -106,3 +106,166 @@ Unknown argument `[31mmode[39m`. Did you mean `[32mlte[39m`? Available optio
 [2025-10-22T19:20:42.561Z] GET /bookings?clientId=cmgg655qw0016ff8o42w5dl4i
 [2025-10-22T19:21:23.180Z] DELETE /bookings/cmgg655rh0017ff8oxglhrz9o
 [2025-10-22T19:28:27.722Z] Received SIGINT, shutting down gracefully...
+[2025-10-22T19:28:54.523Z] Database connected successfully
+[2025-10-22T19:28:54.527Z] ! Local API running on http://localhost:3000
+[2025-10-22T19:32:50.896Z] GET /bookings?clientName=Marian%20Iskander
+[2025-10-22T19:32:50.944Z] GET /bookings failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.booking.findMany()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:397:38[24m
+
+  [2m[90m394[39m   [34m}[39m[34m;[39m[22m
+  [2m[90m395[39m [34m}[39m[22m
+  [2m[90m396[39m [22m
+[1m[31m→[39m[22m [2m[90m397[39m [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mbooking[34m.[39m[36mfindMany[39m[34m([39m[22m{
+        where: {
+          client: {
+            name: {
+              contains: "Marian Iskander",
+              [31mmode[39m: "insensitive",
+              [31m~~~~[39m
+      [32m?[39m       [32mequals[39m[32m?[39m[32m: [39m[32mString | StringFieldRefInput[39m,
+      [32m?[39m       [32min[39m[32m?[39m[32m: [39m[32mString[][39m,
+      [32m?[39m       [32mnotIn[39m[32m?[39m[32m: [39m[32mString[][39m,
+      [32m?[39m       [32mlt[39m[32m?[39m[32m: [39m[32mString | StringFieldRefInput[39m,
+      [32m?[39m       [32mlte[39m[32m?[39m[32m: [39m[32mString | StringFieldRefInput[39m,
+      [32m?[39m       [32mgt[39m[32m?[39m[32m: [39m[32mString | StringFieldRefInput[39m,
+      [32m?[39m       [32mgte[39m[32m?[39m[32m: [39m[32mString | StringFieldRefInput[39m,
+      [32m?[39m       [32mstartsWith[39m[32m?[39m[32m: [39m[32mString | StringFieldRefInput[39m,
+      [32m?[39m       [32mendsWith[39m[32m?[39m[32m: [39m[32mString | StringFieldRefInput[39m,
+      [32m?[39m       [32mnot[39m[32m?[39m[32m: [39m[32mString | NestedStringFilter[39m
+            }
+          }
+        },
+        include: {
+          client: true
+        }
+      }[2m)[22m
+
+Unknown argument `[31mmode[39m`. Did you mean `[32mlte[39m`? Available options are listed in [32mgreen[39m.
+    at wn (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.getBookings (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:397:12)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:355:19
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-10-22T19:32:57.331Z] GET /clients?name=Marian%20Iskander
+[2025-10-22T19:33:40.940Z] GET /bookings?clientId=cmgg655qw0016ff8o42w5dl4i
+[2025-10-22T19:40:11.252Z] POST /bookings
+[2025-10-22T20:06:49.168Z] Received SIGINT, shutting down gracefully...
+[2025-10-22T20:09:29.245Z] Database connected successfully
+[2025-10-22T20:09:29.249Z] ! Local API running on http://localhost:3000
+[2025-10-22T20:09:35.047Z] GET /clients?name=Vanessa%20Pedroza
+[2025-10-22T20:09:45.022Z] Received SIGINT, shutting down gracefully...
+[2025-10-22T20:09:48.813Z] Database connected successfully
+[2025-10-22T20:09:48.818Z] ! Local API running on http://localhost:3000
+[2025-10-22T20:09:55.741Z] GET /bookings?clientId=cmgg6bo7z001cff8oo7jvfzg3
+[2025-10-22T20:10:46.468Z] GET /clients?name=Vanessa%20Pedroza
+[2025-10-22T20:10:51.690Z] GET /bookings?clientName=Vanessa%20Pedroza
+[2025-10-22T20:12:56.110Z] GET /clients?name=Alisha%20Cohen
+[2025-10-22T20:13:02.047Z] GET /bookings?clientName=Alisha%20Cohen
+[2025-10-22T20:14:06.643Z] POST /clients
+[2025-10-22T20:14:06.675Z] POST /bookings
+[2025-10-22T20:14:06.708Z] POST /config
+[2025-10-22T20:14:28.595Z] GET /clients?name=Alisha%20Cohen
+[2025-10-22T20:14:34.386Z] GET /bookings?clientName=Alisha%20Cohen
+[2025-10-22T20:16:33.542Z] PUT /bookings/cmh2flnj50000h22f5ygwj62d
+[2025-10-22T20:16:39.838Z] DELETE /bookings/cmgg242ew0008ff8o4l64vbjk
+[2025-10-22T20:16:46.344Z] GET /bookings?clientName=Alisha%20Cohen
+[2025-10-22T20:17:40.355Z] GET /clients?name=Leticia%20Perez
+[2025-10-22T20:17:51.433Z] GET /bookings?clientName=Leticia%20Perez
+[2025-10-22T20:20:49.764Z] POST /clients
+[2025-10-22T20:20:49.792Z] POST /bookings
+[2025-10-22T20:20:49.819Z] POST /config
+[2025-10-22T20:22:45.643Z] GET /clients?name=Candi%20Lopez
+[2025-10-22T20:23:04.625Z] GET /clients?name=Candi%20Lopez
+[2025-10-22T20:23:21.924Z] GET /clients?name=Candie%20Lopez
+[2025-10-22T20:23:28.101Z] GET /bookings?clientName=Candie%20Lopez
+[2025-10-22T20:28:10.592Z] POST /clients
+[2025-10-22T20:28:10.618Z] POST /bookings
+[2025-10-22T20:28:10.643Z] POST /config
+[2025-10-22T20:28:23.847Z] POST /clients
+[2025-10-22T20:28:23.867Z] POST /bookings
+[2025-10-22T20:28:23.891Z] POST /config
+[2025-10-22T20:28:52.612Z] GET /clients?name=Madeline%20Pedroza
+[2025-10-22T20:28:57.832Z] GET /clients?name=Madeline%20Pedroza
+[2025-10-22T20:29:20.145Z] GET /clients?name=Madeleine%20Pedroza
+[2025-10-22T20:29:25.596Z] GET /bookings?clientName=Madeleine%20Pedroza
+[2025-10-22T20:29:59.377Z] DELETE /bookings/cmh2g3qq00003h22fy2gom9ef
+[2025-10-22T20:31:16.334Z] GET /bookings?clientName=Madeleine%20Pedroza
+[2025-10-22T20:33:53.040Z] POST /clients
+[2025-10-22T20:33:53.067Z] POST /bookings
+[2025-10-22T20:33:53.093Z] POST /config
+[2025-10-22T20:35:04.037Z] GET /clients?company=Little%20Caesars
+[2025-10-22T20:50:28.564Z] POST /clients
+[2025-10-22T20:50:28.588Z] POST /bookings
+[2025-10-22T20:50:28.612Z] POST /config
+[2025-10-22T20:51:15.486Z] GET /clients?name=Faith%20Galloro
+[2025-10-22T20:51:21.207Z] GET /bookings?clientName=Faith%20Galloro
+[2025-10-22T20:59:22.193Z] POST /clients
+[2025-10-22T20:59:34.876Z] POST /bookings
+[2025-10-22T21:07:45.431Z] GET /clients?email=rozanas.eyes@gmail.com
+[2025-10-22T21:11:29.347Z] POST /clients
+[2025-10-22T21:11:29.376Z] POST /bookings
+[2025-10-22T21:11:29.403Z] POST /config
+[2025-10-22T21:20:36.028Z] POST /clients
+[2025-10-22T21:20:44.519Z] POST /bookings
+[2025-10-22T21:21:00.324Z] PUT /clients/cmh2hz5q8000dh22fmw3rplth
+[2025-10-23T18:17:30.160Z] POST /clients
+[2025-10-23T18:17:30.187Z] POST /bookings
+[2025-10-23T18:17:30.205Z] POST /config
+[2025-10-23T18:17:54.692Z] POST /clients
+[2025-10-23T18:17:54.715Z] POST /bookings
+[2025-10-23T18:17:54.735Z] POST /config
+[2025-10-23T18:30:21.926Z] POST /clients
+[2025-10-23T18:30:21.955Z] POST /bookings
+[2025-10-23T18:30:21.979Z] POST /config
+[2025-10-23T19:58:07.243Z] POST /clients
+[2025-10-23T19:58:07.271Z] POST /bookings
+[2025-10-23T19:58:07.292Z] POST /config
+[2025-10-23T19:58:12.672Z] POST /clients
+[2025-10-23T19:58:12.694Z] POST /bookings
+[2025-10-23T19:58:12.717Z] POST /config
+[2025-10-23T19:58:37.184Z] GET /clients?name=Jeronimo%20Franco
+[2025-10-23T19:58:45.206Z] GET /bookings?clientName=Jeronimo%20Franco
+[2025-10-23T20:14:10.650Z] POST /clients
+[2025-10-23T20:14:10.675Z] POST /bookings
+[2025-10-23T20:14:10.697Z] POST /config
+[2025-10-23T20:15:30.509Z] GET /clients?name=Jazmyn%20Alvarado
+[2025-10-23T20:15:39.240Z] GET /bookings?clientName=Jazmyn%20Alvarado
+[2025-10-23T20:20:52.586Z] POST /clients
+[2025-10-23T20:20:52.608Z] POST /bookings
+[2025-10-23T20:20:52.637Z] POST /config
+[2025-10-23T20:22:26.637Z] GET /clients?name=Libbi%20Tracy
+[2025-10-23T20:22:34.848Z] GET /bookings?clientName=Libbi%20Tracy
+[2025-10-23T20:29:06.661Z] POST /clients
+[2025-10-23T20:29:06.685Z] POST /bookings
+[2025-10-23T20:29:06.717Z] POST /config
+[2025-10-23T20:30:06.745Z] GET /clients?name=Traci%20Takeda
+[2025-10-23T20:30:15.866Z] GET /bookings?clientName=Traci%20Takeda
+[2025-10-23T20:31:07.603Z] POST /clients
+[2025-10-23T20:31:07.629Z] POST /bookings
+[2025-10-23T20:31:07.652Z] POST /config
+[2025-10-23T20:35:41.896Z] GET /clients?name=Traci%20Takeda
+[2025-10-23T20:35:49.059Z] PUT /clients/cmh3vksmm000ph22fcrtibhuu
+[2025-10-23T20:37:50.645Z] POST /clients
+[2025-10-23T20:37:50.677Z] POST /bookings
+[2025-10-23T20:37:50.701Z] POST /config
+[2025-10-23T20:38:33.305Z] GET /clients?name=Cindy%20Lopez
+[2025-10-23T20:38:39.361Z] GET /bookings?clientName=Cindy%20Lopez
+[2025-10-23T21:00:39.979Z] GET /clients?name=Mary%20Sanchez
+[2025-10-23T21:00:48.692Z] POST /clients
+[2025-10-23T21:00:55.957Z] GET /bookings?clientName=Mary%20Sanchez
+[2025-10-24T19:55:07.619Z] Received SIGINT, shutting down gracefully...
+[2025-10-24T23:26:32.728Z] Database connected successfully
+[2025-10-24T23:26:32.732Z] ! Local API running on http://localhost:3000
+[2025-10-24T23:26:37.370Z] POST /clients
+[2025-10-24T23:26:37.402Z] POST /bookings
+[2025-10-24T23:26:37.427Z] POST /config
+[2025-10-24T23:28:27.528Z] POST /clients
+[2025-10-24T23:28:27.546Z] POST /bookings
+[2025-10-24T23:28:27.560Z] POST /config
+[2025-10-24T23:29:19.641Z] POST /clients
+[2025-10-24T23:29:19.660Z] POST /bookings
+[2025-10-24T23:29:19.671Z] POST /config

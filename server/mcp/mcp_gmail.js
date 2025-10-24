@@ -188,7 +188,7 @@ function handleToolsList(id) {
             tools: [
                 {
                     name: 'gmail_send',
-                    description: 'Send email via Gmail using authorized account',
+                    description: 'Send email via Gmail using authorized account. Supports plain text and file attachments. When user uploads files, include them in attachments array with base64-encoded content.',
                     inputSchema: {
                         type: 'object',
                         properties: {
@@ -211,6 +211,28 @@ function handleToolsList(id) {
                             bcc: {
                                 type: 'string',
                                 description: 'BCC recipients (comma-separated)'
+                            },
+                            attachments: {
+                                type: 'array',
+                                description: 'Optional file attachments. Each attachment must have: filename (string), content (base64 string), contentType (MIME type like "application/pdf" or "image/png")',
+                                items: {
+                                    type: 'object',
+                                    properties: {
+                                        filename: {
+                                            type: 'string',
+                                            description: 'Filename with extension'
+                                        },
+                                        content: {
+                                            type: 'string',
+                                            description: 'Base64 encoded file content'
+                                        },
+                                        contentType: {
+                                            type: 'string',
+                                            description: 'MIME type (application/pdf, image/png, image/jpeg, etc.)'
+                                        }
+                                    },
+                                    required: ['filename', 'content', 'contentType']
+                                }
                             }
                         },
                         required: ['to', 'subject', 'body']
@@ -237,17 +259,17 @@ async function handleToolCall(id, params) {
 
     // Extract email parameters from tool call
     const args = params.arguments || {};
-    const { to, subject, body, cc, bcc } = args;
+    const { to, subject, body, cc, bcc, attachments } = args;
 
     if (!to || !subject || !body) {
         return createErrorResponse(id, -32602, 'Missing required parameters: to, subject, body');
     }
 
     try {
-        console.error(`[Gmail MCP] Sending email to ${to}`);
+        console.error(`[Gmail MCP] Sending email to ${to}${attachments ? ` with ${attachments.length} attachment(s)` : ''}`);
 
         // Build MIME email message
-        const mimeMessage = buildMimeMessage(to, subject, body, cc, bcc);
+        const mimeMessage = buildMimeMessage(to, subject, body, cc, bcc, attachments);
 
         // Send via Gmail API
         const messageId = await sendGmailMessage(mimeMessage);
@@ -263,15 +285,25 @@ async function handleToolCall(id, params) {
 }
 
 /**
+ * Generate unique MIME boundary string
+ * @returns {string} Unique boundary identifier
+ */
+function generateBoundary() {
+    return `boundary_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+}
+
+/**
  * Build RFC 2822 MIME email message
+ * Supports plain text emails and multipart messages with attachments
  * @param {string} to - Recipient email
  * @param {string} subject - Email subject
  * @param {string} body - Email body (plain text)
  * @param {string} cc - CC recipients (optional)
  * @param {string} bcc - BCC recipients (optional)
+ * @param {Array} attachments - File attachments (optional)
  * @returns {string} MIME formatted email message
  */
-function buildMimeMessage(to, subject, body, cc, bcc) {
+function buildMimeMessage(to, subject, body, cc, bcc, attachments) {
     const lines = [];
 
     // Required headers
@@ -282,15 +314,42 @@ function buildMimeMessage(to, subject, body, cc, bcc) {
     if (cc) lines.push(`Cc: ${cc}`);
     if (bcc) lines.push(`Bcc: ${bcc}`);
 
-    // MIME headers
+    // MIME version
     lines.push('MIME-Version: 1.0');
-    lines.push('Content-Type: text/plain; charset=utf-8');
 
-    // Blank line separates headers from body
+    // If no attachments, use simple text/plain format
+    if (!attachments || attachments.length === 0) {
+        lines.push('Content-Type: text/plain; charset=utf-8');
+        lines.push('');
+        lines.push(body);
+        return lines.join('\r\n');
+    }
+
+    // With attachments, use multipart/mixed format
+    const boundary = generateBoundary();
+    lines.push(`Content-Type: multipart/mixed; boundary="${boundary}"`);
     lines.push('');
 
-    // Body
+    // Part 1: Text body
+    lines.push(`--${boundary}`);
+    lines.push('Content-Type: text/plain; charset=utf-8');
+    lines.push('');
     lines.push(body);
+    lines.push('');
+
+    // Part 2+: Each attachment
+    for (const attachment of attachments) {
+        lines.push(`--${boundary}`);
+        lines.push(`Content-Type: ${attachment.contentType}; name="${attachment.filename}"`);
+        lines.push(`Content-Disposition: attachment; filename="${attachment.filename}"`);
+        lines.push('Content-Transfer-Encoding: base64');
+        lines.push('');
+        lines.push(attachment.content);
+        lines.push('');
+    }
+
+    // End boundary
+    lines.push(`--${boundary}--`);
 
     return lines.join('\r\n');
 }

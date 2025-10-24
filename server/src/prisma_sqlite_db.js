@@ -348,21 +348,20 @@ class Prisma_Sqlite_DB extends Leedz_DB {
     }
 
     // 10/22/2025: Client name filtering - filter by client.name using Prisma relation where
+    // NOTE: SQLite 'contains' is case-insensitive by default (no 'mode' parameter needed)
     if (filters?.clientName) {
       // If client filter already exists (from clientEmail), merge the conditions
       if (where.client) {
         where.client = {
           ...where.client,
           name: {
-            contains: filters.clientName,
-            mode: 'insensitive'  // Case-insensitive partial match
+            contains: filters.clientName
           }
         };
       } else {
         where.client = {
           name: {
-            contains: filters.clientName,
-            mode: 'insensitive'  // Case-insensitive partial match
+            contains: filters.clientName
           }
         };
       }
