@@ -951,3 +951,70 @@
 [2025-10-24T23:13:50.604Z] [INFO] Handling tools/list request
 [2025-10-24T23:13:50.605Z] [INFO] Handling prompts/list request
 [2025-10-24T23:13:50.605Z] [INFO] Handling resources/list request
+[2025-10-25T00:02:40.431Z] [INFO] Starting MCP server...
+[2025-10-25T00:02:40.432Z] [INFO] Configuration loaded from: C:\Users\Scott\Desktop\WKG\INVOICER\server\mcp\mcp_server_config.json
+[2025-10-25T00:02:40.432Z] [INFO] Log file: C:\Users\Scott\Desktop\WKG\INVOICER\server\mcp\mcp_server.log
+[2025-10-25T00:02:40.432Z] [INFO] Database API: http://localhost:3000
+[2025-10-25T00:02:40.432Z] [INFO] Claude API: https://api.anthropic.com
+[2025-10-25T00:02:40.434Z] [INFO] MCP server ready - listening for JSON-RPC requests...
+[2025-10-25T00:02:40.436Z] [INFO] Handling MCP initialize request
+[2025-10-25T00:02:40.439Z] [INFO] Handling tools/list request
+[2025-10-25T00:02:40.440Z] [INFO] Handling prompts/list request
+[2025-10-25T00:02:40.440Z] [INFO] Handling resources/list request
+[2025-10-25T00:04:22.810Z] [INFO] Starting MCP server...
+[2025-10-25T00:04:22.811Z] [INFO] Configuration loaded from: C:\Users\Scott\Desktop\WKG\INVOICER\server\mcp\mcp_server_config.json
+[2025-10-25T00:04:22.811Z] [INFO] Log file: C:\Users\Scott\Desktop\WKG\INVOICER\server\mcp\mcp_server.log
+[2025-10-25T00:04:22.812Z] [INFO] Database API: http://localhost:3000
+[2025-10-25T00:04:22.812Z] [INFO] Claude API: https://api.anthropic.com
+[2025-10-25T00:04:22.814Z] [INFO] MCP server ready - listening for JSON-RPC requests...
+[2025-10-25T00:04:22.816Z] [INFO] Handling MCP initialize request
+[2025-10-25T00:04:27.226Z] [INFO] Starting MCP server...
+[2025-10-25T00:04:27.227Z] [INFO] Configuration loaded from: C:\Users\Scott\Desktop\WKG\INVOICER\server\mcp\mcp_server_config.json
+[2025-10-25T00:04:27.227Z] [INFO] Log file: C:\Users\Scott\Desktop\WKG\INVOICER\server\mcp\mcp_server.log
+[2025-10-25T00:04:27.228Z] [INFO] Database API: http://localhost:3000
+[2025-10-25T00:04:27.228Z] [INFO] Claude API: https://api.anthropic.com
+[2025-10-25T00:04:27.230Z] [INFO] MCP server ready - listening for JSON-RPC requests...
+[2025-10-25T00:04:27.232Z] [INFO] Handling MCP initialize request
+[2025-10-25T00:04:27.295Z] [INFO] Handling tools/list request
+[2025-10-25T00:04:27.295Z] [INFO] Handling prompts/list request
+[2025-10-25T00:04:27.296Z] [INFO] Handling resources/list request
+[2025-10-25T00:05:59.529Z] [INFO] Starting MCP server...
+[2025-10-25T00:05:59.530Z] [INFO] Configuration loaded from: C:\Users\Scott\Desktop\WKG\INVOICER\server\mcp\mcp_server_config.json
+[2025-10-25T00:05:59.531Z] [INFO] Log file: C:\Users\Scott\Desktop\WKG\INVOICER\server\mcp\mcp_server.log
+[2025-10-25T00:05:59.531Z] [INFO] Database API: http://localhost:3000
+[2025-10-25T00:05:59.531Z] [INFO] Claude API: https://api.anthropic.com
+[2025-10-25T00:05:59.534Z] [INFO] MCP server ready - listening for JSON-RPC requests...
+[2025-10-25T00:05:59.536Z] [INFO] Handling MCP initialize request
+[2025-10-25T00:05:59.539Z] [INFO] Handling tools/list request
+[2025-10-25T00:05:59.540Z] [INFO] Handling prompts/list request
+[2025-10-25T00:05:59.540Z] [INFO] Handling resources/list request
+[2025-10-25T00:08:02.616Z] [INFO] Starting MCP server...
+[2025-10-25T00:08:02.617Z] [INFO] Configuration loaded from: C:\Users\Scott\Desktop\WKG\INVOICER\server\mcp\mcp_server_config.json
+[2025-10-25T00:08:02.617Z] [INFO] Log file: C:\Users\Scott\Desktop\WKG\INVOICER\server\mcp\mcp_server.log
+[2025-10-25T00:08:02.617Z] [INFO] Database API: http://localhost:3000
+[2025-10-25T00:08:02.617Z] [INFO] Claude API: https://api.anthropic.com
+[2025-10-25T00:08:02.620Z] [INFO] MCP server ready - listening for JSON-RPC requests...
+[2025-10-25T00:08:02.621Z] [INFO] Handling MCP initialize request
+[2025-10-25T00:08:02.633Z] [INFO] Handling tools/list request
+[2025-10-25T00:08:02.635Z] [INFO] Handling prompts/list request
+[2025-10-25T00:08:02.636Z] [INFO] Handling resources/list request
+[2025-10-25T00:08:34.726Z] [INFO] Starting MCP server...
+[2025-10-25T00:08:34.727Z] [INFO] Configuration loaded from: C:\Users\Scott\Desktop\WKG\INVOICER\server\mcp\mcp_server_config.json
+[2025-10-25T00:08:34.727Z] [INFO] Log file: C:\Users\Scott\Desktop\WKG\INVOICER\server\mcp\mcp_server.log
+[2025-10-25T00:08:34.727Z] [INFO] Database API: http://localhost:3000
+[2025-10-25T00:08:34.727Z] [INFO] Claude API: https://api.anthropic.com
+[2025-10-25T00:08:34.729Z] [INFO] MCP server ready - listening for JSON-RPC requests...
+[2025-10-25T00:08:34.731Z] [INFO] Handling MCP initialize request
+[2025-10-25T00:08:34.789Z] [INFO] Handling tools/list request
+[2025-10-25T00:08:34.790Z] [INFO] Handling prompts/list request
+[2025-10-25T00:08:34.790Z] [INFO] Handling resources/list request
+[2025-10-25T00:12:41.753Z] [INFO] Starting MCP server...
+[2025-10-25T00:12:41.755Z] [INFO] Configuration loaded from: C:\Users\Scott\Desktop\WKG\INVOICER\server\mcp\mcp_server_config.json
+[2025-10-25T00:12:41.755Z] [INFO] Log file: C:\Users\Scott\Desktop\WKG\INVOICER\server\mcp\mcp_server.log
+[2025-10-25T00:12:41.755Z] [INFO] Database API: http://localhost:3000
+[2025-10-25T00:12:41.756Z] [INFO] Claude API: https://api.anthropic.com
+[2025-10-25T00:12:41.758Z] [INFO] MCP server ready - listening for JSON-RPC requests...
+[2025-10-25T00:12:41.759Z] [INFO] Handling MCP initialize request
+[2025-10-25T00:12:41.805Z] [INFO] Handling tools/list request
+[2025-10-25T00:12:41.807Z] [INFO] Handling prompts/list request
+[2025-10-25T00:12:41.807Z] [INFO] Handling resources/list request
