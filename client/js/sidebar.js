@@ -227,6 +227,13 @@ function setupPageSwitching() {
       menu.style.display = 'none';
     });
   });
+
+  // Close hamburger menu when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!hamburger.contains(e.target) && !menu.contains(e.target)) {
+      menu.style.display = 'none';
+    }
+  });
 }
 
 /**

@@ -83,6 +83,7 @@ cleanFloat(value) {
           email: clientData.email || clientData.clientEmail || null,
           phone: clientData.phone || null,
           company: clientData.company || clientData.org || null,
+          website: clientData.website || null,
           clientNotes: clientData.clientNotes || null
         };
 
@@ -201,7 +202,8 @@ cleanFloat(value) {
 
       // Check if it's a network error (server not running)
       if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-        console.log('Database server not running - save operation skipped');
+        console.error('Database server not running - save operation failed');
+        throw new Error('Database server not running. Please start the server and try again.');
       } else {
         // Re-throw other errors
         throw error;

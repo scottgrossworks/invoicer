@@ -447,3 +447,50 @@
 [2025-10-29T03:45:48.048Z] [INFO] Handling tools/list request
 [2025-10-29T03:45:48.049Z] [INFO] Handling prompts/list request
 [2025-10-29T03:45:48.050Z] [INFO] Handling resources/list request
+[2025-10-29T06:07:35.408Z] [INFO] Starting MCP server...
+[2025-10-29T06:07:35.409Z] [INFO] Configuration loaded from: C:\Users\Scott\Desktop\WKG\INVOICER\server\mcp\mcp_server_config.json
+[2025-10-29T06:07:35.409Z] [INFO] Log file: C:\Users\Scott\Desktop\WKG\INVOICER\server\mcp\mcp_server.log
+[2025-10-29T06:07:35.410Z] [INFO] Database API: http://localhost:3333
+[2025-10-29T06:07:35.410Z] [INFO] Claude API: https://api.anthropic.com
+[2025-10-29T06:07:35.413Z] [INFO] MCP server ready - listening for JSON-RPC requests...
+[2025-10-29T06:07:35.415Z] [INFO] Handling MCP initialize request
+[2025-10-29T06:07:35.509Z] [INFO] Handling tools/list request
+[2025-10-29T06:07:35.510Z] [INFO] Handling prompts/list request
+[2025-10-29T06:07:35.511Z] [INFO] Handling resources/list request
+[2025-10-29T06:09:09.963Z] [INFO] Starting MCP server...
+[2025-10-29T06:09:09.966Z] [INFO] Configuration loaded from: C:\Users\Scott\Desktop\WKG\INVOICER\server\mcp\mcp_server_config.json
+[2025-10-29T06:09:09.966Z] [INFO] Log file: C:\Users\Scott\Desktop\WKG\INVOICER\server\mcp\mcp_server.log
+[2025-10-29T06:09:09.966Z] [INFO] Database API: http://localhost:3333
+[2025-10-29T06:09:09.967Z] [INFO] Claude API: https://api.anthropic.com
+[2025-10-29T06:09:09.969Z] [INFO] MCP server ready - listening for JSON-RPC requests...
+[2025-10-29T06:14:36.078Z] [INFO] Starting MCP server...
+[2025-10-29T06:14:36.079Z] [INFO] Configuration loaded from: C:\Users\Scott\Desktop\WKG\INVOICER\server\mcp\mcp_server_config.json
+[2025-10-29T06:14:36.080Z] [INFO] Log file: C:\Users\Scott\Desktop\WKG\INVOICER\server\mcp\mcp_server.log
+[2025-10-29T06:14:36.080Z] [INFO] Database API: http://localhost:3333
+[2025-10-29T06:14:36.080Z] [INFO] Claude API: https://api.anthropic.com
+[2025-10-29T06:14:36.083Z] [INFO] MCP server ready - listening for JSON-RPC requests...
+[2025-10-29T06:14:36.085Z] [INFO] Handling MCP initialize request
+[2025-10-29T06:14:36.123Z] [INFO] Handling tools/list request
+[2025-10-29T06:14:36.124Z] [INFO] Handling prompts/list request
+[2025-10-29T06:14:36.125Z] [INFO] Handling resources/list request
+[2025-10-29T06:15:39.971Z] [INFO] Processing tool call: Show all clients in the database...
+[2025-10-29T06:15:39.972Z] [DEBUG] Sending request to Claude: Show all clients in the database...
+[2025-10-29T06:15:43.306Z] [DEBUG] Claude response: {"actionable": true, "method": "GET", "endpoint": "/clients", "data": {}, "description": "Listing clients"}...
+[2025-10-29T06:15:43.307Z] [INFO] Successfully parsed Claude response
+[2025-10-29T06:15:43.307Z] [INFO] Executing database operation: GET /clients
+[2025-10-29T06:15:43.308Z] [INFO] Executing GET /clients
+[2025-10-29T06:15:43.329Z] [INFO] HTTP request successful: 200
+[2025-10-29T06:25:17.896Z] [INFO] Processing tool call: List all clients...
+[2025-10-29T06:25:17.898Z] [DEBUG] Sending request to Claude: List all clients...
+[2025-10-29T06:25:21.355Z] [DEBUG] Claude response: {"actionable": true, "method": "GET", "endpoint": "/clients", "data": {}, "description": "Listing clients"}...
+[2025-10-29T06:25:21.355Z] [INFO] Successfully parsed Claude response
+[2025-10-29T06:25:21.356Z] [INFO] Executing database operation: GET /clients
+[2025-10-29T06:25:21.356Z] [INFO] Executing GET /clients
+[2025-10-29T06:25:21.368Z] [INFO] HTTP request successful: 200
+[2025-10-29T06:25:36.892Z] [INFO] Processing tool call: Get all clients from the database, show complete list...
+[2025-10-29T06:25:36.893Z] [DEBUG] Sending request to Claude: Get all clients from the database, show complete list...
+[2025-10-29T06:25:42.544Z] [DEBUG] Claude response: {"actionable": true, "method": "GET", "endpoint": "/clients", "data": {}, "description": "Listing all clients"}...
+[2025-10-29T06:25:42.545Z] [INFO] Successfully parsed Claude response
+[2025-10-29T06:25:42.545Z] [INFO] Executing database operation: GET /clients
+[2025-10-29T06:25:42.545Z] [INFO] Executing GET /clients
+[2025-10-29T06:25:42.556Z] [INFO] HTTP request successful: 200

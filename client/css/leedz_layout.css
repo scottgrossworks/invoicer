@@ -139,6 +139,8 @@ html, body {
 .page-content {
   width: 100%;
   display: none; /* Hidden by default - JavaScript shows the default page */
+  flex-direction: column;
+  height: 100%;
 }
 
 /* Invoicer button wrapper - hidden by default */
@@ -151,7 +153,7 @@ html, body {
   flex: 1 1 auto;     /* Grow to fill available space */
   display: flex;
   flex-direction: column;
-  overflow-y: auto;   /* Scroll if content overflows - main scrollbar for entire page */
+  overflow-y: hidden;  /* Parent doesn't scroll - children handle their own scrolling */
   min-height: 0;      /* Prevent flexbox overflow issues */
   padding: 10px;
   height:auto;
@@ -201,15 +203,22 @@ html, body {
 .display-win {
   flex: 1;
   margin: 2px 0 20px 0;
-  min-height: 400px;
-  max-height: none; /* Remove height constraint to prevent inner scrollbar */
-  overflow-y: visible; /* No inner scrollbar - parent handles scrolling */
+  min-height: 0;     /* Allow flex child to shrink below content size */
+  overflow-y: auto;  /* This container scrolls, not the parent */
   border: 1px solid silver;
   border-radius: 4px;
 }
 
 .display-win.loading {
   border: none;
+}
+
+.client-frame {
+  margin-bottom: 6px;
+  /* border: 1px solid #ddd; */
+  padding: 15px 15px 5px 15px;
+  border-radius: 8px;
+  background-color: #fafafa;
 }
 
 .booking-table {
@@ -220,10 +229,10 @@ html, body {
 }
 
 .booking-table th {
-  background-color: whitesmoke;
+  background-color: gainsboro;
   padding: 8px;
   text-align: left;
-  border-bottom: 2px solid gainsboro;
+  border-bottom: 2px solid lightgray;
   font-weight: bold;
 }
 
@@ -477,7 +486,7 @@ input.invalid {
   display: flex;
   justify-content: space-between;  /* This will space them evenly */
   align-items: center;
-  padding: 20px 12px;
+  padding: 20px 12px 5px 12px;
   background-color: white; /* Ensure buttons have solid background */
   /* border-top: 1px solid gainsboro; Subtle separator from scrolling content */
   flex-shrink: 0; /* Prevent buttons from shrinking */
@@ -556,6 +565,15 @@ input.invalid {
   background-color: darkgreen;
 }
 
+.delete-client-btn {
+  background-color: coral;
+  width: 50%;
+  margin: 10px auto;
+}
+.delete-client-btn:hover:not(:disabled) {
+  background-color: darkorange;
+}
+
 
 
 /* outreach button removed */
@@ -593,6 +611,7 @@ input.invalid {
   align-items: center;
   justify-content: space-between;
   padding: 8px 0px;
+  flex-shrink: 0;  /* Don't shrink - stay fixed at top */
 }
 
 .section-header label {

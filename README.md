@@ -17,16 +17,24 @@ The Leedz Invoicer is a three-tier invoicing and booking management system consi
 
 ### API Server
 - **Technology**: Node.js Express.js
-- **Port**: 3000
+- **Port**: 3333 (configurable in `server/server_config.json`)
 - **Architecture**: OOP with `Client` and `Booking` business logic classes
 - **Error Handling**: `asyncRoute` middleware with timeout management
 - **Configuration**: `server/server_config.json`
+- **Databases**:
+  - `server/data/bloomsights.sqlite` (active production database)
+  - `server/prisma/leedz_invoicer.sqlite` (legacy database, maintained for compatibility)
 
 ### Chrome Extension
-- **Technology**: Vanilla JavaScript, Handlebars templating
-- **Content Scripts**: Gmail and Google Calendar integration
+- **Technology**: Vanilla JavaScript ES6 modules, dynamic page loading
+- **Configuration**: `client/leedz_config.json` (centralized configuration for UI, parsers, LLM, database)
+- **Pages**:
+  - **ClientCapture**: Multi-client batch capture from web pages
+  - **Invoicer**: Single booking/invoice creation
+  - **Gmailer**: Gmail OAuth integration and email sending
+- **Content Scripts**: Gmail, Google Calendar, and generic web page parsing
 - **PDF Generation**: html2pdf.js with Handlebars templates
-- **LLM Integration**: LM Studio local inference
+- **LLM Integration**: Anthropic Claude API (configurable provider)
 
 ### MCP Server Integration
 - **Protocol**: JSON-RPC 2.0 Model Context Protocol
@@ -41,10 +49,11 @@ The Leedz Invoicer is a three-tier invoicing and booking management system consi
 {
   id: String (UUID),
   name: String (required),
-  email: String,
+  email: String (unique),
   phone: String,
   company: String,
-  notes: String,
+  website: String,
+  clientNotes: String,
   createdAt: DateTime,
   updatedAt: DateTime
 }
@@ -134,10 +143,47 @@ The Leedz Invoicer is a three-tier invoicing and booking management system consi
 
 ## CHROME EXTENSION IMPLEMENTATION
 
+### Configuration System
+**Primary Config**: `client/leedz_config.json`
+- UI page definitions (ClientCapture, Invoicer, Gmailer)
+- LLM provider settings (API key, model, endpoints)
+- Database connection (baseUrl, provider)
+- MCP server settings (host, port)
+- Parser configurations with system prompts
+- Render settings (PDF output directory)
+
+**Provider Registry**: `client/js/provider_registry.js`
+- Centralized factory for database, LLM, renderers, and parsers
+- Loads config and instantiates appropriate providers
+- Single source of truth for all client-side dependencies
+
+### Page Architecture
+The extension uses a **dynamic page loading system** with abstract base class `Page`:
+
+**ClientCapture Page** (`client/js/pages/ClientCapture.js`)
+- **Purpose**: Batch capture of multiple clients from web pages
+- **Features**:
+  - Runs ClientParser on current page to extract contact information
+  - Displays multiple client forms (one per detected person)
+  - Two-phase extraction: procedural DOM parsing + LLM fallback
+  - Validates and sanitizes data (name prefixes, phone formatting, clientNotes cleanup)
+  - Saves all clients in a single batch operation
+  - Buttons disabled during parsing, enabled when complete
+- **Use Case**: California School Directory pages, LinkedIn company pages, conference attendee lists
+
+**Invoicer Page** (existing functionality)
+- Single booking/invoice creation workflow
+- Gmail/GCal integration for booking extraction
+
+**Gmailer Page** (existing functionality)
+- Gmail OAuth token management
+- Email sending via MCP server
+
 ### Content Script Architecture
 - **Gmail Parser**: `client/js/parser/gmail_parser.js`
 - **Calendar Parser**: `client/js/parser/gcal_parser.js`
-- **Main UI**: `client/js/sidebar.js`
+- **Client Parser**: `client/js/parser/client_parser.js` (NEW - multi-client extraction)
+- **Main UI**: `client/js/sidebar.js` (orchestrates dynamic page loading)
 - **Database Interface**: `client/js/db/DB_local_prisma_sqlite.js`
 
 ### Gmail Email Chain Parsing

@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "leedz-invoicer": {
+    "leedz-mcp": {
       "command": "C:\\Program Files\\nodejs\\node.exe",
       "args": ["C:\\Users\\Scott\\Desktop\\WKG\\INVOICER\\server\\mcp\\mcp_server.js"]
     }

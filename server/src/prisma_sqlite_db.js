@@ -26,7 +26,7 @@ class Prisma_Sqlite_DB extends Leedz_DB {
   // Client operations
   async createClient(data) {
     // Separate valid fields from extra fields
-    const allowedFields = ['name', 'email', 'phone', 'company', 'clientNotes'];
+    const allowedFields = ['name', 'email', 'phone', 'company', 'website', 'clientNotes'];
     const sanitizedData = {};
     const extraFields = {};
 
@@ -118,7 +118,7 @@ class Prisma_Sqlite_DB extends Leedz_DB {
 
   async updateClient(id, data) {
     // Separate valid fields from extra fields
-    const allowedFields = ['name', 'email', 'phone', 'company', 'clientNotes'];
+    const allowedFields = ['name', 'email', 'phone', 'company', 'website', 'clientNotes'];
     const sanitizedData = {};
     const extraFields = {};
 

@@ -461,7 +461,7 @@ function handleToolsList(id) {
         result: {
             tools: [
                 {
-                    name: 'leedz_invoicer',
+                    name: 'the_leedz',
                     description: 'Interact with the Leedz invoicing system. Create clients, manage bookings, generate IDs, and get statistics.',
                     inputSchema: {
                         type: 'object',

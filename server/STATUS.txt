@@ -16,25 +16,29 @@ The system follows a three-tier architecture with clear separation of concerns:
    - Database abstraction through Leedz_DB interface for future extensibility.
 
 2. API LAYER (Express.js + JavaScript)
-   - RESTful HTTP API server running on port 3000.
+   - RESTful HTTP API server running on port 3333 (configurable).
    - Handles CRUD operations for clients, bookings, and configuration settings.
    - Implements statistics endpoints for business intelligence.
    - Uses OOP architecture with Client and Booking classes for business logic.
    - Configuration externalized to server_config.json.
    - Enhanced with `asyncRoute` middleware for consistent error handling and timeout management.
+   - Duplicate detection logic: checks by email, name+phone, name+email before creating clients.
 
-3. CLIENT-SIDE EXTENSION (Chrome Extension + JavaScript)
-   - Chrome extension for interacting with web pages (e.g., Gmail, LinkedIn).
-   - Features LLM integration for intelligent data extraction from emails.
-   - Provides a user interface for manual booking entry and PDF settings management.
+3. CLIENT-SIDE EXTENSION (Chrome Extension + JavaScript ES6)
+   - Dynamic page loading architecture with abstract Page base class.
+   - Three operational pages: ClientCapture, Invoicer, Gmailer.
+   - ClientCapture: NEW multi-client batch extraction from any web page.
+   - Features LLM integration (Anthropic Claude API) for intelligent data extraction.
+   - Centralized configuration via leedz_config.json with provider registry pattern.
+   - ClientParser: Two-phase extraction (procedural + LLM) with data sanitization.
    - Generates customizable PDF invoices using Handlebars templates and `html2pdf.js`.
 
 KEY COMPONENTS
 --------------
 1. Database Models:
-   - Client: id, name, email, phone, company, notes, createdAt, updatedAt
-   - Booking: id, clientId, description, location, startDate, endDate, startTime, endTime, duration, hourlyRate, flatRate, totalAmount, status, source, notes, createdAt, updatedAt
-   - Config: id, companyName, companyAddress, companyPhone, companyEmail, logoUrl, bankName, bankAddress, bankPhone, bankAccount, bankRouting, bankWire, servicesPerformed, contactHandle, includeTerms, terms, footerText, createdAt, updatedAt
+   - Client: id, name, email (unique), phone, company, website (NEW 2025-10-28), clientNotes, createdAt, updatedAt
+   - Booking: id, clientId, title, description, location, startDate, endDate, startTime, endTime, duration, hourlyRate, flatRate, totalAmount, status, source, notes, createdAt, updatedAt
+   - Config: id, companyName, companyAddress, companyPhone, companyEmail, logoUrl, bankName, bankAddress, bankPhone, bankAccount, bankRouting, bankWire, servicesPerformed, contactHandle, includeTerms, terms, mcp_host, mcp_port, createdAt, updatedAt
 
 2. API Endpoints (Refactored and Streamlined):
    - `POST /clients` - Creates a new client.
@@ -78,12 +82,21 @@ TECHNICAL STACK
 - AI Integration: LM Studio (for LLM inference on client-side)
 - Configuration: JSON-based configuration files
 
-CURRENT STATUS
---------------
-- Database schema fully defined (Client, Booking, Config models).
-- API server fully functional with all CRUD operations and configuration management.
-- Client-side Chrome extension integrates LLM parsing, robust PDF generation, and persistent settings management.
-- All core functionalities outlined in the project overview have been addressed and implemented.
+CURRENT STATUS (Updated 2025-10-28)
+-----------------------------------
+- Database schema fully defined with recent addition of `website` field to Client model.
+- TWO databases maintained: bloomsights.sqlite (active) and leedz_invoicer.sqlite (legacy).
+- API server running on port 3333 with all CRUD operations and configuration management.
+- Centralized configuration system via `client/leedz_config.json` for unified UI/parser/LLM settings.
+- Chrome extension now features THREE dynamic pages:
+  * ClientCapture - NEW: Multi-client batch extraction from web pages
+  * Invoicer - Single booking/invoice workflow
+  * Gmailer - Gmail OAuth and email sending integration
+- Client-side integrates Anthropic Claude API for LLM parsing with configurable system prompts.
+- ClientParser implements two-phase extraction: procedural DOM parsing + LLM fallback.
+- Data sanitization pipeline: name prefix removal, phone formatting, clientNotes cleanup.
+- Button state management: disabled during parsing, enabled on completion.
+- All core functionalities operational with enhanced multi-client capture capabilities.
 
 CHALLENGES ADDRESSED
 -------------------
@@ -97,12 +110,36 @@ CHALLENGES ADDRESSED
 
 5. Dynamic Module Loading: Resolved complex dynamic import issues within the Chrome extension context for Handlebars and other modules.
 
+RECENT ADDITIONS (2025-10-28)
+-----------------------------
+1. ClientCapture Page: Multi-client batch extraction from web pages
+   - Procedural DOM parsing for structured data (California School Directory, LinkedIn pages)
+   - LLM fallback for incomplete data extraction
+   - Validates name+email uniqueness, sanitizes data (removes Mr./Mrs., formats phone)
+   - Batch save operation with server connection validation
+
+2. Website Field Addition:
+   - Added `website` field to Client model in both databases
+   - Prisma migration: 20251029044833_add_website_to_client
+   - Updated client-side Client.js class and all serialization methods
+   - Updated server-side allowedFields in prisma_sqlite_db.js
+   - Updated LLM system prompts to extract website URLs
+
+3. Configuration Centralization:
+   - Migrated from invoicer_config.json to leedz_config.json
+   - Provider registry pattern for unified dependency injection
+   - Database connection correctly points to port 3333
+
+4. Error Handling Improvements:
+   - Save operation now throws error when server is down (previously silently failed)
+   - Button state management during async operations
+
 NEXT STEPS
 ----------
-- Full end-to-end testing of client-server interaction, especially for PDF settings save/load.
-- Further refinement of LLM prompts for improved data extraction accuracy.
-- User interface enhancements for a more polished experience.
-- Consider implementing authentication/authorization for multi-user support.
-- Explore additional features like recurring bookings or custom invoice templates.
+- Test ClientCapture on variety of web page formats (LinkedIn, conference sites, directories)
+- Refine ClientParser name extraction regex for edge cases
+- Add bulk edit capabilities for captured clients before save
+- Consider implementing client deduplication warnings in UI
+- Explore recurring bookings or custom invoice templates
 
 This system now represents a comprehensive, modern approach to business software, combining robust backend services with a user-friendly, AI-augmented client-side experience for invoicing and booking management.

@@ -94,12 +94,19 @@ export class ClientCapture extends Page {
     const container = document.getElementById('display_win_clients');
     if (!container) return;
 
-    // Clear container (except loading spinner and plus button)
+    // Filter out null clients (deleted entries)
+    this.clients = this.clients.filter(c => c !== null);
+
+    // Ensure at least one blank frame
+    if (this.clients.length === 0) {
+      this.clients.push(this._createBlankClient());
+    }
+
+    // Clear container (except loading spinner)
     const spinner = container.querySelector('.loading-spinner');
-    const plusBtn = container.querySelector('#addClientBtn');
     container.innerHTML = '';
 
-    // Re-add spinner and plus button
+    // Re-add spinner
     if (spinner) container.appendChild(spinner);
 
     // Render each client as a separate table
@@ -107,18 +114,19 @@ export class ClientCapture extends Page {
       const table = this._renderClientTable(client, index);
       container.appendChild(table);
     });
-
-    // Re-add plus button at the end
-    if (plusBtn) container.appendChild(plusBtn);
   }
 
   /**
    * Render a single client table
    */
   _renderClientTable(client, index) {
+    // Create container for frame (table + delete button)
+    const frameContainer = document.createElement('div');
+    frameContainer.className = 'client-frame';
+    frameContainer.setAttribute('data-client-index', index);
+
     const table = document.createElement('table');
     table.className = 'booking-table';
-    table.style.marginBottom = '20px';
     table.setAttribute('data-client-index', index);
 
     // Header
@@ -195,7 +203,24 @@ export class ClientCapture extends Page {
     });
 
     table.appendChild(tbody);
-    return table;
+
+    // Add table to frame container
+    frameContainer.appendChild(table);
+
+    // Create delete button
+    const deleteBtn = document.createElement('button');
+    deleteBtn.id = `deleteClientBtn-${index}`;
+    deleteBtn.className = 'sidebar-button delete-client-btn';
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.setAttribute('data-client-index', index);
+
+    // Wire delete button click handler
+    deleteBtn.addEventListener('click', () => this.deleteClient(index));
+
+    // Add delete button to frame container
+    frameContainer.appendChild(deleteBtn);
+
+    return frameContainer;
   }
 
   /**
@@ -208,14 +233,39 @@ export class ClientCapture extends Page {
   }
 
   /**
+   * Delete a client frame
+   * @param {number} index - Index of client to delete
+   */
+  deleteClient(index) {
+    // Get client name for confirmation (if available)
+    const clientName = this.clients[index]?.name || 'this client';
+
+    // Confirmation dialog
+    if (!confirm(`Delete ${clientName}?`)) {
+      return;
+    }
+
+    // Mark client as deleted (null)
+    this.clients[index] = null;
+
+    // Re-render (will filter out nulls and ensure at least one frame)
+    this.render();
+
+    // Show feedback
+    showToast('Client deleted', 'info');
+    log(`Client at index ${index} deleted`);
+  }
+
+  /**
    * Save all clients to database via state.save()
    * State automatically loops through Clients array
    */
   async saveAllClients() {
     try {
-      // Filter out empty clients
+      // Filter out null entries (deleted) and empty clients
       const nonEmptyClients = this.clients.filter(clientData => {
-        return !(ValidationUtils.isEmpty(clientData.name) &&
+        return clientData !== null &&
+               !(ValidationUtils.isEmpty(clientData.name) &&
                  ValidationUtils.isEmpty(clientData.email) &&
                  ValidationUtils.isEmpty(clientData.phone) &&
                  ValidationUtils.isEmpty(clientData.company) &&
@@ -257,9 +307,11 @@ export class ClientCapture extends Page {
   setButtonsEnabled(enabled) {
     const clearBtn = document.getElementById('clearClientsBtn');
     const saveBtn = document.getElementById('saveClientsBtn');
+    const deleteButtons = document.querySelectorAll('.delete-client-btn');
 
     if (clearBtn) clearBtn.disabled = !enabled;
     if (saveBtn) saveBtn.disabled = !enabled;
+    deleteButtons.forEach(btn => btn.disabled = !enabled);
   }
 
   /**
