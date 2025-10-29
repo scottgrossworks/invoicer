@@ -22,6 +22,7 @@
               <img src="icons/hamburger.png" alt="Menu" class="leedz-hamburger"/>
               <!-- Dropdown menu - hidden by default, toggled by hamburger click -->
               <div class="hamburger-menu" style="display:none;">
+                <div class="menu-item" data-page="clients">Clients</div>
                 <div class="menu-item" data-page="gmailer">Gmailer</div>
                 <div class="menu-item" data-page="invoicer">Invoicer</div>
               </div>
@@ -118,6 +119,44 @@
       </div>
 
     </div><!-- END page-gmailer -->
+
+
+    <!-- ========================================== -->
+    <!-- CLIENTS PAGE (Client capture)             -->
+    <!-- ========================================== -->
+    <div id="page-clients" class="page-content">
+
+      <div class="section-header">
+        <label for="display_win_clients">Capture Client Information</label>
+        <div class="header-buttons">
+          <button id="reloadBtn" class="reload-button" title="Reload the parser">
+            <span>
+              <img src="icons/arrows_white.png" class="button-icon" alt="reload parser"/>
+            </span>
+          </button>
+          <button id="addClientBtnHeader" class="add-client-button" title="Add another client">+</button>
+        </div>
+      </div>
+
+      <div id="display_win_clients" class="display-win">
+        <div id="loading_spinner_clients" class="loading-spinner" style="display: none;">
+          <img src="icons/wait_spinner.gif" alt="Loading..." />
+          <span>Processing...</span>
+        </div>
+        <table id="client_table" class="booking-table">
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody id="client_tbody">
+            <!-- Dynamic rows will be inserted here -->
+          </tbody>
+        </table>
+      </div>
+
+    </div><!-- END page-clients -->
 
 
   </main>

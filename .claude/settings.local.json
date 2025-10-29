@@ -16,7 +16,14 @@
       "Bash(sqlite3:*)",
       "Bash(npx prisma db push:*)",
       "Bash(tasklist)",
-      "Bash(findstr node)"
+      "Bash(findstr node)",
+      "WebSearch",
+      "Bash(dir /b \"C:\\Users\\Scott\\Desktop\\WKG\\INVOICER\\*.json\")",
+      "Bash(dir /b \"C:\\Users\\Scott\\Desktop\\WKG\\INVOICER\\server\\data\")",
+      "Bash(copy:*)",
+      "Bash(cp:*)",
+      "Bash(npm run db:migrate:*)",
+      "Bash(npm run db:generate:*)"
     ],
     "deny": [],
     "ask": []

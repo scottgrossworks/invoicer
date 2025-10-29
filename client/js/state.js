@@ -13,7 +13,7 @@ import { getDbLayer } from './provider_registry.js';
 
 class State {
   constructor( loadData ) {
-    this.Client = {};
+    this.Clients = [];  // Array is primary storage for clients
     this.Booking = {};
     this.Config = {};
     this.storageKey = 'currentBookingState';
@@ -21,6 +21,53 @@ class State {
 
     // Load existing state from Chrome storage
     if (loadData) this.load();
+  }
+
+  /**
+   * Backward compatibility getter - returns first client
+   * Invoicer and parsers use state.Client (singular)
+   */
+  get Client() {
+    if (this.Clients.length === 0) {
+      this.Clients[0] = {};  // Initialize if empty
+    }
+    return this.Clients[0];
+  }
+
+  /**
+   * Backward compatibility setter - sets first client
+   * Invoicer and parsers write to state.Client
+   */
+  set Client(data) {
+    this.Clients[0] = data;
+  }
+
+  /**
+   * Get all clients
+   */
+  getClients() {
+    return this.Clients;
+  }
+
+  /**
+   * Set all clients at once
+   */
+  setClients(clientsArray) {
+    this.Clients = clientsArray || [];
+  }
+
+  /**
+   * Add a client to the array
+   */
+  addClient(clientData) {
+    this.Clients.push(clientData);
+  }
+
+  /**
+   * Clear all clients
+   */
+  clearClients() {
+    this.Clients = [];
   }
 
 
@@ -31,9 +78,9 @@ class State {
    * @returns {*} The value or null if not found
    */
   clear() {
-    this.Client = {};
+    this.Clients = [];
     this.Booking = {};
-    // DO NOT CLEAR CONFIG DATA 
+    // DO NOT CLEAR CONFIG DATA
     // this.Config = {};
 
     this.status = 'clear';
@@ -45,7 +92,7 @@ class State {
    */
   toObject() {
     return {
-      Client: { ...this.Client },
+      Clients: [...this.Clients],  // Array of clients
       Booking: { ...this.Booking },
       Config: { ...this.Config }
     };
@@ -58,33 +105,18 @@ class State {
   fromObject(obj) {
 
     this.clear();
-    
-    // if (obj.Client || obj.Booking || obj.Config) {
-      // Hierarchical format
-      Object.assign(this.Client, obj.Client || {});
-      Object.assign(this.Booking, obj.Booking || {});
-      Object.assign(this.Config, obj.Config || {});
-      
-      /*
-    } else {
-      // Legacy flat format - categorize fields
-      Object.entries(obj).forEach(([key, value]) => {
-        if (['name', 'email', 'phone', 'company', 'notes'].includes(key)) {
-          this.Client[key] = value;
-          // Sync client name to bookingId
-          if (key === 'name') {
-            this.Booking.clientId = value;
-          }
-        } else if (['description', 'location', 'startDate', 'endDate', 'startTime', 'endTime', 'duration', 'hourlyRate', 'flatRate', 'totalAmount', 'status', 'source'].includes(key)) {
-          this.Booking[key] = value;
-        } else if (['companyName', 'companyAddress', 'companyPhone', 'companyEmail', 'logoUrl', 
-                   'bankName', 'bankAddress', 'bankPhone', 'bankAccount', 'bankRouting', 'bankWire',
-                   'servicesPerformed', 'contactHandle', 'includeTerms', 'terms'].includes(key)) {
-          this.Config[key] = value;
-        }
-      });
+
+    // Support both new format (Clients array) and legacy format (Client object)
+    if (obj.Clients && Array.isArray(obj.Clients)) {
+      // New format - array of clients
+      this.Clients = [...obj.Clients];
+    } else if (obj.Client && Object.keys(obj.Client).length > 0) {
+      // Legacy format - single client object
+      this.Clients = [obj.Client];
     }
-    */
+
+    Object.assign(this.Booking, obj.Booking || {});
+    Object.assign(this.Config, obj.Config || {});
 
   }
 
@@ -111,7 +143,7 @@ class State {
     const dbLayer = await getDbLayer();
     if (!dbLayer) {
       this.status='local';
-      console.warn("No DB layer configured, Cannot save");
+      console.log("No DB layer configured - data saved to local storage only");
       // No DB layer configured, skip DB save
       return;
     }
@@ -125,33 +157,40 @@ class State {
 
   /**
    * Load STATE from chrome storage - that will be most recent copy
-   * If Config not found, load from DB
-   * if there's nothing in the DB, let the caller assign its own defaults
+   * Does NOT load Config from DB - that should only happen in Invoicer page
    */
   async load() {
 
     await this.loadLocal();
-    this.status = 'local';
+    this.status = 'loaded';
+  }
+
+
+  /**
+   * Load Config data from DB
+   * Only called by Invoicer page when it needs Config data for PDF generation
+   * If Config not found, let the caller assign its own defaults
+   */
+  async loadConfigFromDB() {
 
     // If no Config data found load from DB
     if ( !this.Config || !this.Config.companyName ) {
-      
+
       const dbLayer = await getDbLayer();
       if (!dbLayer) {
-        console.warn("No DB Layer configured");
+        console.log("No DB Layer configured - Config will not be loaded from database");
         return;
       }
 
       const dbConfig = await dbLayer.load();
       if (dbConfig) {
         Object.assign(this.Config, dbConfig);
-        
-        
+        console.log("Config loaded from database");
         // CONFIG LOADED - DO NOT SAVE YET
         // Save will happen after parser completes and populates Client/Booking data
 
       } else {
-        console.warn("No Config found in DB");
+        console.log("No Config found in DB - using default or existing Config");
         return;
       }
     }
@@ -185,10 +224,17 @@ class State {
     try {
       const result = await chrome.storage.local.get(this.storageKey);
       if (result[this.storageKey]) {
-        const { Client, Booking, Config } = result[this.storageKey];
-        Object.assign(this.Client, Client || {});
-        Object.assign(this.Booking, Booking || {});
-        Object.assign(this.Config, Config || {});
+        const data = result[this.storageKey];
+
+        // Support both new format (Clients array) and legacy format (Client object)
+        if (data.Clients && Array.isArray(data.Clients)) {
+          this.Clients = [...data.Clients];
+        } else if (data.Client && Object.keys(data.Client).length > 0) {
+          this.Clients = [data.Client];
+        }
+
+        Object.assign(this.Booking, data.Booking || {});
+        Object.assign(this.Config, data.Config || {});
       }
     } catch (error) {
       console.warn('Failed to load state from storage:', error);

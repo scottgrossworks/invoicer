@@ -85,6 +85,16 @@ export function logError(...args) {
   console.error(...args);
 }
 
+/**
+ * Log user validation errors to console using console.log (not console.error)
+ * Use this for user input errors that are NOT program errors
+ * @param {...any} args - Validation error arguments to log
+ */
+export function logValidation(...args) {
+  // eslint-disable-next-line no-console
+  console.log('[Validation]', ...args);
+}
+
 // ==============================================================================
 // CONSOLE OVERRIDE (currently disabled)
 // ==============================================================================

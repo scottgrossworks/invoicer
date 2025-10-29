@@ -17,29 +17,29 @@
 
 /**
  * Loads the main configuration file for the extension
- * 
- * Attempts to fetch invoicer_config.json from the extension's root directory.
+ *
+ * Attempts to fetch leedz_config.json from the extension's root directory.
  * If the config file is missing or corrupted, returns sensible defaults for local development.
- * 
+ *
  * @returns {Promise<Object>} Configuration object with llm, db, render, and parsers sections
  * @throws {Error} Never throws - always returns valid config (defaults if needed)
- * 
+ *
  * Used by: All other functions in this module
- * 
+ *
  * Default fallback configuration:
  * - LLM: localhost:1234 (typical local LLM server)
- * - Database: localhost:3000 with SQLite provider
+ * - Database: localhost:3333 with SQLite provider
  */
 export async function loadConfig() {
   try {
-    const res = await fetch(chrome.runtime.getURL('invoicer_config.json'));
+    const res = await fetch(chrome.runtime.getURL('leedz_config.json'));
     if (!res.ok) throw new Error('Config fetch failed');
     return await res.json();
   } catch (e) {
     // Return sensible defaults if config loading fails
-    return { 
-      llm: { baseUrl: 'http://localhost:1234' }, 
-      db: { baseUrl: 'http://localhost:3000', provider: 'local_prisma_sqlite' } 
+    return {
+      llm: { baseUrl: 'http://localhost:1234' },
+      db: { baseUrl: 'http://localhost:3333', provider: 'local_prisma_sqlite' }
     };
   }
 }

@@ -32,35 +32,61 @@ console.log('LeedzEx content.js loaded');
 
 
 
+// Load config once at startup
+let LEEDZ_CONFIG = null;
+
+async function loadConfig() {
+  if (LEEDZ_CONFIG) return LEEDZ_CONFIG;
+
+  try {
+    const configUrl = chrome.runtime.getURL('leedz_config.json');
+    const response = await fetch(configUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to load config: ${response.status}`);
+    }
+    LEEDZ_CONFIG = await response.json();
+    console.log('Content script loaded config with', LEEDZ_CONFIG.parsers?.length || 0, 'parsers');
+    return LEEDZ_CONFIG;
+  } catch (error) {
+    console.error('Failed to load leedz_config.json:', error);
+    throw error;
+  }
+}
+
+// Dynamically load parser based on config
+async function loadParser(parserName) {
+  const config = await loadConfig();
+
+  // Find parser config by name
+  const parserConfig = config.parsers?.find(p => p.name === parserName);
+
+  if (!parserConfig) {
+    throw new Error(`Parser "${parserName}" not found in config. Available parsers: ${config.parsers?.map(p => p.name).join(', ')}`);
+  }
+
+  // Dynamic import using module path from config
+  const module = await import(chrome.runtime.getURL(parserConfig.module));
+
+  // Get the default export (parser class)
+  const ParserClass = module.default;
+
+  if (!ParserClass) {
+    throw new Error(`Parser class not found in ${parserConfig.module}`);
+  }
+
+  // Instantiate and return
+  return new ParserClass();
+}
+
 // respond to sidebar requests
 chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
   if (msg.type === 'leedz_parse_page') {
     (async () => {
       try {
         // console.log('Content script received parse request for:', msg.parser);
-        
-        // Import the parser dynamically
-        let parser;
-        switch (msg.parser) {
-          case 'LinkedInParser':
-            const { default: LinkedInParser } = await import(chrome.runtime.getURL('js/parser/linkedin_parser.js'));
-            parser = new LinkedInParser();
-            break;
-          case 'GmailParser':
-            const { default: GmailParser } = await import(chrome.runtime.getURL('js/parser/gmail_parser.js'));
-            parser = new GmailParser();
-            break;
-          case 'GCalParser':
-            const { default: GCalParser } = await import(chrome.runtime.getURL('js/parser/gcal_parser.js'));
-            parser = new GCalParser();
-            break;
-          case 'XParser':
-            const { default: XParser } = await import(chrome.runtime.getURL('js/parser/x_parser.js'));
-            parser = new XParser();
-            break;
-          default:
-            throw new Error(`Unknown parser: ${msg.parser}`);
-        }
+
+        // Load parser dynamically from config
+        const parser = await loadParser(msg.parser);
 
         // Reconstruct proper State instance from serialized data
         const { StateFactory } = await import(chrome.runtime.getURL('js/state.js'));
@@ -69,12 +95,19 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
 
         // Initialize and run the parser with proper State instance
         await parser.initialize(stateInstance);
-        await parser.parse(stateInstance);
-        // console.log('Parser extracted data:', stateInstance);
-        
+        const parseResult = await parser.parse(stateInstance);
+
+        // Check if parser returned data directly (like ClientParser)
+        // or modified state (like GmailParser, GCalParser)
+        const data = parseResult && typeof parseResult === 'object' && parseResult.clients
+          ? parseResult  // Direct return (ClientParser)
+          : stateInstance.toObject();  // State-based (GmailParser, etc.)
+
+        // console.log('Parser extracted data:', data);
+
         reply({
           ok: true,
-          data: stateInstance.toObject()
+          data: data
         });
       } catch (e) {
         console.error('Content script parser error:', e);

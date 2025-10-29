@@ -247,6 +247,10 @@ npm run mcp  # Runs dist/mcp_server.js
 }
 ```
 
+### MCP Attachment Size Limitations
+
+**CRITICAL LIMITATION**: Sending file attachments via gmail_send MCP plugin does not work due to the MCP protocol's 1MB content limit. While the Gmail API supports 25MB attachments, the MCP protocol requires the entire JSON-RPC message (including base64-encoded file content) to remain under 1MB. Base64 encoding increases file size by 33%, meaning files larger than 500-700KB will exceed the limit. In practice, even 80KB files trigger errors due to JSON overhead. The filesystem MCP plugin reads files but also fails on size constraints. It does NOT access Google Drive files as advertised. There is no workaround - attachments via MCP are not viable for anything beyond trivial file sizes.
+
 ### Claude Desktop System Prompt
 
 Configure Claude Desktop with the following custom instructions for optimal CRM assistance:

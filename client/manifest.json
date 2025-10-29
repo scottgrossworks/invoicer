@@ -55,6 +55,7 @@
         "js/lib/handlebars.runtime.min.js",
         "lib/*",
         "invoicer_config.json",
+        "leedz_config.json",
         "sidebar.html",
         "pdf_settings.html",
         "icons/*",

@@ -8,6 +8,7 @@ class Client {
       this.email = data.email;
       this.phone = data.phone;
       this.company = data.company;
+      this.website = data.website;
       this.clientNotes = data.clientNotes; // IGNORE
       this.createdAt = data.createdAt; // IGNORE
       this.updatedAt = data.updatedAt; // IGNORE
@@ -18,6 +19,7 @@ class Client {
       this.email = data.email || null;
       this.phone = data.phone || null;
       this.company = data.company || null;
+      this.website = data.website || null;
       this.clientNotes = data.clientNotes || null;
       this.createdAt = new Date();
       this.updatedAt = new Date();
@@ -77,7 +79,9 @@ class Client {
       'name',
       'email',
       'phone',
-      'company'
+      'company',
+      'website',
+      'clientNotes'
     ];
     return fields;
   }
@@ -104,6 +108,7 @@ class Client {
       email: this.email || undefined,
       phone: this.phone || undefined,
       company: this.company || undefined,
+      website: this.website || undefined,
       clientNotes: this.clientNotes || undefined
     };
   }
@@ -115,6 +120,7 @@ class Client {
       email: this.email,
       phone: this.phone,
       company: this.company,
+      website: this.website,
       clientNotes: this.clientNotes,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt
@@ -127,6 +133,7 @@ class Client {
     if (data.email !== undefined) this.email = data.email;
     if (data.phone !== undefined) this.phone = data.phone;
     if (data.company !== undefined) this.company = data.company;
+    if (data.website !== undefined) this.website = data.website;
     if (data.clientNotes !== undefined) this.clientNotes = data.clientNotes;
     this.updatedAt = new Date();
   }
@@ -140,6 +147,7 @@ Client.prototype.toJSON = function() {
     email: this.email,
     phone: this.phone,
     company: this.company,
+    website: this.website,
     clientNotes: this.clientNotes,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt

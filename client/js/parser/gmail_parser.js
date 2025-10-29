@@ -126,6 +126,30 @@ class GmailParser extends PortalParser {
   }
 
   /**
+   * Normalize name from "Lastname, Firstname" format to "Firstname Lastname"
+   * @param {string} name - Raw name from email header
+   * @returns {string} Normalized name
+   */
+  _normalizeName(name) {
+    if (!name) return name;
+
+    const trimmed = name.trim();
+
+    // Check for "Lastname, Firstname" pattern (comma with optional spaces)
+    if (trimmed.includes(',')) {
+      const parts = trimmed.split(',').map(p => p.trim());
+
+      // Only reverse if we have exactly 2 parts and both are non-empty
+      if (parts.length === 2 && parts[0] && parts[1]) {
+        return `${parts[1]} ${parts[0]}`;
+      }
+    }
+
+    // Return original name if no comma or pattern doesn't match
+    return trimmed;
+  }
+
+  /**
    *  Extracts sender using specific header element selectors to avoid grabbing emails from the body.
    */
   _extractEmailAndName() {
@@ -138,7 +162,8 @@ class GmailParser extends PortalParser {
         const primarySender = Array.from(senderElements).find(el => !el.closest('.gmail_quote'));
         if (primarySender) {
             const email = primarySender.getAttribute('email');
-            const name = primarySender.getAttribute('name') || primarySender.textContent?.trim();
+            const rawName = primarySender.getAttribute('name') || primarySender.textContent?.trim();
+            const name = this._normalizeName(rawName);
             // console.log(`Primary sender found: name='${name}', email='${email}'`);
             return { email, name };
         }
