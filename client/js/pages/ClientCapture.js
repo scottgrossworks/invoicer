@@ -224,10 +224,10 @@ export class ClientCapture extends Page {
   }
 
   /**
-   * Add a new blank client frame
+   * Add a new blank client frame at the top
    */
   addClientFrame() {
-    this.clients.push(this._createBlankClient());
+    this.clients.unshift(this._createBlankClient());
     this.render();
     log('Added new client frame');
   }
@@ -237,14 +237,6 @@ export class ClientCapture extends Page {
    * @param {number} index - Index of client to delete
    */
   deleteClient(index) {
-    // Get client name for confirmation (if available)
-    const clientName = this.clients[index]?.name || 'this client';
-
-    // Confirmation dialog
-    if (!confirm(`Delete ${clientName}?`)) {
-      return;
-    }
-
     // Mark client as deleted (null)
     this.clients[index] = null;
 

@@ -254,7 +254,7 @@ async function switchToPage(pageName) {
     return;
   }
 
-  page.getPageElement().style.display = 'block';
+  page.getPageElement().style.display = 'flex';
   await page.onShow();
 
   // Update UI

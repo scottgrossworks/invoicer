@@ -138,9 +138,10 @@ html, body {
 /* Each page is a container div that can be shown/hidden */
 .page-content {
   width: 100%;
-  display: none; /* Hidden by default - JavaScript shows the default page */
+  display: none; /* IMPORTANT */
   flex-direction: column;
-  height: 100%;
+  flex: 1;       /* Take remaining space after .section-header */
+  min-height: 0; /* Allow flex child to shrink */
 }
 
 /* Invoicer button wrapper - hidden by default */
@@ -156,8 +157,8 @@ html, body {
   overflow-y: hidden;  /* Parent doesn't scroll - children handle their own scrolling */
   min-height: 0;      /* Prevent flexbox overflow issues */
   padding: 10px;
-  height:auto;
-  max-height:75vh;    /* REVERTED: Back to original 75vh */
+  height: auto;
+  max-height: 75vh;
   width: 98%;
   margin: 0 auto;
   box-sizing: border-box;

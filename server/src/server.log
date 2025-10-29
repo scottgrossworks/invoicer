@@ -224,3 +224,6 @@ Invalid value for argument `[1mendDate[22m`: Provided Date object is invalid. 
 [2025-10-29T06:25:21.355Z] GET /clients
 [2025-10-29T06:25:42.544Z] GET /clients
 [2025-10-29T17:52:18.522Z] Received SIGINT, shutting down gracefully...
+[2025-10-29T17:52:42.415Z] Database connected successfully
+[2025-10-29T17:52:42.419Z] ! Local API running on http://localhost:3333
+[2025-10-29T18:34:49.192Z] Received SIGINT, shutting down gracefully...
