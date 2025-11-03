@@ -45,8 +45,14 @@ export class Invoicer extends Page {
     // Populate table with current state
     this.updateFromState(this.state);
 
-    // Run parser to extract booking data from current page
-    await this.reloadParser();
+    // Only auto-parse if no data exists (preserves manually entered/extracted data)
+    const hasClientData = this.state.Client.name || this.state.Client.email;
+    const hasBookingData = this.state.Booking.title || this.state.Booking.location;
+
+    if (!hasClientData && !hasBookingData) {
+      // Run parser to extract booking data from current page
+      await this.reloadParser();
+    }
   }
 
   /**

@@ -78,13 +78,59 @@ async function loadParser(parserName) {
   return new ParserClass();
 }
 
+// Find matching parser for current page URL
+async function getMatchingParser() {
+  const config = await loadConfig();
+  const currentUrl = window.location.href;
+
+  // Try each parser's checkPageMatch() method
+  for (const parserConfig of config.parsers || []) {
+    const parser = await loadParser(parserConfig.name);
+    const matches = await parser.checkPageMatch(currentUrl);
+    if (matches) {
+      return parser;
+    }
+  }
+
+  throw new Error('No matching parser found for current page');
+}
+
 // respond to sidebar requests
 chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
+  // Extract client data only (for ClientCapture page)
+  if (msg.type === 'leedz_extract_client') {
+    (async () => {
+      try {
+        // Get matching parser for current page
+        const parser = await getMatchingParser();
+
+        // Reconstruct State instance
+        const { StateFactory } = await import(chrome.runtime.getURL('js/state.js'));
+        const stateInstance = await StateFactory.create_blank();
+        stateInstance.fromObject(msg.state);
+
+        // Initialize and run parser (includes LLM extraction)
+        await parser.initialize(stateInstance);
+        await parser.parse(stateInstance); // Full parse (procedural + LLM)
+
+        // Return state with Clients array populated
+        reply({
+          ok: true,
+          data: stateInstance.toObject()
+        });
+      } catch (e) {
+        console.error('Content script client extraction error:', e);
+        reply({ ok: false, error: e.message });
+      }
+    })();
+
+    return true; // keep port open for async reply
+  }
+
+  // Full parse with both client and booking data (for Invoicer page)
   if (msg.type === 'leedz_parse_page') {
     (async () => {
       try {
-        // console.log('Content script received parse request for:', msg.parser);
-
         // Load parser dynamically from config
         const parser = await loadParser(msg.parser);
 
@@ -97,13 +143,12 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
         await parser.initialize(stateInstance);
         const parseResult = await parser.parse(stateInstance);
 
-        // Check if parser returned data directly (like ClientParser)
-        // or modified state (like GmailParser, GCalParser)
-        const data = parseResult && typeof parseResult === 'object' && parseResult.clients
-          ? parseResult  // Direct return (ClientParser)
-          : stateInstance.toObject();  // State-based (GmailParser, etc.)
+        // Use state object as data
+        const data = stateInstance.toObject();
 
-        // console.log('Parser extracted data:', data);
+        // console.log('=== PARSE COMPLETE ===');
+        // console.log('Client data being returned:', data.Client);
+        // console.log('Booking data being returned:', data.Booking);
 
         reply({
           ok: true,
@@ -116,7 +161,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
     })();
 
     return true; // keep port open for async reply
-  
+
   } else {
     if (msg.type) console.log("Received Msg [" + msg.type + "] " + (msg.body || 'no body'));
   }

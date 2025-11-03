@@ -158,26 +158,41 @@ cleanFloat(value) {
 
       // CONFIG (optional - only save if config data exists)
       //
-      if (state.Config && Object.keys(state.Config).length > 0 && state.Config.companyName) {
-        data = state.Config;
-        check = Config.validate(data);
+      if (state.Config && Object.keys(state.Config).length > 0) {
+        const data = state.Config;
+        const check = Config.validate(data);
         if (!check.isValid) {
           logValidation('Config data validation failed:', check.errors);
           throw new Error('Config data validation failed: ' + check.errors.join(', '));
         }
 
         const configPayload = {
-          companyName: data.companyName || '',
-          companyAddress: data.companyAddress || '',
-          companyPhone: data.companyPhone || '',
-          companyEmail: data.companyEmail || '',
-          logoUrl: data.logoUrl || '',
-          bankName: data.bankName || '',
-          bankAddress: data.bankAddress || '',
-          bankPhone: data.bankPhone || '',
-          bankAccount: data.bankAccount || '',
-          bankRouting: data.bankRouting || '',
-          bankWire: data.bankWire || '',
+          companyName: data.companyName || null,
+          companyAddress: data.companyAddress || null,
+          companyPhone: data.companyPhone || null,
+          companyEmail: data.companyEmail || null,
+          logoUrl: data.logoUrl || null,
+          bankName: data.bankName || null,
+          bankAddress: data.bankAddress || null,
+          bankPhone: data.bankPhone || null,
+          bankAccount: data.bankAccount || null,
+          bankRouting: data.bankRouting || null,
+          bankWire: data.bankWire || null,
+          servicesPerformed: data.servicesPerformed || null,
+          contactHandle: data.contactHandle || null,
+          includeTerms: data.includeTerms || null,
+          terms: data.terms || null,
+          serverUrl: data.serverUrl || null,
+          serverPort: data.serverPort || null,
+          dbProvider: data.dbProvider || null,
+          dbPath: data.dbPath || null,
+          mcpHost: data.mcpHost || null,
+          mcpPort: data.mcpPort || null,
+          llmApiKey: data.llmApiKey || null,
+          llmProvider: data.llmProvider || null,
+          llmBaseUrl: data.llmBaseUrl || null,
+          llmAnthropicVersion: data.llmAnthropicVersion || null,
+          llmMaxTokens: data.llmMaxTokens || null
         };
 
         let configRes = await fetch(`${this.baseUrl}/config`, {
@@ -191,6 +206,7 @@ cleanFloat(value) {
           console.error('Config save failed:', errorText);
           throw new Error(`Config save failed: ${configRes.status} ${errorText}`);
         }
+        console.log('Config saved to database');
       }  // End if (state.Config exists)
 
 
@@ -215,22 +231,43 @@ cleanFloat(value) {
 /**
  * Used to load Config from DB
  * Returns null if no config found
+ * Priority order for server URL:
+ * 1. Chrome storage (leedzStartupConfig) - user-configured via Startup page
+ * 2. leedz_config.json - default fallback configuration
  * @returns {Promise<Object|null>} Configuration object or null if not found
-
- * 
  */
 async load() {
     try {
-      // Get server baseUrl from config
-      const configResponse = await fetch(chrome.runtime.getURL(CONFIG_JSON));
-      const config = await configResponse.json();
+      let serverUrl = null;
 
-      if (! config.db || ! config.db.provider) {
-        console.log("No DB configured");
-        return null;
+      // First check Chrome storage for user-configured startup settings
+      try {
+        const storageResult = await chrome.storage.local.get('leedzStartupConfig');
+        if (storageResult.leedzStartupConfig) {
+          const startupConfig = storageResult.leedzStartupConfig;
+          if (startupConfig.serverUrl && startupConfig.serverPort) {
+            serverUrl = `${startupConfig.serverUrl}:${startupConfig.serverPort}`;
+            console.log('Using startup config from Chrome storage for load():', serverUrl);
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load startup config from Chrome storage:', error);
       }
 
-      const serverUrl = config.db?.baseUrl || URL_DEFAULT;
+      // Fall back to leedz_config.json if no startup config found
+      if (!serverUrl) {
+        const configResponse = await fetch(chrome.runtime.getURL(CONFIG_JSON));
+        const config = await configResponse.json();
+
+        if (!config.db || !config.db.provider) {
+          console.log("No DB configured");
+          return null;
+        }
+
+        serverUrl = config.db?.baseUrl || URL_DEFAULT;
+        console.log('Using default config from leedz_config.json for load():', serverUrl);
+      }
+
       const dbResponse = await fetch(`${serverUrl}/config`);
 
       if (dbResponse.ok) {

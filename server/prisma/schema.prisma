@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:../data/bloomsights.sqlite"
+  url      = "file:../data/leedz_invoicer.sqlite"
 }
 
 model Client {
@@ -43,24 +43,33 @@ model Booking {
 }
 
 model Config {
-  id                String   @id @default(cuid())
-  companyName       String?
-  companyAddress    String?
-  companyPhone      String?
-  companyEmail      String?
-  logoUrl           String?
-  bankName          String?
-  bankAddress       String?
-  bankPhone         String?
-  bankAccount       String?
-  bankRouting       String?
-  bankWire          String?
-  servicesPerformed String?
-  contactHandle     String?
-  includeTerms      Boolean?
-  terms             String?
-  mcp_host          String?  @default("127.0.0.1")
-  mcp_port          String?  @default("3001")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  companyName          String?
+  companyAddress       String?
+  companyPhone         String?
+  companyEmail         String?
+  logoUrl              String?
+  bankName             String?
+  bankAddress          String?
+  bankPhone            String?
+  bankAccount          String?
+  bankRouting          String?
+  bankWire             String?
+  servicesPerformed    String?
+  contactHandle        String?
+  includeTerms         Boolean?
+  terms                String?
+  serverUrl            String?  @default("http://127.0.0.1")
+  serverPort           String?  @default("3000")
+  dbProvider           String?  @default("local_prisma_sqlite")
+  dbPath               String?  @default("../data/leedz_invoicer.sqlite")
+  mcpHost              String?  @default("127.0.0.1")
+  mcpPort              String?  @default("3001")
+  llmApiKey            String?
+  llmProvider          String?  @default("claude-opus-4-1-20250805")
+  llmBaseUrl           String?  @default("https://api.anthropic.com")
+  llmAnthropicVersion  String?  @default("2023-06-01")
+  llmMaxTokens         Int?     @default(1024)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }

@@ -5,13 +5,13 @@
 import Client from '../db/Client.js';
 import Booking from '../db/Booking.js';
 
-// Portal Parser Interface
-class PortalParser {
+// Parser - Abstract base class for all content parsers
+class Parser {
 
 
     constructor() {
-        if (this.constructor === PortalParser) {
-            throw new Error("Abstract class 'PortalParser' cannot be instantiated directly.");
+        if (this.constructor === Parser) {
+            throw new Error("Abstract class 'Parser' cannot be instantiated directly.");
         }
 
         // Common regex patterns used across parsers
@@ -154,6 +154,15 @@ class PortalParser {
     }
 
     /**
+     * Extract client data from current page
+     * MUST return an array of client objects, even if only one client found
+     * @returns {Array<Object>} Array of client objects [{name, email, phone, company, website, clientNotes}, ...]
+     */
+    async extractClientData() {
+        throw new Error("extractClientData() must be implemented by subclass and return array");
+    }
+
+    /**
      * Check if current page is relevant for this parser
      * @returns {boolean} True if the current page can be parsed
      */
@@ -163,7 +172,7 @@ class PortalParser {
 
     /**
      * Initialize state with default values for this parser
-     * @param {StateFactory.create()} state 
+     * @param {StateFactory.create()} state
      */
     initialize(state) {
         throw new Error("initialize() must be implemented by subclass");
@@ -171,7 +180,7 @@ class PortalParser {
 
     /**
      * Parse the current page into the provided state
-     * @param {StateFactory.create()} state 
+     * @param {StateFactory.create()} state
      */
     parse(state) {
         throw new Error("parse() must be implemented by subclass");
@@ -203,10 +212,39 @@ class PortalParser {
   // each subclass **must** implement:
   async waitUntilReady() { throw new Error('waitUntilReady() not implemented'); }
 
+  /**
+   * Conservative update - merge LLM results with existing state
+   * Only fills in fields that are currently null/undefined/empty
+   * Shared by all parsers to avoid duplication
+   * @param {Object} llmResult - Parsed LLM response with Client/Booking data
+   */
+  _conservativeUpdate(llmResult) {
+    const updateIfEmpty = (obj, prop, llmValue) => {
+      const currentValue = obj[prop];
+      if (llmValue && (currentValue === null || currentValue === undefined || String(currentValue).trim() === '')) {
+        obj[prop] = llmValue;
+      }
+    };
+
+    // Update Client fields (skip name/email if procedurally extracted)
+    if (llmResult.Client) {
+      Object.keys(llmResult.Client).forEach(key => {
+        updateIfEmpty(this.STATE.Client, key, llmResult.Client[key]);
+      });
+    }
+
+    // Update Booking fields
+    if (llmResult.Booking) {
+      Object.keys(llmResult.Booking).forEach(key => {
+        updateIfEmpty(this.STATE.Booking, key, llmResult.Booking[key]);
+      });
+    }
+  }
 
 }
 
-window.PortalParser = PortalParser;
+window.Parser = Parser;
+window.PortalParser = Parser; // Backward compatibility alias
 
 // Define comprehensive reserved names list at the top of function
 const RESERVED_PATHS = [
@@ -247,4 +285,4 @@ function pruneShortLines(blob, minChars = 5) {
   return lines.filter(line => line.trim().length >= minChars).join('\n');
 }
 
-export { PortalParser };
+export { Parser, Parser as PortalParser }; // Export both names for compatibility

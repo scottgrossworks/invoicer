@@ -1,6 +1,6 @@
 // gCal_parser.js — extract Google Calendar event content and process via LLM
 
-import { PortalParser } from './parser.js';
+import { EventParser } from './event_parser.js';
 
 // Global CONFIG variable - loaded once when parser initializes
 let CONFIG = null;
@@ -8,7 +8,7 @@ let CONFIG = null;
 /**
  * GCalParser - Extracts booking/invoice data from Google Calendar events using a hybrid procedural and LLM processing approach.
  */
-class GCalParser extends PortalParser {
+class GCalParser extends EventParser {
 
   constructor() {
     super();
@@ -43,123 +43,95 @@ class GCalParser extends PortalParser {
     this.STATE.clear();
   }
 
-  async parse(state) {
-    try {
-      if (state) {
-        if (state.Client) Object.assign(this.STATE.Client, state.Client);
-        if (state.Booking) Object.assign(this.STATE.Booking, state.Booking);
-        if (state.Config) Object.assign(this.STATE.Config, state.Config);
-      }
+  /**
+   * Extract client data from Google Calendar event
+   * GCal events typically don't have direct client information
+   * @returns {Array<Object>} Empty array (LLM will fill in client data)
+   */
+  async extractClientData() {
+    return []; // Client data comes from LLM parsing of title/description
+  }
 
-      await this.waitUntilReady();
+  /**
+   * Extract booking data from Google Calendar event using procedural DOM extraction
+   * @returns {Object} Booking data {title, location, dates, times, duration, source}
+   */
+  async extractBookingData() {
+    await this.waitUntilReady();
 
-      const proceduralData = this._extractProceduralData();
-      // console.log('Procedural extraction result:', proceduralData);
-      if (! (proceduralData.title ||
-            proceduralData.dateTime ||
-            proceduralData.location ||
-            proceduralData.description)
-      ) {
-        console.log("Calendar Event not found.  Cannot parse details. Make sure the event pop-up is open.");
-        return this.STATE;
-      }
+    const proceduralData = this._extractProceduralData();
 
-      // Assign extracted data to the state
-      this.STATE.Booking.title = proceduralData.title; 
-      // let the LLM fill in description if possible
-      // this.STATE.Booking.description = proceduralData.description;
-      this.STATE.Booking.location = proceduralData.location;
-      this.STATE.Booking.source = 'gcal';
-      
-      // DATETIME
-      // Smart parsing of date/time for same-day events
-      if (proceduralData.dateTime) {
-        const parsed = this._parseDateTime(proceduralData.dateTime);
-
-        // Convert dates to ISO 8601 format
-        this.STATE.Booking.startDate = this._convertToISO8601(parsed.startDate, parsed.startTime);
-        this.STATE.Booking.endDate = this._convertToISO8601(parsed.endDate, parsed.endTime);
-        this.STATE.Booking.startTime = parsed.startTime;
-        this.STATE.Booking.endTime = parsed.endTime;
-
-        // SAME DAY
-        // Auto-complete endDate to match startDate if endDate is missing
-        if (this.STATE.Booking.startDate && ! this.STATE.Booking.endDate) {
-          this.STATE.Booking.endDate = this.STATE.Booking.startDate;
-        }
-
-        // calculate DURATION
-        let duration = this._calculateDuration(this.STATE.Booking.startDate, this.STATE.Booking.endDate);
-        if (duration) this.STATE.Booking.duration = duration;
-      }
-
-
-      // Conditional LLM Parsing on title + description concatenated
-      const title = proceduralData.title || '';
-      const description = proceduralData.description || '';
-      const combinedText = `${title}\n\n${description}`.trim();
-      
-      if (combinedText.length > 0) {
-        
-        const llmResult = await this._sendToLLM(combinedText);
-
-        if (llmResult) {
-
-          /*
-            console.log("LLM returned result:", llmResult);
-            console.log("Before conservative update, STATE:", {
-              Client: this.STATE.Client,
-              Booking: this.STATE.Booking
-            });
-          */
-
-            // UPDATE the STATE conservatively
-            this._conservativeUpdate(llmResult);
-
-            /*         
-            console.log("After conservative update, STATE:", {
-              Client: this.STATE.Client,
-              Booking: this.STATE.Booking
-            });
-            */
-
-          console.log('LLM processed successfully');
-        } else {
-          console.warn("LLM returned null/empty result");
-        }
-      } else {
-        console.log("No combined text found for LLM parsing.");
-      }
-
-    } catch (error) {
-      console.error('GCal parser error:', error);
-      this.STATE.Booking = this.STATE.Booking || {};
-      this.STATE.Booking.source = 'gcal';
+    if (! (proceduralData.title ||
+          proceduralData.dateTime ||
+          proceduralData.location ||
+          proceduralData.description)
+    ) {
+      console.log("Calendar Event not found. Cannot parse details. Make sure the event pop-up is open.");
+      return { source: 'gcal' };
     }
 
+    const bookingData = {
+      title: proceduralData.title,
+      location: proceduralData.location,
+      source: 'gcal'
+    };
 
-     
-    // RATES
-    // if there is a flatRate -- totalAmount = flatRate
-    // else if there is an hourlyRate
-    // totalAmount = hourlyRate * duration
-    // 
+    // DATETIME - Smart parsing of date/time
+    if (proceduralData.dateTime) {
+      const parsed = this._parseDateTime(proceduralData.dateTime);
+
+      // Convert dates to ISO 8601 format
+      bookingData.startDate = this._convertToISO8601(parsed.startDate, parsed.startTime);
+      bookingData.endDate = this._convertToISO8601(parsed.endDate, parsed.endTime);
+      bookingData.startTime = parsed.startTime;
+      bookingData.endTime = parsed.endTime;
+
+      // Auto-complete endDate to match startDate if missing (same-day events)
+      if (bookingData.startDate && !bookingData.endDate) {
+        bookingData.endDate = bookingData.startDate;
+      }
+
+      // Calculate DURATION
+      const duration = this._calculateDuration(bookingData.startDate, bookingData.endDate);
+      if (duration) bookingData.duration = duration;
+    }
+
+    // Store description for LLM processing (don't add to booking data directly)
+    this._cachedDescription = proceduralData.description;
+
+    return bookingData;
+  }
+
+  /**
+   * Get content for LLM processing
+   * @returns {string} Combined title and description
+   */
+  async _getContentForLLM() {
+    const title = this.STATE.Booking?.title || '';
+    const description = this._cachedDescription || '';
+    return `${title}\n\n${description}`.trim();
+  }
+
+  /**
+   * Override EventParser parse() to add rate calculations after parent processing
+   */
+  async parse(state) {
+    // Call parent EventParser template method
+    const result = await super.parse(state);
+
+    // RATES - Calculate totalAmount based on rates and duration
     if (this.STATE.Booking.flatRate) {
-      // user may ++totalAmount later -- this is just a default
       this.STATE.Booking.totalAmount = this.STATE.Booking.flatRate;
-    
-    } else if (this.STATE.Booking.hourlyRate && ! this.STATE.Booking.totalAmount) {
-
-      // Calculate totalAmount before displaying if hourlyRate and duration are available
+    } else if (this.STATE.Booking.hourlyRate && !this.STATE.Booking.totalAmount) {
       const hourlyRate = parseFloat(this.STATE.Booking.hourlyRate);
       const calculatedDuration = parseFloat(this.STATE.Booking.duration);
       if (!isNaN(hourlyRate) && !isNaN(calculatedDuration) && hourlyRate > 0 && calculatedDuration > 0) {
         const total = hourlyRate * calculatedDuration;
         this.STATE.Booking.totalAmount = total.toFixed(2);
       }
-    } 
+    }
 
-    return this.STATE;
+    return result;
   }
 
 
@@ -353,38 +325,7 @@ class GCalParser extends PortalParser {
 
 
 
-  /**
-   * Conservatively updates the state with new LLM results.
-   * Only fills in fields that are currently empty or whitespace or null.
-   * @param {*} llmResult 
-   */
-  _conservativeUpdate(llmResult) {
-      const updateIfEmpty = (obj, prop, llmValue) => {
-          // Only update if the current value is null, undefined, or an empty string
-          const currentValue = obj[prop];
-          if (llmValue && (currentValue === null || currentValue === undefined || String(currentValue).trim() === "")) {
-              obj[prop] = llmValue;
-          }
-      };
-
-      // Client fields
-      updateIfEmpty(this.STATE.Client, 'name', llmResult.Client?.name);
-      updateIfEmpty(this.STATE.Client, 'email', llmResult.Client?.email);
-      updateIfEmpty(this.STATE.Client, 'phone', this.sanitizePhone(llmResult.Client?.phone));
-      updateIfEmpty(this.STATE.Client, 'company', llmResult.Client?.company);
-      // updateIfEmpty(this.STATE.Client, 'clientNotes', llmResult.Client?.clientNotes);
-
-      // Booking fields
-      updateIfEmpty(this.STATE.Booking, 'hourlyRate', this.sanitizeCurrency(llmResult.Booking?.hourlyRate));
-      updateIfEmpty(this.STATE.Booking, 'flatRate', this.sanitizeCurrency(llmResult.Booking?.flatRate));
-      updateIfEmpty(this.STATE.Booking, 'totalAmount', this.sanitizeCurrency(llmResult.Booking?.totalAmount));
-      updateIfEmpty(this.STATE.Booking, 'duration', llmResult.Booking?.duration);
-      updateIfEmpty(this.STATE.Booking, 'location', llmResult.Booking?.location);
-      updateIfEmpty(this.STATE.Booking, 'description', llmResult.Booking?.description);
-      updateIfEmpty(this.STATE.Booking, 'title', llmResult.Booking?.title);
-      updateIfEmpty(this.STATE.Booking, 'notes', llmResult.Booking?.notes);
-      this.STATE.Booking.source = 'Google Calendar'; // Always set source to gcal
-  }
+  // _conservativeUpdate() is inherited from Parser base class
 
 
   async _sendToLLM(combinedText) {
@@ -465,13 +406,14 @@ class GCalParser extends PortalParser {
     });
   }
 
-  // _parseLLMResponse() inherited from PortalParser base class
+  // _parseLLMResponse() inherited from Parser base class
   // Transforms flat LLM JSON response into nested Client/Booking structure
 
   async waitUntilReady() {
     try {
-      await PortalParser.waitForElement('[role="dialog"]', 10000);
-      await PortalParser.waitForElement('[role="dialog"] #rAECCd', 5000);
+      const { Parser } = await import('./parser.js');
+      await Parser.waitForElement('[role="dialog"]', 10000);
+      await Parser.waitForElement('[role="dialog"] #rAECCd', 5000);
       return true;
 
     } catch (error) {

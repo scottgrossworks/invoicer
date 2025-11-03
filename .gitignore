@@ -5,8 +5,10 @@ server/node_modules/
 # Environment and config files
 client/invoicer_config.json
 client/invoicer_config-local.json
+client/leedz_config.json
 client/js/parser/anthropic-api-key.txt
 server/mcp/mcp_server_config.json
+server/mcp/mcp_server.log
 CLAUDE.md
 server/STATUS.txt
 

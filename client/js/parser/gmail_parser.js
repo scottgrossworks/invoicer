@@ -7,14 +7,14 @@
  * 3. Extract the full, combined text from every message in the thread using accessibility roles.
  * 4. Send the complete and accurate data to the LLM for processing.
  */
-import { PortalParser } from './parser.js';
+import { EventParser } from './event_parser.js';
 import Client from '../db/Client.js';
 import Booking from '../db/Booking.js';
 
 // Global CONFIG variable
 let CONFIG = null;
 
-class GmailParser extends PortalParser {
+class GmailParser extends EventParser {
 
   constructor() {
     super();
@@ -25,12 +25,12 @@ class GmailParser extends PortalParser {
   async _initializeConfig() {
     if (CONFIG) return;
     try {
-      const configResponse = await fetch(chrome.runtime.getURL('invoicer_config.json'));
+      const configResponse = await fetch(chrome.runtime.getURL('leedz_config.json'));
       if (!configResponse.ok) throw new Error(`Config file not found: ${configResponse.status}`);
       CONFIG = await configResponse.json();
       console.log('Gmail parser config loaded successfully');
     } catch (error) {
-      console.error('FATAL: Unable to load invoicer_config.json:', error);
+      console.error('FATAL: Unable to load leedz_config.json:', error);
       throw new Error('Gmail parser cannot initialize - config file missing or invalid');
     }
   }
@@ -44,85 +44,120 @@ class GmailParser extends PortalParser {
     this.STATE.clear();
   }
 
-  async parse(state) {
-    try {
-      if (state) {
-        if (state.Client) Object.assign(this.STATE.Client, state.Client);
-        if (state.Booking) Object.assign(this.STATE.Booking, state.Booking);
-        if (state.Config) Object.assign(this.STATE.Config, state.Config);
-      }
+  /**
+   * Extract client data from Gmail header (email, name)
+   * @returns {Array<Object>} Array with single client from sender
+   */
+  async extractClientData() {
+    const emailData = this._extractEmailAndName();
 
-      // NAME AND EMAIL
-      const emailData = this._extractEmailAndName();
-     
-      // Set guaranteed fields after extraction
-      if (emailData.email) this.STATE.Client.email = emailData.email;
-      if (emailData.name) {
-        this.STATE.Client.name = emailData.name;
-        this.STATE.Booking.clientId = emailData.name;
-      }
-      this.STATE.Booking.source = 'gmail';
+    // Return array with single client (the sender)
+    return [{
+      email: emailData.email || null,
+      name: emailData.name || null
+    }];
+  }
 
+  /**
+   * Extract booking data from Gmail
+   * Gmail bookings are primarily extracted by LLM, not procedurally
+   * @returns {Object} Booking data {source}
+   */
+  async extractBookingData() {
+    // Cache thread content for LLM processing
+    this._cachedThreadContent = await this._extractThreadContent();
 
-
-      // GET EMAIL BLOB
-      const threadContent = await this._extractThreadContent();
-      
-      if (!threadContent?.trim()) {
-        console.warn('No email content could be extracted. The email might be empty or selectors need updating.');
-        return;
-      }
-      // console.log(`EXTRACTED EMAIL BLOB (${threadContent.length} chars):` + threadContent + "...");
-
-
-
-      // SEND BLOB TO LLM
-      const llmResult = await this._sendToLLM(emailData, threadContent);
-
-      if (llmResult) {
-        console.log('LLM processed successfully');
-        this._conservativeUpdate(llmResult);
-      } else {
-        console.warn('LLM unavailable or returned no data - basic extraction only');
-      }
-
-      // DATA CHECKS
-
-      // NAME AND EMAIL
-      if (emailData.email && !this.STATE.Client.email) this.STATE.Client.email = emailData.email;
-      if (emailData.name && !this.STATE.Client.name) {
-        this.STATE.Client.name = emailData.name;
-        this.STATE.Booking.clientId = emailData.name;
-      }
-      
-      // START DATE AND END DATE
-      if (this.STATE.Booking.startDate && !this.STATE.Booking.endDate) {
-        this.STATE.Booking.endDate = this.STATE.Booking.startDate;
-      }
-
-      // DURATION CALCULATION
-      if (this.STATE.Booking.startDate && this.STATE.Booking.endDate) {
-        const duration = this._calculateDuration(this.STATE.Booking.startDate, this.STATE.Booking.endDate);
-        if (duration) {
-          this.STATE.Booking.duration = duration;
-        }
-      }
-
-      // RATE / TOTAL AMOUNT 
-      if (this.STATE.Booking.flatRate) {
-        this.STATE.Booking.totalAmount = this.STATE.Booking.flatRate;
-      } else if (this.STATE.Booking.hourlyRate && !this.STATE.Booking.totalAmount && this.STATE.Booking.duration) {
-        const total = parseFloat(this.STATE.Booking.hourlyRate) * parseFloat(this.STATE.Booking.duration);
-        this.STATE.Booking.totalAmount = total.toFixed(2);
-      }
-
-    } catch (error) {
-      console.error('Gmail parser failed:', error);
-      this.STATE.Booking = this.STATE.Booking || {};
-      this.STATE.Booking.source = 'gmail';
+    if (!this._cachedThreadContent?.trim()) {
+      console.warn('No email content could be extracted. The email might be empty or selectors need updating.');
     }
 
-    return this.STATE;
+    return {
+      source: 'gmail'
+    };
+  }
+
+  /**
+   * Get content for LLM processing
+   * @returns {string} Full email thread content
+   */
+  async _getContentForLLM() {
+    return this._cachedThreadContent || '';
+  }
+
+  /**
+   * Send content to LLM for extraction
+   * Overrides EventParser to include emailData context
+   * @param {string} content - Email thread content
+   * @returns {Object|null} Parsed LLM result with Client/Booking data
+   */
+  async _sendToLLM(content) {
+    try {
+      await this._initializeConfig();
+      const llmConfig = CONFIG.llm;
+      if (!llmConfig?.baseUrl || !llmConfig?.endpoints?.completions) {
+        throw new Error('Invalid LLM configuration');
+      }
+
+      // Build prompt with known client data from headers
+      const emailData = {
+        name: this.STATE.Client?.name,
+        email: this.STATE.Client?.email
+      };
+      const prompt = this._buildLLMPrompt(emailData, content, CONFIG.gmailParser);
+
+      const response = await this._sendLLMRequest(llmConfig, prompt);
+
+      if (!response?.ok) {
+        console.error('LLM request failed:', response?.error || 'Request failed');
+        return null;
+      }
+
+      const contentArray = response.data?.content;
+      const firstContent = contentArray?.[0];
+      const textContent = firstContent?.text || firstContent;
+
+      const parsedResult = textContent ? this._parseLLMResponse(textContent) : null;
+
+      return parsedResult;
+
+    } catch (error) {
+      console.error('LLM processing failed:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Override EventParser parse() to add post-processing
+   */
+  async parse(state) {
+    // Call parent EventParser template method
+    const result = await super.parse(state);
+
+    // Post-processing: ensure clientId is set from name
+    if (this.STATE.Client.name && !this.STATE.Booking.clientId) {
+      this.STATE.Booking.clientId = this.STATE.Client.name;
+    }
+
+    // Auto-complete endDate if missing (same-day events)
+    if (this.STATE.Booking.startDate && !this.STATE.Booking.endDate) {
+      this.STATE.Booking.endDate = this.STATE.Booking.startDate;
+    }
+
+    // Calculate duration if dates are present
+    if (this.STATE.Booking.startDate && this.STATE.Booking.endDate && !this.STATE.Booking.duration) {
+      const duration = this._calculateDuration(this.STATE.Booking.startDate, this.STATE.Booking.endDate);
+      if (duration) this.STATE.Booking.duration = duration;
+    }
+
+    // Calculate totalAmount from rates
+    if (this.STATE.Booking.flatRate) {
+      this.STATE.Booking.totalAmount = this.STATE.Booking.flatRate;
+    } else if (this.STATE.Booking.hourlyRate && !this.STATE.Booking.totalAmount && this.STATE.Booking.duration) {
+      const total = parseFloat(this.STATE.Booking.hourlyRate) * parseFloat(this.STATE.Booking.duration);
+      this.STATE.Booking.totalAmount = total.toFixed(2);
+    }
+
+    return result;
   }
 
   /**
@@ -157,7 +192,20 @@ class GmailParser extends PortalParser {
       // console.log("--- Starting Email/Name Extraction ---");
       // Find all elements that might contain sender info.
       const senderElements = document.querySelectorAll('.gD[email], .gD > span[email]');
+      // console.log(`Found ${senderElements.length} sender elements with selector '.gD[email], .gD > span[email]'`);
+
       if (senderElements.length > 0) {
+        // Log all found elements for debugging
+        // senderElements.forEach((el, idx) => {
+        //   console.log(`Element ${idx}:`, {
+        //     email: el.getAttribute('email'),
+        //     name: el.getAttribute('name'),
+        //     textContent: el.textContent?.trim(),
+        //     isInQuote: !!el.closest('.gmail_quote'),
+        //     outerHTML: el.outerHTML.substring(0, 200)
+        //   });
+        // });
+
         // Find the one that is not inside a quote block, which indicates it's the primary sender.
         const primarySender = Array.from(senderElements).find(el => !el.closest('.gmail_quote'));
         if (primarySender) {
@@ -166,6 +214,8 @@ class GmailParser extends PortalParser {
             const name = this._normalizeName(rawName);
             // console.log(`Primary sender found: name='${name}', email='${email}'`);
             return { email, name };
+        } else {
+          console.log("All sender elements were inside quote blocks");
         }
       }
       console.log("Could not find a primary sender element.");
@@ -208,81 +258,8 @@ class GmailParser extends PortalParser {
 
 
 
-  /**
-   * Conservatively updates the state with new LLM results.
-   * Only fills in fields that are currently empty or whitespace or null.
-   * @param {*} llmResult 
-   */
-  _conservativeUpdate(llmResult) {
-      const updateIfEmpty = (obj, prop, llmValue) => {
-          // Only update if the current value is null, undefined, or an empty string
-          const currentValue = obj[prop];
-          if (llmValue && (currentValue === null || currentValue === undefined || String(currentValue).trim() === "")) {
-              obj[prop] = llmValue;
-          }
-      };
-
-      const updateAlways = (obj, prop, llmValue) => {
-          // Always update if LLM provides a value
-          if (llmValue !== null && llmValue !== undefined) {
-              obj[prop] = llmValue;
-          }
-      };
-
-      // Note: We don't update Client name/email from LLM as procedural extraction is more reliable.
-      updateIfEmpty(this.STATE.Client, 'phone', this.sanitizePhone(llmResult.Client?.phone));
-      updateIfEmpty(this.STATE.Client, 'company', llmResult.Client?.company);
-      // updateIfEmpty(this.STATE.Client, 'clientNotes', llmResult.Client?.clientNotes);
-
-      // Booking fields - be more aggressive about updating from LLM data
-      if (llmResult.Booking) {
-        Object.keys(llmResult.Booking).forEach(key => {
-          updateAlways(this.STATE.Booking, key, llmResult.Booking[key]);
-        });
-      }
-  }
-  
-
-/**
- * Send the LLM request with the full email blob
- * @param {*} emailData 
- * @param {*} threadContent 
- * @returns 
- */
-  async _sendToLLM(emailData, threadContent) {
-    try {
-      await this._initializeConfig();
-      const llmConfig = CONFIG.llm;
-      if (!llmConfig?.baseUrl || !llmConfig?.endpoints?.completions) {
-        throw new Error('Invalid LLM configuration');
-      }
-
-      const prompt = this._buildLLMPrompt(emailData, threadContent, CONFIG.gmailParser);
-      // console.log("PROMPT=" + prompt);
-
-      const response = await this._sendLLMRequest(llmConfig, prompt);
-
-      
-      if (!response?.ok) {
-        console.error('LLM request failed:', response?.error || 'Request failed');
-        return null;
-      }
-
-      const contentArray = response.data?.content;
-      const firstContent = contentArray?.[0];
-      const textContent = firstContent?.text || firstContent;
-      // console.log("Extracted LLM text content:", textContent);
-
-      const parsedResult = textContent ? this._parseLLMResponse(textContent) : null;
-      // console.log("Final parsed LLM result:", parsedResult);
-
-      return parsedResult;
-
-    } catch (error) {
-      console.error('LLM processing failed:', error);
-      return null;
-    }
-  }
+  // _conservativeUpdate() is inherited from Parser base class
+  // Note: Gmail procedurally extracts name/email first, so LLM won't overwrite them
 
 
 
@@ -338,7 +315,7 @@ class GmailParser extends PortalParser {
     });
   }
 
-  // _parseLLMResponse() inherited from PortalParser base class
+  // _parseLLMResponse() inherited from Parser base class
   // Transforms flat LLM JSON response into nested Client/Booking structure
 
 }

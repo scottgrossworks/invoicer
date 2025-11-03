@@ -221,10 +221,11 @@ function setupPageSwitching() {
   });
 
   menu.querySelectorAll('.menu-item').forEach(item => {
-    item.addEventListener('click', async () => {
+    item.addEventListener('click', async (e) => {
+      e.stopPropagation(); // Prevent event bubbling
       const pageName = item.dataset.page;
+      menu.style.display = 'none'; // Hide menu immediately before page switch
       await switchToPage(pageName);
-      menu.style.display = 'none';
     });
   });
 
@@ -282,6 +283,22 @@ function updateAppLabel(pageName) {
  * @param {object} page - Current page object
  */
 function updateActionButtons(page) {
+  // Get all button wrappers
+  const startupButtons = document.getElementById('startup-buttons');
+  const invoicerButtons = document.getElementById('invoicer-buttons');
+
+  // Hide all button wrappers by default
+  if (startupButtons) startupButtons.style.display = 'none';
+  if (invoicerButtons) invoicerButtons.style.display = 'none';
+
+  // Show the appropriate button wrapper based on page name
+  if (page.pageName === 'startup' && startupButtons) {
+    startupButtons.style.display = 'flex';
+  } else if (page.pageName === 'invoicer' && invoicerButtons) {
+    invoicerButtons.style.display = 'flex';
+  }
+
+  // Legacy dynamic button handling (if page provides button config)
   const buttonWrapper = document.getElementById('invoicer-buttons');
   if (!buttonWrapper) return;
 

@@ -46,25 +46,54 @@ export async function loadConfig() {
 
 /**
  * Creates and returns the configured database layer instance
- * 
+ *
  * Factory function that reads the database provider configuration and instantiates
  * the appropriate database layer class. Currently only supports local SQLite via Prisma.
- * 
+ *
+ * Priority order for configuration:
+ * 1. Chrome storage (leedzStartupConfig) - user-configured via Startup page
+ * 2. leedz_config.json - default fallback configuration
+ *
  * @returns {Promise<DB_Local_PrismaSqlite>} Database layer instance for CRUD operations
  * @throws {Error} If unknown database provider is specified in config
- * 
- * Used by: 
+ *
+ * Used by:
  * - sidebar.js:569 (for saving booking data)
- * 
+ *
  * Supported providers:
  * - 'local_prisma_sqlite': Uses DB_local_prisma_sqlite.js with local SQLite database
  */
 export async function getDbLayer() {
-  const cfg = await loadConfig();
-  const provider = cfg?.db?.provider || 'local_prisma_sqlite';
+  // First check Chrome storage for user-configured startup settings
+  let baseUrl = null;
+  let provider = 'local_prisma_sqlite';
+
+  try {
+    const storageResult = await chrome.storage.local.get('leedzStartupConfig');
+    if (storageResult.leedzStartupConfig) {
+      const startupConfig = storageResult.leedzStartupConfig;
+      if (startupConfig.serverUrl && startupConfig.serverPort) {
+        baseUrl = `${startupConfig.serverUrl}:${startupConfig.serverPort}`;
+        provider = startupConfig.dbProvider || 'local_prisma_sqlite';
+        console.log('Using startup config from Chrome storage:', baseUrl);
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to load startup config from Chrome storage:', error);
+  }
+
+  // Fall back to leedz_config.json if no startup config found
+  if (!baseUrl) {
+    const cfg = await loadConfig();
+    baseUrl = cfg?.db?.baseUrl || 'http://localhost:3000';
+    provider = cfg?.db?.provider || 'local_prisma_sqlite';
+    console.log('Using default config from leedz_config.json:', baseUrl);
+  }
+
+  // Create DB layer instance
   if (provider === 'local_prisma_sqlite') {
     const module = await import('./db/DB_local_prisma_sqlite.js');
-    return new module.DB_Local_PrismaSqlite(cfg.db.baseUrl);
+    return new module.DB_Local_PrismaSqlite(baseUrl);
   }
   throw new Error('Unknown DB provider: ' + provider);
 }

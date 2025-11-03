@@ -38,11 +38,11 @@ export class Gmailer extends Page {
     const hostInput = document.getElementById('mcp-host');
     const portInput = document.getElementById('mcp-port');
 
-    if (hostInput && this.state.Config?.mcp_host) {
-      hostInput.value = this.state.Config.mcp_host;
+    if (hostInput && this.state.Config?.mcpHost) {
+      hostInput.value = this.state.Config.mcpHost;
     }
-    if (portInput && this.state.Config?.mcp_port) {
-      portInput.value = this.state.Config.mcp_port;
+    if (portInput && this.state.Config?.mcpPort) {
+      portInput.value = this.state.Config.mcpPort;
     }
   }
 
@@ -123,8 +123,8 @@ export class Gmailer extends Page {
       await this.state.load();
 
       // Populate input fields from Config
-      const mcpHost = this.state.Config?.mcp_host || '127.0.0.1';
-      const mcpPort = this.state.Config?.mcp_port || '3001';
+      const mcpHost = this.state.Config?.mcpHost || '127.0.0.1';
+      const mcpPort = this.state.Config?.mcpPort || '3001';
 
       if (hostInput) hostInput.value = mcpHost;
       if (portInput) portInput.value = mcpPort;
@@ -204,13 +204,13 @@ export class Gmailer extends Page {
     try {
       // Update State Config object
       if (!this.state.Config) this.state.Config = {};
-      this.state.Config.mcp_host = hostInput.value.trim() || '127.0.0.1';
-      this.state.Config.mcp_port = portInput.value.trim() || '3001';
+      this.state.Config.mcpHost = hostInput.value.trim() || '127.0.0.1';
+      this.state.Config.mcpPort = portInput.value.trim() || '3001';
 
       // Save to database
       await this.state.save();
 
-      console.log('MCP config saved:', this.state.Config.mcp_host, this.state.Config.mcp_port);
+      console.log('MCP config saved:', this.state.Config.mcpHost, this.state.Config.mcpPort);
 
       // Re-check server health with new settings
       await this.loadMcpConfigAndCheckServer();

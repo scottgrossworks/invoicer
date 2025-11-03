@@ -92,7 +92,8 @@ class State {
    */
   toObject() {
     return {
-      Clients: [...this.Clients],  // Array of clients
+      Client: this.Clients[0] || {},  // Backward compatibility - first client
+      Clients: [...this.Clients],     // Array of clients
       Booking: { ...this.Booking },
       Config: { ...this.Config }
     };
@@ -288,10 +289,17 @@ export function copyFromRecord(state, record) {
  * @param {Object} parsedData - Data parsed from webpage
  */
 export function mergePageData(state, parsedData) {
+  // console.log('=== MERGE PAGE DATA ===');
+  // console.log('Incoming parsedData.Client:', parsedData.Client);
+  // console.log('Current state.Client before merge:', state.Client);
+
   // Handle hierarchical structure from parser
   if (parsedData.Client) {
     Object.entries(parsedData.Client).forEach(([key, value]) => {
-      if (value !== null && value !== undefined && !state.Client[key]) {
+      const currentValue = state.Client[key];
+      const shouldUpdate = value !== null && value !== undefined && !currentValue;
+      // console.log(`Client.${key}: value="${value}", current="${currentValue}", updating=${shouldUpdate}`);
+      if (shouldUpdate) {
         state.Client[key] = value;
         if (key === 'name') {
           state.Booking.clientId = value;
@@ -299,7 +307,7 @@ export function mergePageData(state, parsedData) {
       }
     });
   }
-  
+
   if (parsedData.Booking) {
     Object.entries(parsedData.Booking).forEach(([key, value]) => {
       if (value !== null && value !== undefined && !state.Booking[key]) {
@@ -307,7 +315,7 @@ export function mergePageData(state, parsedData) {
       }
     });
   }
-  
+
   if (parsedData.Config) {
     Object.entries(parsedData.Config).forEach(([key, value]) => {
       if (value !== null && value !== undefined && !state.Config[key]) {
@@ -315,6 +323,8 @@ export function mergePageData(state, parsedData) {
       }
     });
   }
+
+  // console.log('State.Client after merge:', state.Client);
 }
 
 

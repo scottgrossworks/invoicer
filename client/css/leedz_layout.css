@@ -186,8 +186,8 @@ html, body {
 .leedz-form-section textarea {
   width: 100%;
   padding: 8px;
-  padding-right: 32px; /* Space for the arrows */
-  font-size: 14px;
+   /*padding-right: 32px; Space for the arrows */
+  font-size: 16px;
   margin-top: 2px;
   margin-bottom: 2px;
   border: 1px solid silver;
@@ -241,7 +241,7 @@ html, body {
   padding: 6px 8px;
   border-bottom: 1px solid gainsboro;
   border-right: 1px solid gainsboro;
-  vertical-align: top;
+  vertical-align: middle;
 }
 
 .booking-table tr:hover {
@@ -529,6 +529,20 @@ input.invalid {
 }
 
 
+
+#startupClearBtn {
+  background-color: cornflowerblue;
+}
+#startupClearBtn:hover {
+  background-color: blue;
+}
+
+#startupSaveBtn {
+  background-color: var(--LEEDZ_DARKGREEN);
+}
+#startupSaveBtn:hover {
+  background-color: darkgreen;
+}
 
 #cancelBtn {
   background-color: cornflowerblue;
@@ -1028,6 +1042,24 @@ input.invalid {
   color: white;
 }
 
+
+/* ============================================================================ */
+/* STARTUP CONFIGURATION PAGE STYLES                                          */
+/* ============================================================================ */
+
+/* Increase font size by 20% for startup page table */
+#page-startup .booking-table {
+  font-size: 110%; /* 20% larger than default */
+}
+
+#page-startup .booking-table input {
+  font-size: 110%; /* 20% larger than default */
+  /* padding: 4px; Slightly more padding for larger text */
+}
+
+#page-startup .booking-table td {
+  padding: 8px 8px; /* More padding for larger text */
+}
 
 /* ============================================================================ */
 /* CLIENT CAPTURE PAGE STYLES                                                 */

@@ -22,6 +22,7 @@
               <img src="icons/hamburger.png" alt="Menu" class="leedz-hamburger"/>
               <!-- Dropdown menu - hidden by default, toggled by hamburger click -->
               <div class="hamburger-menu" style="display:none;">
+                <div class="menu-item" data-page="startup">Startup</div>
                 <div class="menu-item" data-page="clients">Clients</div>
                 <div class="menu-item" data-page="gmailer">Gmailer</div>
                 <div class="menu-item" data-page="invoicer">Invoicer</div>
@@ -36,6 +37,85 @@
 
 
   <main class="leedz-form-section">
+
+    <!-- ========================================== -->
+    <!-- STARTUP PAGE (Configuration)              -->
+    <!-- ========================================== -->
+    <div id="page-startup" class="page-content">
+
+      <div class="section-header">
+        <label>Startup Configuration</label>
+      </div>
+
+      <div id="display_win_startup" class="display-win">
+        <table id="startup_table" class="booking-table">
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody id="startup_tbody">
+            <tr>
+              <td>Leedz Server URL</td>
+              <td><input type="text" id="startup-serverUrl" class="table-input" placeholder="http://127.0.0.1" /></td>
+            </tr>
+            <tr>
+              <td>Leedz Server Port</td>
+              <td><input type="text" id="startup-serverPort" class="table-input" placeholder="3000" /></td>
+            </tr>
+            <tr>
+              <td>Database Provider</td>
+              <td><input type="text" id="startup-dbProvider" class="table-input" placeholder="local_prisma_sqlite" /></td>
+            </tr>
+            <tr>
+              <td>Database Path</td>
+              <td><input type="text" id="startup-dbPath" class="table-input" placeholder="../data/leedz_invoicer.sqlite" /></td>
+            </tr>
+            <tr>
+              <td>MCP Host</td>
+              <td><input type="text" id="startup-mcpHost" class="table-input" placeholder="127.0.0.1" /></td>
+            </tr>
+            <tr>
+              <td>MCP Port</td>
+              <td><input type="text" id="startup-mcpPort" class="table-input" placeholder="3001" /></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- LLM Settings Collapsible Section -->
+        <details id="llm-settings-details" style="margin-top: 20px;">
+          <summary style="cursor: pointer; font-weight: bold; padding: 8px; background-color: #f0f0f0; border-radius: 4px;">
+            LLM Settings
+          </summary>
+          <table id="llm_settings_table" class="booking-table" style="margin-top: 10px;">
+            <tbody id="llm_settings_tbody">
+              <tr>
+                <td>API Key</td>
+                <td><input type="password" id="startup-llmApiKey" class="table-input" placeholder="sk-ant-..." /></td>
+              </tr>
+              <tr>
+                <td>Provider</td>
+                <td><input type="text" id="startup-llmProvider" class="table-input" placeholder="claude-opus-4-1-20250805" /></td>
+              </tr>
+              <tr>
+                <td>Base URL</td>
+                <td><input type="text" id="startup-llmBaseUrl" class="table-input" placeholder="https://api.anthropic.com" /></td>
+              </tr>
+              <tr>
+                <td>Anthropic Version</td>
+                <td><input type="text" id="startup-llmAnthropicVersion" class="table-input" placeholder="2023-06-01" /></td>
+              </tr>
+              <tr>
+                <td>Max Tokens</td>
+                <td><input type="number" id="startup-llmMaxTokens" class="table-input" placeholder="1024" /></td>
+              </tr>
+            </tbody>
+          </table>
+        </details>
+      </div>
+
+    </div><!-- END page-startup -->
 
     <!-- ========================================== -->
     <!-- INVOICER PAGE (default/existing content)  -->
@@ -124,19 +204,19 @@
     <!-- ========================================== -->
     <!-- CLIENTS PAGE (Client capture)             -->
     <!-- ========================================== -->
-    <div class="section-header">
-      <label for="display_win_clients">Capture Client Information</label>
-      <div class="header-buttons">
-        <button id="reloadBtn" class="reload-button" title="Reload the parser">
-          <span>
-            <img src="icons/arrows_white.png" class="button-icon" alt="reload parser"/>
-          </span>
-        </button>
-        <button id="addClientBtnHeader" class="add-client-button" title="Add another client">+</button>
-      </div>
-    </div>
-
     <div id="page-clients" class="page-content">
+
+      <div class="section-header">
+        <label for="display_win_clients">Capture Client Information</label>
+        <div class="header-buttons">
+          <button id="reloadBtnClients" class="reload-button" title="Reload the parser">
+            <span>
+              <img src="icons/arrows_white.png" class="button-icon" alt="reload parser"/>
+            </span>
+          </button>
+          <button id="addClientBtnHeader" class="add-client-button" title="Add another client">+</button>
+        </div>
+      </div>
 
       <div id="display_win_clients" class="display-win">
         <div id="loading_spinner_clients" class="loading-spinner" style="display: none;">
@@ -160,6 +240,18 @@
 
 
   </main>
+
+  <!-- STARTUP BUTTONS - Fixed position outside scrolling area, above footer -->
+  <!-- Only visible when startup page is active -->
+  <div class="button-wrapper" id="startup-buttons">
+    <button id="startupClearBtn" class="sidebar-button" title="Clear configuration">
+      Clear
+    </button>
+
+    <button id="startupSaveBtn" class="sidebar-button" title="Save configuration">
+      Save
+    </button>
+  </div>
 
   <!-- INVOICER BUTTONS - Fixed position outside scrolling area, above footer -->
   <!-- Only visible when invoicer page is active -->

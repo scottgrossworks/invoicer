@@ -23,7 +23,8 @@
       "Bash(copy:*)",
       "Bash(cp:*)",
       "Bash(npm run db:migrate:*)",
-      "Bash(npm run db:generate:*)"
+      "Bash(npm run db:generate:*)",
+      "Bash(npx prisma migrate:*)"
     ],
     "deny": [],
     "ask": []

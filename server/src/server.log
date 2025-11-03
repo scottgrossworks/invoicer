@@ -240,3 +240,297 @@ Invalid value for argument `[1mendDate[22m`: Provided Date object is invalid. 
 [2025-10-29T23:49:28.245Z] POST /clients
 [2025-10-29T23:49:52.748Z] GET /clients
 [2025-10-29T23:50:44.832Z] GET /clients
+[2025-10-29T23:54:36.771Z] POST /clients
+[2025-10-29T23:54:36.805Z] POST /clients
+[2025-10-30T00:32:16.476Z] POST /clients
+[2025-10-30T00:33:23.259Z] POST /clients
+[2025-10-30T00:33:23.291Z] POST /clients
+[2025-10-30T00:35:26.537Z] POST /clients
+[2025-10-30T00:35:26.566Z] POST /clients
+[2025-10-30T00:35:26.592Z] POST /clients
+[2025-10-30T00:35:26.622Z] POST /clients
+[2025-10-30T00:35:59.937Z] GET /clients?name=Tamara%20Yuz
+[2025-10-30T00:39:29.524Z] POST /clients
+[2025-10-30T00:39:29.554Z] POST /clients
+[2025-10-30T00:40:57.150Z] POST /clients
+[2025-10-30T00:40:57.185Z] POST /clients
+[2025-10-31T22:40:40.382Z] Database connected successfully
+[2025-10-31T22:40:40.389Z] ! Local API running on http://localhost:3333
+[2025-10-31T22:44:07.853Z] POST /clients
+[2025-10-31T22:44:07.942Z] POST /bookings
+[2025-10-31T22:47:56.195Z] Database connected successfully
+[2025-10-31T22:47:56.200Z] ! Local API running on http://localhost:3000
+[2025-10-31T22:47:59.765Z] POST /clients
+[2025-10-31T22:47:59.803Z] POST /clients failed: PrismaClientKnownRequestError: 
+[31mInvalid [1m`this.prisma.client.findUnique()`[22m invocation in[39m
+[4mC:\Users\Scott\desktop\wkg\invoicer\server\src\prisma_sqlite_db.js:59:49[24m
+
+  [2m[90m56[39m [22m
+  [2m[90m57[39m [90m// 1. Try to find by email if available[39m[22m
+  [2m[90m58[39m [36mif[39m [34m([39msanitizedData[34m.[39memail[34m)[39m [34m{[39m[22m
+[1m[31m→[39m[22m [2m[90m59[39m   existingClient = [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mclient[34m.[39m[36mfindUnique[39m[34m([39m[22m
+The table `main.Client` does not exist in the current database.
+    at $n.handleRequestError (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createClient (C:\Users\Scott\desktop\wkg\invoicer\server\src\prisma_sqlite_db.js:59:24)
+    at async C:\Users\Scott\desktop\wkg\invoicer\server\src\leedz_server.js:117:18
+    at async C:\Users\Scott\desktop\wkg\invoicer\server\src\leedz_server.js:76:7
+[2025-10-31T22:48:01.754Z] POST /clients
+[2025-10-31T22:48:01.779Z] POST /clients failed: PrismaClientKnownRequestError: 
+[31mInvalid [1m`this.prisma.client.findUnique()`[22m invocation in[39m
+[4mC:\Users\Scott\desktop\wkg\invoicer\server\src\prisma_sqlite_db.js:59:49[24m
+
+  [2m[90m56[39m [22m
+  [2m[90m57[39m [90m// 1. Try to find by email if available[39m[22m
+  [2m[90m58[39m [36mif[39m [34m([39msanitizedData[34m.[39memail[34m)[39m [34m{[39m[22m
+[1m[31m→[39m[22m [2m[90m59[39m   existingClient = [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mclient[34m.[39m[36mfindUnique[39m[34m([39m[22m
+The table `main.Client` does not exist in the current database.
+    at $n.handleRequestError (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createClient (C:\Users\Scott\desktop\wkg\invoicer\server\src\prisma_sqlite_db.js:59:24)
+    at async C:\Users\Scott\desktop\wkg\invoicer\server\src\leedz_server.js:117:18
+    at async C:\Users\Scott\desktop\wkg\invoicer\server\src\leedz_server.js:76:7
+[2025-10-31T22:48:08.611Z] POST /clients
+[2025-10-31T22:48:08.615Z] POST /clients
+[2025-10-31T22:48:08.621Z] POST /clients failed: PrismaClientKnownRequestError: 
+[31mInvalid [1m`this.prisma.client.findUnique()`[22m invocation in[39m
+[4mC:\Users\Scott\desktop\wkg\invoicer\server\src\prisma_sqlite_db.js:59:49[24m
+
+  [2m[90m56[39m [22m
+  [2m[90m57[39m [90m// 1. Try to find by email if available[39m[22m
+  [2m[90m58[39m [36mif[39m [34m([39msanitizedData[34m.[39memail[34m)[39m [34m{[39m[22m
+[1m[31m→[39m[22m [2m[90m59[39m   existingClient = [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mclient[34m.[39m[36mfindUnique[39m[34m([39m[22m
+The table `main.Client` does not exist in the current database.
+    at $n.handleRequestError (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createClient (C:\Users\Scott\desktop\wkg\invoicer\server\src\prisma_sqlite_db.js:59:24)
+    at async C:\Users\Scott\desktop\wkg\invoicer\server\src\leedz_server.js:117:18
+    at async C:\Users\Scott\desktop\wkg\invoicer\server\src\leedz_server.js:76:7
+[2025-10-31T22:48:08.628Z] POST /clients failed: PrismaClientKnownRequestError: 
+[31mInvalid [1m`this.prisma.client.findUnique()`[22m invocation in[39m
+[4mC:\Users\Scott\desktop\wkg\invoicer\server\src\prisma_sqlite_db.js:59:49[24m
+
+  [2m[90m56[39m [22m
+  [2m[90m57[39m [90m// 1. Try to find by email if available[39m[22m
+  [2m[90m58[39m [36mif[39m [34m([39msanitizedData[34m.[39memail[34m)[39m [34m{[39m[22m
+[1m[31m→[39m[22m [2m[90m59[39m   existingClient = [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mclient[34m.[39m[36mfindUnique[39m[34m([39m[22m
+The table `main.Client` does not exist in the current database.
+    at $n.handleRequestError (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createClient (C:\Users\Scott\desktop\wkg\invoicer\server\src\prisma_sqlite_db.js:59:24)
+    at async C:\Users\Scott\desktop\wkg\invoicer\server\src\leedz_server.js:117:18
+    at async C:\Users\Scott\desktop\wkg\invoicer\server\src\leedz_server.js:76:7
+[2025-10-31T22:48:10.909Z] POST /clients
+[2025-10-31T22:48:10.913Z] POST /clients
+[2025-10-31T22:48:10.918Z] POST /clients failed: PrismaClientKnownRequestError: 
+[31mInvalid [1m`this.prisma.client.findUnique()`[22m invocation in[39m
+[4mC:\Users\Scott\desktop\wkg\invoicer\server\src\prisma_sqlite_db.js:59:49[24m
+
+  [2m[90m56[39m [22m
+  [2m[90m57[39m [90m// 1. Try to find by email if available[39m[22m
+  [2m[90m58[39m [36mif[39m [34m([39msanitizedData[34m.[39memail[34m)[39m [34m{[39m[22m
+[1m[31m→[39m[22m [2m[90m59[39m   existingClient = [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mclient[34m.[39m[36mfindUnique[39m[34m([39m[22m
+The table `main.Client` does not exist in the current database.
+    at $n.handleRequestError (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createClient (C:\Users\Scott\desktop\wkg\invoicer\server\src\prisma_sqlite_db.js:59:24)
+    at async C:\Users\Scott\desktop\wkg\invoicer\server\src\leedz_server.js:117:18
+    at async C:\Users\Scott\desktop\wkg\invoicer\server\src\leedz_server.js:76:7
+[2025-10-31T22:48:10.925Z] POST /clients failed: PrismaClientKnownRequestError: 
+[31mInvalid [1m`this.prisma.client.findUnique()`[22m invocation in[39m
+[4mC:\Users\Scott\desktop\wkg\invoicer\server\src\prisma_sqlite_db.js:59:49[24m
+
+  [2m[90m56[39m [22m
+  [2m[90m57[39m [90m// 1. Try to find by email if available[39m[22m
+  [2m[90m58[39m [36mif[39m [34m([39msanitizedData[34m.[39memail[34m)[39m [34m{[39m[22m
+[1m[31m→[39m[22m [2m[90m59[39m   existingClient = [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mclient[34m.[39m[36mfindUnique[39m[34m([39m[22m
+The table `main.Client` does not exist in the current database.
+    at $n.handleRequestError (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createClient (C:\Users\Scott\desktop\wkg\invoicer\server\src\prisma_sqlite_db.js:59:24)
+    at async C:\Users\Scott\desktop\wkg\invoicer\server\src\leedz_server.js:117:18
+    at async C:\Users\Scott\desktop\wkg\invoicer\server\src\leedz_server.js:76:7
+[2025-10-31T22:48:12.198Z] POST /clients
+[2025-10-31T22:48:12.203Z] POST /clients
+[2025-10-31T22:48:12.210Z] POST /clients failed: PrismaClientKnownRequestError: 
+[31mInvalid [1m`this.prisma.client.findUnique()`[22m invocation in[39m
+[4mC:\Users\Scott\desktop\wkg\invoicer\server\src\prisma_sqlite_db.js:59:49[24m
+
+  [2m[90m56[39m [22m
+  [2m[90m57[39m [90m// 1. Try to find by email if available[39m[22m
+  [2m[90m58[39m [36mif[39m [34m([39msanitizedData[34m.[39memail[34m)[39m [34m{[39m[22m
+[1m[31m→[39m[22m [2m[90m59[39m   existingClient = [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mclient[34m.[39m[36mfindUnique[39m[34m([39m[22m
+The table `main.Client` does not exist in the current database.
+    at $n.handleRequestError (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createClient (C:\Users\Scott\desktop\wkg\invoicer\server\src\prisma_sqlite_db.js:59:24)
+    at async C:\Users\Scott\desktop\wkg\invoicer\server\src\leedz_server.js:117:18
+    at async C:\Users\Scott\desktop\wkg\invoicer\server\src\leedz_server.js:76:7
+[2025-10-31T22:48:12.215Z] POST /clients failed: PrismaClientKnownRequestError: 
+[31mInvalid [1m`this.prisma.client.findUnique()`[22m invocation in[39m
+[4mC:\Users\Scott\desktop\wkg\invoicer\server\src\prisma_sqlite_db.js:59:49[24m
+
+  [2m[90m56[39m [22m
+  [2m[90m57[39m [90m// 1. Try to find by email if available[39m[22m
+  [2m[90m58[39m [36mif[39m [34m([39msanitizedData[34m.[39memail[34m)[39m [34m{[39m[22m
+[1m[31m→[39m[22m [2m[90m59[39m   existingClient = [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mclient[34m.[39m[36mfindUnique[39m[34m([39m[22m
+The table `main.Client` does not exist in the current database.
+    at $n.handleRequestError (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.createClient (C:\Users\Scott\desktop\wkg\invoicer\server\src\prisma_sqlite_db.js:59:24)
+    at async C:\Users\Scott\desktop\wkg\invoicer\server\src\leedz_server.js:117:18
+    at async C:\Users\Scott\desktop\wkg\invoicer\server\src\leedz_server.js:76:7
+[2025-10-31T22:48:45.114Z] GET /config
+[2025-10-31T22:48:45.126Z] GET /config failed: PrismaClientKnownRequestError: 
+[31mInvalid [1m`this.prisma.config.findFirst()`[22m invocation in[39m
+[4mC:\Users\Scott\desktop\wkg\invoicer\server\src\prisma_sqlite_db.js:498:37[24m
+
+  [2m[90m495[39m [34m}[39m[22m
+  [2m[90m496[39m [22m
+  [2m[90m497[39m [36masync[39m [36mgetLatestConfig[39m[34m([39m[34m)[39m [34m{[39m[22m
+[1m[31m→[39m[22m [2m[90m498[39m   [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mconfig[34m.[39m[36mfindFirst[39m[34m([39m[22m
+The table `main.Config` does not exist in the current database.
+    at $n.handleRequestError (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.getLatestConfig (C:\Users\Scott\desktop\wkg\invoicer\server\src\prisma_sqlite_db.js:498:12)
+    at async C:\Users\Scott\desktop\wkg\invoicer\server\src\leedz_server.js:452:18
+    at async C:\Users\Scott\desktop\wkg\invoicer\server\src\leedz_server.js:76:7
+[2025-10-31T22:49:00.598Z] Received SIGINT, shutting down gracefully...
+[2025-10-31T22:50:10.507Z] Database connected successfully
+[2025-10-31T22:50:10.513Z] ! Local API running on http://localhost:3000
+[2025-10-31T22:51:35.290Z] GET /config
+[2025-10-31T22:51:35.324Z] GET /config failed: PrismaClientKnownRequestError: 
+[31mInvalid [1m`this.prisma.config.findFirst()`[22m invocation in[39m
+[4mC:\Users\Scott\desktop\wkg\invoicer\server\src\prisma_sqlite_db.js:498:37[24m
+
+  [2m[90m495[39m [34m}[39m[22m
+  [2m[90m496[39m [22m
+  [2m[90m497[39m [36masync[39m [36mgetLatestConfig[39m[34m([39m[34m)[39m [34m{[39m[22m
+[1m[31m→[39m[22m [2m[90m498[39m   [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mconfig[34m.[39m[36mfindFirst[39m[34m([39m[22m
+The table `main.Config` does not exist in the current database.
+    at $n.handleRequestError (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.getLatestConfig (C:\Users\Scott\desktop\wkg\invoicer\server\src\prisma_sqlite_db.js:498:12)
+    at async C:\Users\Scott\desktop\wkg\invoicer\server\src\leedz_server.js:452:18
+    at async C:\Users\Scott\desktop\wkg\invoicer\server\src\leedz_server.js:76:7
+[2025-10-31T22:54:51.320Z] Received SIGINT, shutting down gracefully...
+[2025-10-31T22:54:54.678Z] Database connected successfully
+[2025-10-31T22:54:54.685Z] ! Local API running on http://localhost:3000
+[2025-10-31T22:55:15.508Z] GET /config
+[2025-10-31T22:55:15.540Z] GET /config failed: PrismaClientKnownRequestError: 
+[31mInvalid [1m`this.prisma.config.findFirst()`[22m invocation in[39m
+[4mC:\Users\Scott\desktop\wkg\invoicer\server\src\prisma_sqlite_db.js:498:37[24m
+
+  [2m[90m495[39m [34m}[39m[22m
+  [2m[90m496[39m [22m
+  [2m[90m497[39m [36masync[39m [36mgetLatestConfig[39m[34m([39m[34m)[39m [34m{[39m[22m
+[1m[31m→[39m[22m [2m[90m498[39m   [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mconfig[34m.[39m[36mfindFirst[39m[34m([39m[22m
+The table `main.Config` does not exist in the current database.
+    at $n.handleRequestError (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\desktop\wkg\invoicer\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.getLatestConfig (C:\Users\Scott\desktop\wkg\invoicer\server\src\prisma_sqlite_db.js:498:12)
+    at async C:\Users\Scott\desktop\wkg\invoicer\server\src\leedz_server.js:452:18
+    at async C:\Users\Scott\desktop\wkg\invoicer\server\src\leedz_server.js:76:7
+[2025-10-31T22:57:39.818Z] Received SIGINT, shutting down gracefully...
+[2025-10-31T22:59:37.549Z] Database connected successfully
+[2025-10-31T22:59:37.555Z] ! Local API running on http://localhost:3000
+[2025-10-31T22:59:54.253Z] GET /config
+[2025-10-31T23:01:03.166Z] Received SIGINT, shutting down gracefully...
+[2025-11-02T21:33:54.994Z] Database connected successfully
+[2025-11-02T21:33:55.001Z] ! Local API running on http://localhost:3000
+[2025-11-02T22:03:13.059Z] Received SIGINT, shutting down gracefully...
+[2025-11-02T22:03:58.407Z] Database connected successfully
+[2025-11-02T22:03:58.412Z] ! Local API running on http://localhost:3000
+[2025-11-02T22:09:11.404Z] GET /stats
+[2025-11-02T22:11:35.768Z] GET /config
+[2025-11-02T22:11:35.820Z] GET /config failed: PrismaClientKnownRequestError: 
+[31mInvalid [1m`this.prisma.config.findFirst()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:498:37[24m
+
+  [2m[90m495[39m [34m}[39m[22m
+  [2m[90m496[39m [22m
+  [2m[90m497[39m [36masync[39m [36mgetLatestConfig[39m[34m([39m[34m)[39m [34m{[39m[22m
+[1m[31m→[39m[22m [2m[90m498[39m   [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mconfig[34m.[39m[36mfindFirst[39m[34m([39m[22m
+The column `main.Config.serverUrl` does not exist in the current database.
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.getLatestConfig (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:498:12)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:452:18
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-11-02T22:11:41.243Z] GET /config
+[2025-11-02T22:11:41.254Z] GET /config failed: PrismaClientKnownRequestError: 
+[31mInvalid [1m`this.prisma.config.findFirst()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:498:37[24m
+
+  [2m[90m495[39m [34m}[39m[22m
+  [2m[90m496[39m [22m
+  [2m[90m497[39m [36masync[39m [36mgetLatestConfig[39m[34m([39m[34m)[39m [34m{[39m[22m
+[1m[31m→[39m[22m [2m[90m498[39m   [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mconfig[34m.[39m[36mfindFirst[39m[34m([39m[22m
+The column `main.Config.serverUrl` does not exist in the current database.
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.getLatestConfig (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:498:12)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:452:18
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-11-02T22:11:47.874Z] GET /config
+[2025-11-02T22:11:47.883Z] GET /config failed: PrismaClientKnownRequestError: 
+[31mInvalid [1m`this.prisma.config.findFirst()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:498:37[24m
+
+  [2m[90m495[39m [34m}[39m[22m
+  [2m[90m496[39m [22m
+  [2m[90m497[39m [36masync[39m [36mgetLatestConfig[39m[34m([39m[34m)[39m [34m{[39m[22m
+[1m[31m→[39m[22m [2m[90m498[39m   [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mconfig[34m.[39m[36mfindFirst[39m[34m([39m[22m
+The column `main.Config.serverUrl` does not exist in the current database.
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.getLatestConfig (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:498:12)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:452:18
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-11-02T22:20:47.211Z] Received SIGINT, shutting down gracefully...
+[2025-11-02T23:03:08.512Z] Database connected successfully
+[2025-11-02T23:03:08.516Z] ! Local API running on http://localhost:3000
+[2025-11-02T23:03:46.920Z] GET /config
+[2025-11-02T23:05:54.434Z] PUT /config
+[2025-11-02T23:06:00.662Z] PUT /config
+[2025-11-02T23:08:53.584Z] POST /config
+[2025-11-02T23:09:58.384Z] GET /config
+[2025-11-03T01:21:44.479Z] GET /config
+[2025-11-03T02:24:14.483Z] GET /config
+[2025-11-03T03:28:45.627Z] GET /config
+[2025-11-03T16:19:49.494Z] GET /config
+[2025-11-03T16:26:52.756Z] GET /config
+[2025-11-03T16:32:45.159Z] GET /config
+[2025-11-03T16:34:52.327Z] POST /clients
+[2025-11-03T16:34:55.357Z] GET /config
+[2025-11-03T16:35:10.158Z] POST /clients
+[2025-11-03T16:35:10.193Z] POST /bookings
+[2025-11-03T16:35:10.255Z] POST /config

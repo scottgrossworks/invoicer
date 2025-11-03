@@ -27,23 +27,47 @@ export class ClientCapture extends Page {
   }
 
   /**
+   * Called when page is hidden - save form data to state
+   */
+  async onHide() {
+    // Sync current form data to state before leaving page
+    this.syncFormToState();
+  }
+
+  /**
    * Called when client capture page becomes visible
    */
   async onShow() {
-    // Start with one blank client frame
-    if (this.clients.length === 0) {
-      this.clients.push(this._createBlankClient());
+    // Check if state already has client data (from previous parse or page switch)
+    // Check both Clients array and Client object (singular) for backward compatibility
+    const hasClientsArray = this.state.Clients && this.state.Clients.length > 0;
+    const hasClientData = this.state.Client && (this.state.Client.name || this.state.Client.email);
+    const hasExistingData = hasClientsArray || hasClientData;
+
+    if (hasExistingData) {
+      // Load existing client data from state
+      if (hasClientsArray) {
+        this.clients = this.state.Clients.map(c => ({ ...c })); // Clone clients from state array
+      } else if (hasClientData) {
+        this.clients = [{ ...this.state.Client }]; // Convert singular Client to array
+      }
+      this.render();
+    } else {
+      // No existing data - show blank frame and auto-parse
+      if (this.clients.length === 0) {
+        this.clients.push(this._createBlankClient());
+      }
+      this.render();
+
+      // Disable buttons until parser completes
+      this.setButtonsEnabled(false);
+
+      // Run parser to extract client data from current page
+      await this.reloadParser();
+
+      // Enable buttons after parser completes
+      this.setButtonsEnabled(true);
     }
-    this.render();
-
-    // Disable buttons until parser completes
-    this.setButtonsEnabled(false);
-
-    // Run parser to extract client data from current page
-    await this.reloadParser();
-
-    // Enable buttons after parser completes
-    this.setButtonsEnabled(true);
   }
 
   /**
@@ -85,6 +109,19 @@ export class ClientCapture extends Page {
       company: '',
       clientNotes: ''
     };
+  }
+
+  /**
+   * Sync form data from this.clients to state.Clients
+   */
+  syncFormToState() {
+    // Copy clients array to state, filtering out any nulls
+    this.state.setClients(this.clients.filter(c => c !== null));
+
+    // Also update state.Client (first client) for backward compatibility
+    if (this.clients.length > 0 && this.clients[0]) {
+      Object.assign(this.state.Client, this.clients[0]);
+    }
   }
 
   /**
@@ -326,32 +363,33 @@ export class ClientCapture extends Page {
         return;
       }
 
-      // Send message to content script to run ClientParser
+      // Send message to content script to run matching parser (extractClientData only)
       await new Promise((resolve, reject) => {
         chrome.tabs.sendMessage(tabId, {
-          type: 'leedz_parse_page',
-          parser: 'ClientParser',
+          type: 'leedz_extract_client',  // New message type for client-only extraction
           state: this.state.toObject()
         }, (response) => {
           if (response?.ok && response?.data) {
             log(`Parser completed successfully`);
 
-            // Check if we got clients array
-            if (response.data.clients && Array.isArray(response.data.clients)) {
-              const clients = response.data.clients;
-              log(`Found ${clients.length} clients`);
+            // Extract clients array from response (state.Clients)
+            const clientsArray = response.data.Clients;
 
-              if (clients.length > 0) {
-                // Replace existing clients with parsed clients
-                this.clients = clients;
-                this.render();
-                showToast(`Extracted ${clients.length} client${clients.length > 1 ? 's' : ''}`, 'success');
-              } else {
-                log('No clients found on page');
-                showToast('No clients found on this page', 'info');
-              }
+            if (clientsArray && Array.isArray(clientsArray) && clientsArray.length > 0) {
+              // Replace all frames with extracted clients
+              this.clients = clientsArray.map(client => ({
+                name: client.name || '',
+                email: client.email || '',
+                phone: client.phone || '',
+                company: client.company || '',
+                website: client.website || '',
+                clientNotes: client.clientNotes || ''
+              }));
+              this.render();
+              showToast(`Extracted ${clientsArray.length} client${clientsArray.length > 1 ? 's' : ''}`, 'success');
             } else {
-              log('Parser returned no client data');
+              log('No client data found on page');
+              showToast('No client data found on this page', 'info');
             }
 
             resolve();
