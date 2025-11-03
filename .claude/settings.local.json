@@ -24,7 +24,8 @@
       "Bash(cp:*)",
       "Bash(npm run db:migrate:*)",
       "Bash(npm run db:generate:*)",
-      "Bash(npx prisma migrate:*)"
+      "Bash(npx prisma migrate:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []
