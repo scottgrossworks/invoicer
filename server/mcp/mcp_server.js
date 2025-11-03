@@ -40,6 +40,21 @@ try {
     process.exit(1);
 }
 
+// Fetch API key from database Config at startup
+let dbApiKey = null;
+(async () => {
+    try {
+        const dbConfigUrl = `${config.database.apiUrl}/config`;
+        const response = await axios.get(dbConfigUrl);
+        if (response.data && response.data.llmApiKey) {
+            dbApiKey = response.data.llmApiKey;
+            console.error(`[MCP] Using API key from database Config`);
+        }
+    } catch (error) {
+        console.error(`[MCP] Could not fetch API key from database, using config file: ${error.message}`);
+    }
+})();
+
 // System prompt for Claude API - defines available endpoints and response format
 const SYSTEM_PROMPT = config.llm.systemPrompt;
 
@@ -206,8 +221,10 @@ function extractJsonString(text) {
  * @returns {Object} Headers object for axios request
  */
 function buildClaudeHeaders() {
+    // Use database API key if available, otherwise fall back to config file
+    const apiKey = dbApiKey || config.llm['api-key'];
     return {
-        'x-api-key': config.llm['api-key'],
+        'x-api-key': apiKey,
         'anthropic-version': config.llm['anthropic-version'],
         'content-type': 'application/json'
     };

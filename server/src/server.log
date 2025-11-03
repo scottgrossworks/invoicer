@@ -534,3 +534,9 @@ The column `main.Config.serverUrl` does not exist in the current database.
 [2025-11-03T16:35:10.158Z] POST /clients
 [2025-11-03T16:35:10.193Z] POST /bookings
 [2025-11-03T16:35:10.255Z] POST /config
+[2025-11-03T17:02:52.928Z] POST /clients
+[2025-11-03T17:02:52.958Z] POST /bookings
+[2025-11-03T17:02:52.982Z] POST /config
+[2025-11-03T17:19:27.601Z] GET /config
+[2025-11-03T17:54:26.696Z] GET /config
+[2025-11-03T17:55:21.251Z] GET /config

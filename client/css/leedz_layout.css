@@ -54,6 +54,7 @@ html, body {
   background-color: darkgreen;
   color: white;
   font-size: 12px;
+  letter-spacing: 0.06em;
   padding: 2px 8px;
   border-radius: 8px;
   font-weight: 500;
