@@ -13,6 +13,9 @@ export class DB_Layer {
   async load() {
     throw new Error('Not implemented');
   }
+  async searchClient(email, name) {
+    throw new Error('Not implemented');
+  }
 }
 
 

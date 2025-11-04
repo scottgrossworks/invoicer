@@ -289,6 +289,49 @@ async load() {
     }
   }
 
+  /**
+   * Search for existing client by email and/or name
+   * @param {string} email - Client email
+   * @param {string} name - Client name
+   * @returns {Promise<Object|null>} Client object or null if not found
+   */
+  async searchClient(email, name) {
+    try {
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (email) params.append('email', email);
+      if (name) params.append('name', name);
+
+      if (!email && !name) {
+        console.log('searchClient: No email or name provided');
+        return null;
+      }
+
+      const url = `${this.baseUrl}/clients?${params.toString()}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        console.log(`searchClient: Server returned ${response.status}`);
+        return null;
+      }
+
+      const clients = await response.json();
+
+      // Return first matching client or null
+      if (clients && clients.length > 0) {
+        console.log(`searchClient: Found client - ${clients[0].name} (${clients[0].email})`);
+        return clients[0];
+      }
+
+      console.log('searchClient: No matching client found');
+      return null;
+
+    } catch (error) {
+      console.log('searchClient error:', error.message);
+      return null;
+    }
+  }
+
 }
 
 // Attach a default instance globally if desired

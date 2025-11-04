@@ -25,7 +25,8 @@
       "Bash(npm run db:migrate:*)",
       "Bash(npm run db:generate:*)",
       "Bash(npx prisma migrate:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(dir /b /s \"C:\\Users\\Scott\\Desktop\\WKG\\INVOICER\\server\\mcp\")"
     ],
     "deny": [],
     "ask": []

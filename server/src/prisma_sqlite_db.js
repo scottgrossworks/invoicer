@@ -105,12 +105,27 @@ class Prisma_Sqlite_DB extends Leedz_DB {
   async getClients(filters) {
     let where = {};
 
-    if (filters?.email) {
-      where.email = filters.email;
-    }
+    // 11/3/2025: Enhanced client filtering with company and fulltext search support
+    if (filters?.search) {
+      // Fulltext search across name, email, and company fields
+      where.OR = [
+        { name: { contains: filters.search, mode: 'insensitive' } },
+        { email: { contains: filters.search, mode: 'insensitive' } },
+        { company: { contains: filters.search, mode: 'insensitive' } }
+      ];
+    } else {
+      // Individual field filters
+      if (filters?.email) {
+        where.email = filters.email;
+      }
 
-    if (filters?.name) {
-      where.name = { contains: filters.name };
+      if (filters?.name) {
+        where.name = { contains: filters.name, mode: 'insensitive' };
+      }
+
+      if (filters?.company) {
+        where.company = { contains: filters.company, mode: 'insensitive' };
+      }
     }
 
     return await this.prisma.client.findMany({ where });

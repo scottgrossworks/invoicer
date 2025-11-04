@@ -121,11 +121,12 @@ app.post("/clients", asyncRoute(async (req, res) => {
 /**
  * GET /clients
  * Retrieves clients from database with optional filtering
- * Supports query parameters: email, name
+ * 11/3/2025: Added company and search query parameters for expanded client filtering
+ * Supports query parameters: email, name, company, search
  */
 app.get("/clients", asyncRoute(async (req, res) => {
-  const { email, name } = req.query;
-  const filters = { email, name };
+  const { email, name, company, search } = req.query;
+  const filters = { email, name, company, search };
 
   const results = await db.getClients(filters);
   res.status(200).json(results);

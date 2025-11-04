@@ -107,7 +107,8 @@ export class ClientCapture extends Page {
       email: '',
       phone: '',
       company: '',
-      clientNotes: ''
+      clientNotes: '',
+      _fromDB: false  // Explicitly mark as not from DB
     };
   }
 
@@ -165,6 +166,12 @@ export class ClientCapture extends Page {
     const table = document.createElement('table');
     table.className = 'booking-table';
     table.setAttribute('data-client-index', index);
+
+    // Apply visual indicators if client is from DB
+    if (client._fromDB) {
+      table.style.backgroundColor = 'honeydew';
+      table.style.borderColor = 'var(--LEEDZ_GREEN)';
+    }
 
     // Header
     const thead = document.createElement('thead');
@@ -347,9 +354,21 @@ export class ClientCapture extends Page {
    * Reload parser to extract clients from current page
    */
   async reloadParser() {
+    console.log('=== ClientCapture.reloadParser() called ===');
     try {
-      this.showLoadingSpinner();
       this.setButtonsEnabled(false);
+
+      // Clear display but preserve spinner
+      const container = document.getElementById('display_win_clients');
+      if (container) {
+        const spinner = container.querySelector('.loading-spinner');
+        container.innerHTML = '';
+        if (spinner) {
+          container.appendChild(spinner);
+        }
+      }
+      this.showLoadingSpinner();
+
       log('Running client parser...');
 
       // Get current tab URL and tabId
@@ -376,6 +395,9 @@ export class ClientCapture extends Page {
             const clientsArray = response.data.Clients;
 
             if (clientsArray && Array.isArray(clientsArray) && clientsArray.length > 0) {
+              // Check if client is from DB
+              const fromDB = clientsArray[0]._fromDB === true;
+
               // Replace all frames with extracted clients
               this.clients = clientsArray.map(client => ({
                 name: client.name || '',
@@ -383,10 +405,17 @@ export class ClientCapture extends Page {
                 phone: client.phone || '',
                 company: client.company || '',
                 website: client.website || '',
-                clientNotes: client.clientNotes || ''
+                clientNotes: client.clientNotes || '',
+                _fromDB: client._fromDB || false
               }));
               this.render();
-              showToast(`Extracted ${clientsArray.length} client${clientsArray.length > 1 ? 's' : ''}`, 'success');
+
+              // Show appropriate toast
+              if (fromDB) {
+                showToast('Client Found', 'info');
+              } else {
+                showToast(`Extracted ${clientsArray.length} client${clientsArray.length > 1 ? 's' : ''}`, 'success');
+              }
             } else {
               log('No client data found on page');
               showToast('No client data found on this page', 'info');

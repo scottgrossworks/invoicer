@@ -34,10 +34,13 @@ class CreateBookingData {
 }
 
 // Filter interfaces (converted to documentation)
+// 11/3/2025: Added company and search parameters for expanded client search capabilities
 class ClientFilters {
-  constructor(email, name) {
-    this.email = email;
-    this.name = name;
+  constructor(email, name, company, search) {
+    this.email = email;          // Optional: Filter by exact email match
+    this.name = name;            // Optional: Filter by name (partial match, case-insensitive)
+    this.company = company;      // Optional: Filter by company (partial match, case-insensitive)
+    this.search = search;        // Optional: Fulltext search across name, email, and company fields
   }
 }
 

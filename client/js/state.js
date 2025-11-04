@@ -91,9 +91,16 @@ class State {
    * @returns {Object} Plain object representation
    */
   toObject() {
+    // Strip _fromDB flag from clients (transient, should not persist)
+    const cleanClients = this.Clients.map(c => {
+      if (!c) return c;
+      const { _fromDB, ...cleanClient } = c;
+      return cleanClient;
+    });
+
     return {
-      Client: this.Clients[0] || {},  // Backward compatibility - first client
-      Clients: [...this.Clients],     // Array of clients
+      Client: cleanClients[0] || {},  // Backward compatibility - first client
+      Clients: cleanClients,           // Array of clients
       Booking: { ...this.Booking },
       Config: { ...this.Config }
     };
@@ -110,10 +117,16 @@ class State {
     // Support both new format (Clients array) and legacy format (Client object)
     if (obj.Clients && Array.isArray(obj.Clients)) {
       // New format - array of clients
-      this.Clients = [...obj.Clients];
+      // Strip _fromDB flag (transient, should not persist)
+      this.Clients = obj.Clients.map(c => {
+        const { _fromDB, ...cleanClient } = c;
+        return cleanClient;
+      });
     } else if (obj.Client && Object.keys(obj.Client).length > 0) {
       // Legacy format - single client object
-      this.Clients = [obj.Client];
+      // Strip _fromDB flag
+      const { _fromDB, ...cleanClient } = obj.Client;
+      this.Clients = [cleanClient];
     }
 
     Object.assign(this.Booking, obj.Booking || {});

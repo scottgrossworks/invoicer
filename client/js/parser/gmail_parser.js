@@ -45,6 +45,19 @@ class GmailParser extends EventParser {
   }
 
   /**
+   * Quick extraction of name and email only (for DB lookup before full parse)
+   * Overrides EventParser base method
+   * @returns {Promise<Object|null>} {email, name} or null
+   */
+  async quickExtractIdentity() {
+    const emailData = this._extractEmailAndName();
+    if (emailData && (emailData.email || emailData.name)) {
+      return emailData;
+    }
+    return null;
+  }
+
+  /**
    * Extract client data from Gmail header (email, name)
    * @returns {Array<Object>} Array with single client from sender
    */

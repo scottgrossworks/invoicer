@@ -170,8 +170,9 @@ async function initializeApp() {
     setupPageSwitching();
     setupHeaderButtons();
 
-    // Initialize default page from config
-    await switchToPage(LEEDZ_CONFIG.ui.defaultPage);
+    // Initialize to last active page or default page from config
+    const lastPage = await getLastActivePage();
+    await switchToPage(lastPage || LEEDZ_CONFIG.ui.defaultPage);
 
   } catch (error) {
     console.error('Failed to initialize app:', error);
@@ -238,6 +239,32 @@ function setupPageSwitching() {
 }
 
 /**
+ * Get last active page from chrome storage
+ * @returns {string|null} Last active page name or null
+ */
+async function getLastActivePage() {
+  try {
+    const result = await chrome.storage.local.get('lastActivePage');
+    return result.lastActivePage || null;
+  } catch (error) {
+    console.error('Failed to get last active page:', error);
+    return null;
+  }
+}
+
+/**
+ * Save last active page to chrome storage
+ * @param {string} pageName - Name of current page
+ */
+function saveLastActivePage(pageName) {
+  try {
+    chrome.storage.local.set({ lastActivePage: pageName });
+  } catch (error) {
+    console.error('Failed to save last active page:', error);
+  }
+}
+
+/**
  * Switch to a different page
  * @param {string} pageName - Name of the page to switch to
  */
@@ -263,6 +290,9 @@ async function switchToPage(pageName) {
   updateActionButtons(page);
 
   CURRENT_PAGE = page;
+
+  // Save current page to chrome storage
+  saveLastActivePage(pageName);
 }
 
 /**
@@ -332,6 +362,15 @@ function setupHeaderButtons() {
   const reloadBtn = document.getElementById('reloadBtn');
   if (reloadBtn) {
     reloadBtn.addEventListener('click', async () => {
+      if (CURRENT_PAGE) {
+        await CURRENT_PAGE.reloadParser();
+      }
+    });
+  }
+
+  const reloadBtnClients = document.getElementById('reloadBtnClients');
+  if (reloadBtnClients) {
+    reloadBtnClients.addEventListener('click', async () => {
       if (CURRENT_PAGE) {
         await CURRENT_PAGE.reloadParser();
       }
