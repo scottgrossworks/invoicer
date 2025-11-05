@@ -18,33 +18,12 @@ class EventParser extends Parser {
   /**
    * Quick extraction of name and email only (for DB lookup before full parse)
    * Subclasses should override to provide fast identity extraction
+   * Called by content script via leedz_extract_identity message
    * @returns {Promise<Object|null>} {email, name} or null if cannot extract
    */
   async quickExtractIdentity() {
     // Default: return null (subclasses override)
     return null;
-  }
-
-  /**
-   * Search for existing client in database
-   * @param {string} email - Client email
-   * @param {string} name - Client name
-   * @returns {Promise<Object|null>} Client object from DB or null
-   */
-  async searchExistingClient(email, name) {
-    try {
-      if (!window.DB_LAYER || typeof window.DB_LAYER.searchClient !== 'function') {
-        console.log('DB_LAYER not available for client search');
-        return null;
-      }
-
-      const client = await window.DB_LAYER.searchClient(email, name);
-      return client;
-
-    } catch (error) {
-      console.log('searchExistingClient error:', error.message);
-      return null;
-    }
   }
 
   /**
@@ -69,11 +48,11 @@ class EventParser extends Parser {
    * Template method - combines procedural + LLM extraction
    * Subclasses should call this or override with similar pattern
    *
-   * NEW WORKFLOW:
-   * 1. Quick extract identity (name/email)
-   * 2. Search DB for existing client
-   * 3. If found: use DB data, skip full parse
-   * 4. If not found: continue with full procedural + LLM parse
+   * NEW WORKFLOW (DB search moved to Page.js in sidebar context):
+   * 1. Procedural extraction (DOM-based)
+   * 2. LLM extraction (fills in missing fields)
+   *
+   * DB search happens in Page.reloadParser() before calling this method
    */
   async parse(state) {
     try {
@@ -81,39 +60,6 @@ class EventParser extends Parser {
         if (state.Client) Object.assign(this.STATE.Client, state.Client);
         if (state.Booking) Object.assign(this.STATE.Booking, state.Booking);
         if (state.Config) Object.assign(this.STATE.Config, state.Config);
-      }
-
-      // Step 0: Quick identity extraction and DB lookup
-      const identity = await this.quickExtractIdentity();
-
-      if (identity && (identity.email || identity.name)) {
-        console.log('Quick identity extracted:', identity);
-
-        // Search DB for existing client
-        const dbClient = await this.searchExistingClient(identity.email, identity.name);
-
-        if (dbClient) {
-          console.log('Client found in DB - using existing data');
-
-          // Populate state with DB client data
-          Object.assign(this.STATE.Client, {
-            name: dbClient.name,
-            email: dbClient.email,
-            phone: dbClient.phone,
-            company: dbClient.company,
-            website: dbClient.website,
-            clientNotes: dbClient.clientNotes
-          });
-
-          // Mark as from DB for visual indicators
-          this.STATE.Client._fromDB = true;
-          this.STATE.setClients([this.STATE.Client]);
-
-          // Skip full parse - return early
-          return this.STATE;
-        } else {
-          console.log('Client not found in DB - continuing with full parse');
-        }
       }
 
       // Step 1: Procedural extraction (DOM-based)

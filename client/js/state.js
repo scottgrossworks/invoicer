@@ -186,27 +186,48 @@ class State {
    * If Config not found, let the caller assign its own defaults
    */
   async loadConfigFromDB() {
+    console.log('=== STATE.loadConfigFromDB() called ===');
+    console.log('Current Config state:', {
+      hasConfig: !!this.Config,
+      hasCompanyName: !!(this.Config?.companyName),
+      config: this.Config
+    });
 
     // If no Config data found load from DB
     if ( !this.Config || !this.Config.companyName ) {
+      console.log('Config needs to be loaded from DB');
 
       const dbLayer = await getDbLayer();
+      console.log('DB Layer:', {
+        hasDbLayer: !!dbLayer,
+        dbLayerType: dbLayer ? dbLayer.constructor.name : 'null'
+      });
+
       if (!dbLayer) {
         console.log("No DB Layer configured - Config will not be loaded from database");
         return;
       }
 
+      console.log('Calling dbLayer.load()...');
       const dbConfig = await dbLayer.load();
+      console.log('dbLayer.load() returned:', {
+        hasConfig: !!dbConfig,
+        configData: dbConfig
+      });
+
       if (dbConfig) {
         Object.assign(this.Config, dbConfig);
-        console.log("Config loaded from database");
+        console.log("Config loaded from database successfully");
+        console.log("Config now contains:", this.Config);
         // CONFIG LOADED - DO NOT SAVE YET
         // Save will happen after parser completes and populates Client/Booking data
 
       } else {
-        console.log("No Config found in DB - using default or existing Config");
+        console.warn("dbLayer.load() returned null - No Config found in DB");
         return;
       }
+    } else {
+      console.log('Config already loaded, skipping DB load');
     }
 
     // SUCCESS
@@ -263,7 +284,15 @@ class State {
  */
 export class StateFactory {
   static async create() {
-    const state = new State( true );
+    const state = new State( false );  // Don't auto-load in constructor
+    await state.load();  // Wait for load to complete
+    console.log('StateFactory.create() - State loaded:', {
+      hasClient: !!(state.Client?.name || state.Client?.email),
+      clientName: state.Client?.name,
+      clientEmail: state.Client?.email,
+      hasBooking: !!(state.Booking?.title || state.Booking?.location),
+      bookingTitle: state.Booking?.title
+    });
     return state;
   }
 

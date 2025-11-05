@@ -581,6 +581,50 @@ input.invalid {
   background-color: darkgreen;
 }
 
+#clearThankYouBtn {
+  background-color: cornflowerblue;
+}
+#clearThankYouBtn:hover:not(:disabled) {
+  background-color: blue;
+}
+
+#writeThankYouBtn {
+  background-color: var(--LEEDZ_DARKGREEN);
+}
+#writeThankYouBtn:hover:not(:disabled) {
+  background-color: darkgreen;
+}
+
+/* Special Information section for ThankYou page */
+.special-info-section {
+  margin-top: 20px;
+}
+
+.special-info-label {
+  font-weight: bold;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.special-info-textarea {
+  width: 100%;
+  min-height: 150px;
+  height: 25vh;
+  padding: 8px;
+  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+/* ThankYou table styling when client found in DB */
+.thankyou-table-from-db {
+  background-color: honeydew;
+  border-color: var(--LEEDZ_GREEN);
+}
+
 .delete-client-btn {
   background-color: coral;
   width: 50%;

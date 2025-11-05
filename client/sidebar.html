@@ -239,6 +239,60 @@
     </div><!-- END page-clients -->
 
 
+    <!-- ========================================== -->
+    <!-- THANKYOU PAGE (Thank You Note Generator)  -->
+    <!-- ========================================== -->
+    <div id="page-thankyou" class="page-content">
+
+      <div class="section-header">
+        <label for="display_win_thankyou">Generate Thank You Note</label>
+        <div class="header-buttons">
+          <button id="reloadBtnThankYou" class="reload-button" title="Reload the parser">
+            <span>
+              <img src="icons/arrows_white.png" class="button-icon" alt="reload parser"/>
+            </span>
+          </button>
+          <button id="settingsBtnThankYou" class="settings-button" title="Open settings">
+            <span>
+              <img src="icons/settings.png" class="button-icon" alt="settings"/>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div id="display_win_thankyou" class="display-win">
+        <div id="loading_spinner_thankyou" class="loading-spinner" style="display: none;">
+          <img src="icons/wait_spinner.gif" alt="Loading..." />
+          <span>Generating...</span>
+        </div>
+        <table id="thankyou_table" class="booking-table">
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody id="thankyou_tbody">
+            <!-- Dynamic rows will be inserted here -->
+          </tbody>
+        </table>
+
+        <!-- Special Information Section -->
+        <div id="special-info-section" class="special-info-section">
+          <div class="special-info-label">
+            Special Information
+          </div>
+          <textarea
+            id="specialInfoTextarea"
+            class="special-info-textarea"
+            placeholder="Add personal notes, recollections, or special details to include in the thank you note..."
+          ></textarea>
+        </div>
+      </div>
+
+    </div><!-- END page-thankyou -->
+
+
   </main>
 
   <!-- STARTUP BUTTONS - Fixed position outside scrolling area, above footer -->
@@ -266,6 +320,18 @@
 
     <button id="pdfBtn" class="sidebar-button" title="Render PDF">
       PDF
+    </button>
+  </div>
+
+  <!-- THANKYOU BUTTONS - Fixed position outside scrolling area, above footer -->
+  <!-- Only visible when thankyou page is active -->
+  <div class="button-wrapper" id="thankyou-buttons">
+    <button id="clearThankYouBtn" class="sidebar-button" title="Clear and reset">
+      Clear
+    </button>
+
+    <button id="writeThankYouBtn" class="sidebar-button" title="Generate and send thank you">
+      Write
     </button>
   </div>
 

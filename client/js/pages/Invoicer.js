@@ -17,8 +17,7 @@ export class Invoicer extends Page {
     this.clientFields = Client.getFieldNames();
     this.bookingFields = Booking.getFieldNames();
 
-    // PDF settings and render paths
-    this.PDF_SETTINGS_JS = './settings/PDF_settings.js';
+    // PDF render path
     this.PDF_RENDER_JS = 'js/render/PDF_render.js';
   }
 
@@ -87,13 +86,27 @@ export class Invoicer extends Page {
   /**
    * Populate the booking table with all fields from state.
    * Shows ALL Booking and Client fields, with values if available, blank if not.
+   * Applies green styling (honeydew + LEEDZ_GREEN border) if client loaded from DB.
    */
   populateBookingTable() {
     const tbody = document.getElementById('booking_tbody');
-    if (!tbody) return;
+    const table = document.getElementById('booking_table');
+    if (!tbody || !table) return;
 
     // Clear existing rows
     tbody.innerHTML = '';
+
+    // Apply green table styling if client was loaded from DB
+    console.log('=== INVOICER TABLE STYLING ===');
+    console.log('_fromDB flag:', this.state.Client._fromDB);
+
+    if (this.state.Client._fromDB) {
+      console.log('✓ Client from DB - adding green table styling');
+      table.classList.add('thankyou-table-from-db');  // Reuse same CSS class
+    } else {
+      console.log('✗ Client NOT from DB - removing green styling');
+      table.classList.remove('thankyou-table-from-db');
+    }
 
     const allFields = [...this.clientFields, ...this.bookingFields];
 
@@ -363,8 +376,9 @@ export class Invoicer extends Page {
         await this.state.save();
       }
 
-      // Dynamic import of PDF settings
-      const { default: PDF_settings } = await import(this.PDF_SETTINGS_JS);
+      // Dynamic import of PDF settings - use absolute path from extension root
+      const settingsUrl = chrome.runtime.getURL('js/settings/PDF_settings.js');
+      const { default: PDF_settings } = await import(settingsUrl);
       const pdfSettings = new PDF_settings(this.state);
       await pdfSettings.open();
 

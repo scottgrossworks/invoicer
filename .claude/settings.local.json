@@ -26,7 +26,10 @@
       "Bash(npm run db:generate:*)",
       "Bash(npx prisma migrate:*)",
       "Bash(git reset:*)",
-      "Bash(dir /b /s \"C:\\Users\\Scott\\Desktop\\WKG\\INVOICER\\server\\mcp\")"
+      "Bash(dir /b /s \"C:\\Users\\Scott\\Desktop\\WKG\\INVOICER\\server\\mcp\")",
+      "Bash(dir /b \"C:\\Users\\Scott\\Desktop\\WKG\\INVOICER\\client\")",
+      "Bash(findstr:*)",
+      "Bash(dir /b C:UsersScottDesktopWKGINVOICERclient)"
     ],
     "deny": [],
     "ask": []

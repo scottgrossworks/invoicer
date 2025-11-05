@@ -268,22 +268,33 @@ async load() {
         console.log('Using default config from leedz_config.json for load():', serverUrl);
       }
 
+      console.log(`Fetching config from: ${serverUrl}/config`);
       const dbResponse = await fetch(`${serverUrl}/config`);
+      console.log('Config fetch response status:', dbResponse.status, dbResponse.statusText);
 
       if (dbResponse.ok) {
         const dbConfig = await dbResponse.json();
-        console.log("PDF settings loaded from database");
-        console.log(dbConfig);
+        console.log("=== PDF settings loaded from database ===");
+        console.log('Config data received from server:', {
+          hasData: !!dbConfig,
+          keys: dbConfig ? Object.keys(dbConfig) : [],
+          companyName: dbConfig?.companyName,
+          companyEmail: dbConfig?.companyEmail,
+          fullData: dbConfig
+        });
 
         return dbConfig;
 
       } else {
-        console.log("No DB Config found");
+        console.warn(`Config fetch failed with status ${dbResponse.status}`);
+        console.log("No DB Config found - server returned error");
         return null;
       }
 
     } catch (error) {
-      console.log('DB Config not loaded: ' + error.message);
+      console.error('=== DB Config load ERROR ===');
+      console.error('Error details:', error.message);
+      console.error('Stack:', error.stack);
       console.log('Database server may not be running - this is normal if server is not configured');
       return null;
     }
@@ -297,37 +308,48 @@ async load() {
    */
   async searchClient(email, name) {
     try {
+      console.log('=== DB_LAYER.searchClient() CALLED ===');
+      console.log('Parameters:', { email, name });
+
       // Build query parameters
       const params = new URLSearchParams();
       if (email) params.append('email', email);
       if (name) params.append('name', name);
 
       if (!email && !name) {
-        console.log('searchClient: No email or name provided');
+        console.error('searchClient: No email or name provided');
         return null;
       }
 
       const url = `${this.baseUrl}/clients?${params.toString()}`;
+      console.log('Fetching:', url);
+
       const response = await fetch(url);
+      console.log('Response status:', response.status, response.statusText);
 
       if (!response.ok) {
-        console.log(`searchClient: Server returned ${response.status}`);
+        console.error(`searchClient: Server returned ${response.status}`);
         return null;
       }
 
       const clients = await response.json();
+      console.log('Clients returned:', {
+        count: clients ? clients.length : 0,
+        clients: clients
+      });
 
       // Return first matching client or null
       if (clients && clients.length > 0) {
-        console.log(`searchClient: Found client - ${clients[0].name} (${clients[0].email})`);
+        console.log('✓ searchClient: Found client:', clients[0]);
         return clients[0];
       }
 
-      console.log('searchClient: No matching client found');
+      console.log('✗ searchClient: No matching client found');
       return null;
 
     } catch (error) {
-      console.log('searchClient error:', error.message);
+      console.error('✗✗✗ searchClient ERROR:', error.message);
+      console.error('Stack:', error.stack);
       return null;
     }
   }

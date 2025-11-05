@@ -2,6 +2,7 @@
 
 import { StateFactory } from './state.js';
 import { initLogging, log, logError } from './logging.js';
+import { getDbLayer } from './provider_registry.js';
 
 // Start logging
 initLogging();
@@ -115,6 +116,15 @@ async function initializeApp() {
   try {
     // Load configuration FIRST - abort if missing or invalid
     await loadLeedzConfig();
+
+    // Initialize database layer globally (respects Chrome storage config + leedz_config.json)
+    try {
+      window.DB_LAYER = await getDbLayer();
+      console.log('DB_LAYER initialized:', window.DB_LAYER.baseUrl);
+    } catch (error) {
+      console.error('Failed to initialize DB_LAYER:', error);
+      window.DB_LAYER = null;
+    }
 
     // Initialize state with persistence
     STATE = await StateFactory.create();
@@ -316,43 +326,47 @@ function updateActionButtons(page) {
   // Get all button wrappers
   const startupButtons = document.getElementById('startup-buttons');
   const invoicerButtons = document.getElementById('invoicer-buttons');
+  const thankyouButtons = document.getElementById('thankyou-buttons');
 
   // Hide all button wrappers by default
   if (startupButtons) startupButtons.style.display = 'none';
   if (invoicerButtons) invoicerButtons.style.display = 'none';
+  if (thankyouButtons) thankyouButtons.style.display = 'none';
 
   // Show the appropriate button wrapper based on page name
   if (page.pageName === 'startup' && startupButtons) {
     startupButtons.style.display = 'flex';
   } else if (page.pageName === 'invoicer' && invoicerButtons) {
     invoicerButtons.style.display = 'flex';
+  } else if (page.pageName === 'thankyou' && thankyouButtons) {
+    thankyouButtons.style.display = 'flex';
   }
 
-  // Legacy dynamic button handling (if page provides button config)
-  const buttonWrapper = document.getElementById('invoicer-buttons');
-  if (!buttonWrapper) return;
-
+  // Legacy dynamic button handling (only for pages that provide button config)
+  // Pages with static HTML buttons (like thankyou) should return null and skip this
   const buttons = page.getActionButtons();
 
   if (buttons && buttons.length > 0) {
-    // Show buttons and wire handlers
-    buttonWrapper.style.display = 'flex';
+    // Dynamic buttons needed - use invoicer-buttons wrapper for legacy compatibility
+    const buttonWrapper = document.getElementById('invoicer-buttons');
+    if (buttonWrapper) {
+      buttonWrapper.style.display = 'flex';
 
-    // Clear existing buttons
-    buttonWrapper.innerHTML = '';
+      // Clear existing buttons
+      buttonWrapper.innerHTML = '';
 
-    // Create buttons from config
-    buttons.forEach(btnConfig => {
-      const btn = document.createElement('button');
-      btn.id = btnConfig.id;
-      btn.className = 'sidebar-button';
-      btn.textContent = btnConfig.label;
-      btn.addEventListener('click', btnConfig.handler);
-      buttonWrapper.appendChild(btn);
-    });
-  } else {
-    buttonWrapper.style.display = 'none';
+      // Create buttons from config
+      buttons.forEach(btnConfig => {
+        const btn = document.createElement('button');
+        btn.id = btnConfig.id;
+        btn.className = 'sidebar-button';
+        btn.textContent = btnConfig.label;
+        btn.addEventListener('click', btnConfig.handler);
+        buttonWrapper.appendChild(btn);
+      });
+    }
   }
+  // If null or empty array, don't touch any button wrappers - they're already handled above
 }
 
 /**
@@ -377,6 +391,15 @@ function setupHeaderButtons() {
     });
   }
 
+  const reloadBtnThankYou = document.getElementById('reloadBtnThankYou');
+  if (reloadBtnThankYou) {
+    reloadBtnThankYou.addEventListener('click', async () => {
+      if (CURRENT_PAGE) {
+        await CURRENT_PAGE.reloadParser();
+      }
+    });
+  }
+
   const settingsBtn = document.getElementById('settingsBtn');
   if (settingsBtn) {
     settingsBtn.addEventListener('click', async () => {
@@ -386,6 +409,17 @@ function setupHeaderButtons() {
         await CURRENT_PAGE.openSettings();
       } else {
         // Generic settings or no-op for other pages
+        console.log('Settings button clicked - no action for this page');
+      }
+    });
+  }
+
+  const settingsBtnThankYou = document.getElementById('settingsBtnThankYou');
+  if (settingsBtnThankYou) {
+    settingsBtnThankYou.addEventListener('click', async () => {
+      if (CURRENT_PAGE && typeof CURRENT_PAGE.openSettings === 'function') {
+        await CURRENT_PAGE.openSettings();
+      } else {
         console.log('Settings button clicked - no action for this page');
       }
     });

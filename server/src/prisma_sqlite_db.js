@@ -108,10 +108,11 @@ class Prisma_Sqlite_DB extends Leedz_DB {
     // 11/3/2025: Enhanced client filtering with company and fulltext search support
     if (filters?.search) {
       // Fulltext search across name, email, and company fields
+      // SQLite doesn't support mode parameter - contains is case-insensitive by default
       where.OR = [
-        { name: { contains: filters.search, mode: 'insensitive' } },
-        { email: { contains: filters.search, mode: 'insensitive' } },
-        { company: { contains: filters.search, mode: 'insensitive' } }
+        { name: { contains: filters.search } },
+        { email: { contains: filters.search } },
+        { company: { contains: filters.search } }
       ];
     } else {
       // Individual field filters
@@ -120,11 +121,13 @@ class Prisma_Sqlite_DB extends Leedz_DB {
       }
 
       if (filters?.name) {
-        where.name = { contains: filters.name, mode: 'insensitive' };
+        // SQLite doesn't support mode parameter - contains is case-insensitive by default
+        where.name = { contains: filters.name };
       }
 
       if (filters?.company) {
-        where.company = { contains: filters.company, mode: 'insensitive' };
+        // SQLite doesn't support mode parameter - contains is case-insensitive by default
+        where.company = { contains: filters.company };
       }
     }
 

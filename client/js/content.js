@@ -97,6 +97,153 @@ async function getMatchingParser() {
 
 // respond to sidebar requests
 chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
+  // Open thank you compose window in Gmail
+  if (msg.action === 'openThankYou') {
+    (async () => {
+      try {
+        console.log('=== CONTENT SCRIPT: OPEN THANK YOU ===');
+        console.log('Received message:', {
+          action: msg.action,
+          clientName: msg.clientName,
+          clientEmail: msg.clientEmail,
+          subject: msg.subject,
+          hasBody: !!msg.body,
+          bodyLength: msg.body ? msg.body.length : 0,
+          bodyPreview: msg.body ? msg.body.substring(0, 200) + '...' : 'null'
+        });
+        console.log('Full body text received:', msg.body);
+
+        // 1. Click Reply button
+        console.log('Looking for Reply button...');
+        const replyButton = document.querySelector('[aria-label="Reply"]');
+        if (!replyButton) {
+          console.error('Reply button not found in DOM');
+          throw new Error('Reply button not found');
+        }
+        console.log('Reply button found, clicking...');
+        replyButton.click();
+        console.log('Reply button clicked');
+
+        // 2. Wait for compose box to appear
+        console.log('Waiting 500ms for compose box...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // 3. Find and populate subject field (if visible)
+        console.log('Looking for subject field...');
+        const subjectField = document.querySelector('input[name="subjectbox"]');
+        if (subjectField && !subjectField.value.startsWith('Re:')) {
+          console.log('Subject field found, populating with:', msg.subject);
+          subjectField.value = msg.subject || 'Thank you';
+          subjectField.dispatchEvent(new Event('input', { bubbles: true }));
+          console.log('Subject populated successfully');
+        } else {
+          console.log('Subject field not found or already has Re:');
+        }
+
+        // 4. Find and populate body field
+        console.log('Looking for body field...');
+
+        // Try multiple selectors for Gmail compose body
+        let bodyField = null;
+        const selectors = [
+          'div[aria-label="Message Body"][contenteditable="true"]',
+          'div[role="textbox"][aria-label="Message Body"]',
+          'div[contenteditable="true"][aria-label="Message Body"]',
+          'div.Am[contenteditable="true"]',  // Gmail's compose body class
+          'div[g_editable="true"]'  // Alternative Gmail class
+        ];
+
+        for (const selector of selectors) {
+          console.log('Trying selector:', selector);
+          bodyField = document.querySelector(selector);
+          if (bodyField) {
+            console.log('Found body field with selector:', selector);
+            break;
+          }
+        }
+
+        if (!bodyField) {
+          console.error('Message body field not found with any selector');
+          console.log('Available contenteditable elements:',
+            Array.from(document.querySelectorAll('[contenteditable="true"]')).map(el => ({
+              tag: el.tagName,
+              class: el.className,
+              ariaLabel: el.getAttribute('aria-label'),
+              role: el.getAttribute('role')
+            })));
+          throw new Error('Message body field not found');
+        }
+
+        console.log('Body field found:', {
+          tag: bodyField.tagName,
+          class: bodyField.className,
+          ariaLabel: bodyField.getAttribute('aria-label'),
+          isContentEditable: bodyField.contentEditable
+        });
+        console.log('Inserting body text (length: ' + (msg.body ? msg.body.length : 0) + ')');
+        console.log('Body text to insert:', msg.body);
+
+        // For contenteditable divs, use textContent or innerText, not innerHTML
+        // This prevents HTML injection issues and works better with Gmail
+        if (bodyField.tagName === 'DIV' && bodyField.contentEditable === 'true') {
+          console.log('Using textContent for contenteditable div');
+          bodyField.textContent = msg.body || '';
+        } else if (bodyField.tagName === 'TEXTAREA') {
+          console.log('Using value for textarea');
+          bodyField.value = msg.body || '';
+        } else {
+          console.log('Using innerHTML as fallback');
+          bodyField.innerHTML = msg.body || '';
+        }
+
+        console.log('Body field content after setting:', bodyField.textContent.substring(0, 200) + '...');
+
+        // Dispatch multiple events to ensure Gmail recognizes the change
+        bodyField.dispatchEvent(new Event('input', { bubbles: true }));
+        bodyField.dispatchEvent(new Event('change', { bubbles: true }));
+        bodyField.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true }));
+        console.log('Events dispatched');
+
+        // 5. Focus cursor in body (so user can start editing)
+        bodyField.focus();
+        console.log('Body field focused');
+
+        console.log('=== THANK YOU COMPOSE COMPLETE ===');
+        reply({ ok: true });
+      } catch (error) {
+        console.error('=== ERROR IN OPEN THANK YOU ===');
+        console.error('Error details:', error);
+        console.error('Error stack:', error.stack);
+        reply({ ok: false, error: error.message });
+      }
+    })();
+
+    return true; // keep port open for async reply
+  }
+
+  // Quick identity extraction only (name/email for DB lookup)
+  if (msg.type === 'leedz_extract_identity') {
+    (async () => {
+      try {
+        // Get matching parser for current page
+        const parser = await getMatchingParser();
+
+        // Call quickExtractIdentity() to get just name/email
+        const identity = await parser.quickExtractIdentity();
+
+        reply({
+          ok: true,
+          identity: identity || { email: null, name: null }
+        });
+      } catch (e) {
+        console.error('Content script identity extraction error:', e);
+        reply({ ok: false, error: e.message });
+      }
+    })();
+
+    return true; // keep port open for async reply
+  }
+
   // Extract client data only (for ClientCapture page)
   if (msg.type === 'leedz_extract_client') {
     (async () => {

@@ -970,3 +970,130 @@ The column `main.Config.serverUrl` does not exist in the current database.
 [2025-11-04T02:42:01.985Z] POST /clients
 [2025-11-04T06:29:56.947Z] GET /config
 [2025-11-04T18:29:47.651Z] GET /config
+[2025-11-04T23:12:37.950Z] GET /config
+[2025-11-04T23:20:21.485Z] GET /config
+[2025-11-04T23:20:48.253Z] GET /config
+[2025-11-04T23:25:37.324Z] GET /config
+[2025-11-05T04:30:23.606Z] GET /config
+[2025-11-05T04:31:45.094Z] GET /config
+[2025-11-05T04:32:07.513Z] POST /clients
+[2025-11-05T04:32:07.576Z] POST /bookings
+[2025-11-05T04:32:07.643Z] POST /config
+[2025-11-05T04:32:27.147Z] POST /clients
+[2025-11-05T04:32:27.179Z] POST /bookings
+[2025-11-05T04:32:27.209Z] POST /config
+[2025-11-05T04:32:33.620Z] GET /config
+[2025-11-05T04:32:35.319Z] POST /clients
+[2025-11-05T04:32:35.355Z] POST /bookings
+[2025-11-05T04:32:35.389Z] POST /config
+[2025-11-05T04:32:54.013Z] GET /config
+[2025-11-05T04:56:34.660Z] GET /config
+[2025-11-05T05:05:21.249Z] GET /config
+[2025-11-05T05:11:30.260Z] GET /config
+[2025-11-05T05:13:12.320Z] Received SIGINT, shutting down gracefully...
+[2025-11-05T05:13:48.014Z] Database connected successfully
+[2025-11-05T05:13:48.024Z] ! Local API running on http://localhost:3000
+[2025-11-05T05:14:03.275Z] GET /config
+[2025-11-05T05:15:21.211Z] GET /stats
+[2025-11-05T05:15:37.549Z] POST /clients
+[2025-11-05T05:15:37.592Z] POST /bookings
+[2025-11-05T05:15:37.668Z] POST /config
+[2025-11-05T05:15:52.359Z] GET /config
+[2025-11-05T05:15:56.361Z] POST /clients
+[2025-11-05T05:15:56.394Z] POST /bookings
+[2025-11-05T05:15:56.427Z] POST /config
+[2025-11-05T05:15:59.901Z] GET /config
+[2025-11-05T17:15:15.325Z] GET /config
+[2025-11-05T17:15:15.337Z] GET /clients?email=sinmiedo50%40yahoo.com&name=Efren+Rodriguez
+[2025-11-05T17:15:15.368Z] GET /clients failed: PrismaClientValidationError: 
+[31mInvalid [1m`this.prisma.client.findMany()`[22m invocation in[39m
+[4mC:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:131:37[24m
+
+  [2m[90m128[39m   [34m}[39m[22m
+  [2m[90m129[39m [34m}[39m[22m
+  [2m[90m130[39m [22m
+[1m[31m→[39m[22m [2m[90m131[39m [36mreturn[39m [36mawait[39m [36mthis[39m[34m.[39mprisma[34m.[39mclient[34m.[39m[36mfindMany[39m[34m([39m[22m{
+        where: {
+          email: "sinmiedo50@yahoo.com",
+          name: {
+            contains: "Efren Rodriguez",
+            [31mmode[39m: "insensitive",
+            [31m~~~~[39m
+      [32m?[39m     [32mequals[39m[32m?[39m[32m: [39m[32mString | StringFieldRefInput[39m,
+      [32m?[39m     [32min[39m[32m?[39m[32m: [39m[32mString[][39m,
+      [32m?[39m     [32mnotIn[39m[32m?[39m[32m: [39m[32mString[][39m,
+      [32m?[39m     [32mlt[39m[32m?[39m[32m: [39m[32mString | StringFieldRefInput[39m,
+      [32m?[39m     [32mlte[39m[32m?[39m[32m: [39m[32mString | StringFieldRefInput[39m,
+      [32m?[39m     [32mgt[39m[32m?[39m[32m: [39m[32mString | StringFieldRefInput[39m,
+      [32m?[39m     [32mgte[39m[32m?[39m[32m: [39m[32mString | StringFieldRefInput[39m,
+      [32m?[39m     [32mstartsWith[39m[32m?[39m[32m: [39m[32mString | StringFieldRefInput[39m,
+      [32m?[39m     [32mendsWith[39m[32m?[39m[32m: [39m[32mString | StringFieldRefInput[39m,
+      [32m?[39m     [32mnot[39m[32m?[39m[32m: [39m[32mString | NestedStringFilter[39m
+          }
+        }
+      }[2m)[22m
+
+Unknown argument `[31mmode[39m`. Did you mean `[32mlte[39m`? Available options are listed in [32mgreen[39m.
+    at wn (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async Prisma_Sqlite_DB.getClients (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:131:12)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:131:19
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:76:7
+[2025-11-05T17:26:05.509Z] GET /config
+[2025-11-05T17:27:13.236Z] GET /stats
+[2025-11-05T17:36:27.095Z] Received SIGINT, shutting down gracefully...
+[2025-11-05T17:36:30.785Z] Database connected successfully
+[2025-11-05T17:36:30.791Z] ! Local API running on http://localhost:3000
+[2025-11-05T17:47:44.155Z] Received SIGINT, shutting down gracefully...
+[2025-11-05T18:06:43.921Z] Database connected successfully
+[2025-11-05T18:06:43.927Z] ! Local API running on http://localhost:3000
+[2025-11-05T18:07:42.110Z] GET /config
+[2025-11-05T18:09:22.488Z] GET /stats
+[2025-11-05T18:10:03.559Z] GET /config
+[2025-11-05T18:12:57.339Z] GET /clients?name=Efren%20Rodriguez
+[2025-11-05T18:19:18.900Z] Received SIGINT, shutting down gracefully...
+[2025-11-05T18:28:25.552Z] Database connected successfully
+[2025-11-05T18:28:25.560Z] ! Local API running on http://localhost:3000
+[2025-11-05T18:29:27.466Z] GET /config
+[2025-11-05T18:49:40.432Z] GET /config
+[2025-11-05T18:49:43.893Z] GET /config
+[2025-11-05T18:49:48.281Z] POST /clients
+[2025-11-05T18:49:48.292Z] POST /clients
+[2025-11-05T18:49:48.333Z] POST /bookings
+[2025-11-05T18:49:48.346Z] POST /bookings
+[2025-11-05T18:49:48.358Z] POST /config
+[2025-11-05T18:49:48.371Z] POST /config
+[2025-11-05T18:49:59.329Z] GET /config
+[2025-11-05T18:49:59.348Z] GET /clients?email=sinmiedo50%40yahoo.com&name=Efren+Rodriguez
+[2025-11-05T18:50:39.921Z] GET /config
+[2025-11-05T18:50:39.929Z] GET /clients?email=sinmiedo50%40yahoo.com&name=Efren+Rodriguez
+[2025-11-05T18:54:00.116Z] GET /config
+[2025-11-05T18:57:30.244Z] GET /config
+[2025-11-05T18:57:30.262Z] GET /clients?email=sinmiedo50%40yahoo.com&name=Efren+Rodriguez
+[2025-11-05T19:38:44.498Z] Received SIGINT, shutting down gracefully...
+[2025-11-05T19:38:49.427Z] Database connected successfully
+[2025-11-05T19:38:49.434Z] ! Local API running on http://localhost:3000
+[2025-11-05T19:40:31.107Z] GET /config
+[2025-11-05T19:40:31.182Z] GET /clients?email=sinmiedo50%40yahoo.com&name=Efren+Rodriguez
+[2025-11-05T19:41:22.118Z] GET /bookings?clientName=Efren%20Rodriguez
+[2025-11-05T19:42:33.858Z] PUT /bookings/cmhljo4da0000potp163bgj8l
+[2025-11-05T19:42:50.009Z] DELETE /bookings/cmgsdxbpp0001r8ksvpbyfhbb
+[2025-11-05T19:44:09.568Z] POST /clients
+[2025-11-05T19:44:09.599Z] POST /config
+[2025-11-05T19:57:55.706Z] GET /config
+[2025-11-05T19:57:55.766Z] GET /clients?email=sinmiedo50%40yahoo.com&name=Efren+Rodriguez
+[2025-11-05T19:57:55.781Z] GET /bookings?clientId=cmgsdxboc0000r8kslm2nmpcm
+[2025-11-05T19:58:51.729Z] PUT /bookings/cmhljo4da0000potp163bgj8l
+[2025-11-05T20:01:00.912Z] PUT /bookings/cmhljo4da0000potp163bgj8l
+[2025-11-05T20:05:45.583Z] GET /config
+[2025-11-05T20:05:45.629Z] GET /clients?email=sinmiedo50%40yahoo.com&name=Efren+Rodriguez
+[2025-11-05T20:05:45.636Z] GET /bookings?clientId=cmgsdxboc0000r8kslm2nmpcm
+[2025-11-05T20:12:48.211Z] POST /clients
+[2025-11-05T20:12:48.243Z] POST /bookings
+[2025-11-05T20:12:48.276Z] POST /config
+[2025-11-05T20:13:53.614Z] POST /clients
+[2025-11-05T20:13:53.645Z] POST /bookings
+[2025-11-05T20:13:53.666Z] POST /config

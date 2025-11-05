@@ -131,7 +131,11 @@ export class Page {
 
   /**
    * Reload and run parsers for current page context
-   * This is called when user clicks the Reload button
+   * NEW PIPELINE:
+   * 1. Quick extract identity (name/email)
+   * 2. Search DB for existing client/booking
+   * 3. If found: use DB data (green table), skip full parse
+   * 4. If not found: do full parse (procedural + LLM)
    */
   async reloadParser() {
     try {
@@ -157,16 +161,115 @@ export class Page {
         try {
           // Check if parser matches this URL
           if (p.checkPageMatch && await p.checkPageMatch(url)) {
-            log(`Initializing ${p.name || 'parser'}...`);
+            log(`Parser ${p.name} matched!`);
+
+            // STEP 1: Quick identity extraction (name/email only)
+            log('Extracting identity...');
+            const identityResponse = await new Promise(resolve => {
+              chrome.tabs.sendMessage(tabId, {
+                type: 'leedz_extract_identity'
+              }, resolve);
+            });
+
+            let dbClient = null;
+            if (identityResponse?.ok && identityResponse?.identity) {
+              const identity = identityResponse.identity;
+              console.log('Identity extracted:', identity);
+
+              // STEP 2: Search DB if we have identity data
+              if (window.DB_LAYER && (identity.email || identity.name)) {
+                log('Searching database...');
+                dbClient = await window.DB_LAYER.searchClient(identity.email, identity.name);
+                console.log('DB search result:', dbClient);
+              } else {
+                if (!window.DB_LAYER) {
+                  console.log('DB_LAYER not available - skipping DB search');
+                } else {
+                  console.log('No identity data - skipping DB search');
+                }
+              }
+            }
+
+            // STEP 3: If found in DB, use that data and skip full parse
+            if (dbClient) {
+              log('Client found in database!');
+              console.log('Using DB client data:', dbClient);
+
+              // Clear state first
+              this.state.clear();
+
+              // Populate client data from DB
+              Object.assign(this.state.Client, {
+                name: dbClient.name,
+                email: dbClient.email,
+                phone: dbClient.phone,
+                company: dbClient.company,
+                website: dbClient.website,
+                clientNotes: dbClient.clientNotes
+              });
+
+              // Set flag for green table styling
+              this.state.Client._fromDB = true;
+
+              // STEP 3.5: Fetch booking(s) associated with this client
+              try {
+                log('Fetching bookings for client...');
+                const bookingsUrl = `${window.DB_LAYER.baseUrl}/bookings?clientId=${dbClient.id}`;
+                console.log('Fetching bookings from:', bookingsUrl);
+
+                const bookingsResponse = await fetch(bookingsUrl);
+                if (bookingsResponse.ok) {
+                  const bookings = await bookingsResponse.json();
+                  console.log('Bookings found:', bookings);
+
+                  if (bookings && bookings.length > 0) {
+                    // Use first booking (most recent or most relevant)
+                    const booking = bookings[0];
+                    Object.assign(this.state.Booking, {
+                      title: booking.title,
+                      description: booking.description,
+                      notes: booking.notes,
+                      location: booking.location,
+                      startDate: booking.startDate,
+                      endDate: booking.endDate,
+                      startTime: booking.startTime,
+                      endTime: booking.endTime,
+                      duration: booking.duration,
+                      hourlyRate: booking.hourlyRate,
+                      flatRate: booking.flatRate,
+                      totalAmount: booking.totalAmount,
+                      status: booking.status,
+                      source: booking.source
+                    });
+                    log(`Loaded booking: ${booking.title}`);
+                  } else {
+                    console.log('No bookings found for this client');
+                  }
+                } else {
+                  console.warn('Failed to fetch bookings:', bookingsResponse.status);
+                }
+              } catch (bookingError) {
+                console.error('Error fetching bookings:', bookingError);
+                // Continue anyway - we have client data
+              }
+
+              // Update UI
+              this.updateFromState(this.state);
+
+              log('Loaded from database');
+              matched = true;
+              break; // Done - skip full parse
+            }
+
+            // STEP 4: Not in DB - do full parse (procedural + LLM)
+            log('Client not in database - parsing page...');
 
             // Initialize state with parser defaults
             if (p.initialize) {
               await p.initialize(this.state);
             }
 
-            log(`Parser ${p.name} matched! Parsing...`);
-
-            // Wrap the async chrome.tabs.sendMessage in a Promise to make it awaitable
+            // Full parse with LLM
             await new Promise((resolve, reject) => {
               chrome.tabs.sendMessage(tabId, {
                 type: 'leedz_parse_page',
