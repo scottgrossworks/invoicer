@@ -97,7 +97,6 @@ export class PageUtils {
 
     if (userName) lines.push(userName);
     if (businessInfo.businessName) lines.push(businessInfo.businessName);
-    if (businessInfo.businessWebsite) lines.push(businessInfo.businessWebsite);
     if (businessInfo.contactHandle) lines.push(businessInfo.contactHandle);
     if (businessInfo.businessPhone) lines.push(businessInfo.businessPhone);
 
@@ -116,7 +115,7 @@ export class PageUtils {
    - BLANK LINE
    - Signoff line (Warm regards, Let's do it again, etc.)
    - BLANK LINE
-   - Signature block: Include ONLY non-empty fields, each on separate line (Name, Company, Website, Handle, Phone)
+   - Signature block: Include ONLY non-empty fields, each on separate line (Name, Company, Handle, Phone)
    - SKIP any empty/null fields - do NOT output blank lines for missing data`;
   }
 

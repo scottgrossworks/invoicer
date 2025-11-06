@@ -183,11 +183,12 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
         console.log('Inserting body text (length: ' + (msg.body ? msg.body.length : 0) + ')');
         console.log('Body text to insert:', msg.body);
 
-        // For contenteditable divs, use textContent or innerText, not innerHTML
-        // This prevents HTML injection issues and works better with Gmail
+        // For contenteditable divs, convert newlines to <br> and use innerHTML
+        // Gmail's contenteditable doesn't render plain text newlines
         if (bodyField.tagName === 'DIV' && bodyField.contentEditable === 'true') {
-          console.log('Using textContent for contenteditable div');
-          bodyField.textContent = msg.body || '';
+          console.log('Using innerHTML with newlines converted to <br> for contenteditable div');
+          const htmlBody = (msg.body || '').replace(/\n/g, '<br>');
+          bodyField.innerHTML = htmlBody;
         } else if (bodyField.tagName === 'TEXTAREA') {
           console.log('Using value for textarea');
           bodyField.value = msg.body || '';
@@ -307,11 +308,12 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
         console.log('Inserting body text (length: ' + (msg.body ? msg.body.length : 0) + ')');
         console.log('Body text to insert:', msg.body);
 
-        // For contenteditable divs, use textContent or innerText, not innerHTML
-        // This prevents HTML injection issues and works better with Gmail
+        // For contenteditable divs, convert newlines to <br> and use innerHTML
+        // Gmail's contenteditable doesn't render plain text newlines
         if (bodyField.tagName === 'DIV' && bodyField.contentEditable === 'true') {
-          console.log('Using textContent for contenteditable div');
-          bodyField.textContent = msg.body || '';
+          console.log('Using innerHTML with newlines converted to <br> for contenteditable div');
+          const htmlBody = (msg.body || '').replace(/\n/g, '<br>');
+          bodyField.innerHTML = htmlBody;
         } else if (bodyField.tagName === 'TEXTAREA') {
           console.log('Using value for textarea');
           bodyField.value = msg.body || '';
