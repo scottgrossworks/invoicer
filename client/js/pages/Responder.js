@@ -259,6 +259,14 @@ export class Responder extends Page {
         this.state.Client[field] = rawValue;
       });
 
+      // Wire up Enter key handler to commit changes
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          input.blur(); // Trigger blur handler to commit changes
+        }
+      });
+
       valueCell.appendChild(input);
       row.appendChild(nameCell);
       row.appendChild(valueCell);
@@ -325,6 +333,14 @@ export class Responder extends Page {
             this.state.Booking.totalAmount = flatRate;
             this.updateFromState(this.state);
           }
+        }
+      });
+
+      // Wire up Enter key handler to commit changes
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          input.blur(); // Trigger blur handler to commit changes
         }
       });
 
