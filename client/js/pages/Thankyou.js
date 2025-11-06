@@ -270,23 +270,60 @@ export class Thankyou extends Page {
       nameCell.className = 'field-name';
       nameCell.textContent = field;
 
-      // Field value cell (read-only display)
+      // Field value cell with editable input
       const valueCell = document.createElement('td');
       valueCell.className = 'field-value';
 
-      // Get value from state (check both Client and Booking)
-      let displayValue = this.state.Client[field] || this.state.Booking[field] || '';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'editable-field';
+      input.dataset.fieldName = field;
+
+      // Determine source (Client or Booking) and get value
+      let displayValue = '';
+      let source = '';
+      if (this.state.Client[field] !== undefined) {
+        displayValue = this.state.Client[field] || '';
+        source = 'Client';
+      } else if (this.state.Booking[field] !== undefined) {
+        displayValue = this.state.Booking[field] || '';
+        source = 'Booking';
+      }
+      input.dataset.source = source;
 
       // Format dates for display
       if (field === 'startDate' && displayValue) {
         displayValue = DateTimeUtils.formatDateForDisplay(displayValue);
       }
 
-      // Create read-only span (not editable)
-      const span = document.createElement('span');
-      span.textContent = displayValue;
-      valueCell.appendChild(span);
+      input.value = displayValue;
 
+      // Wire up change handler
+      input.addEventListener('blur', () => {
+        let rawValue = input.value.trim();
+
+        // Handle date fields
+        if (field === 'startDate') {
+          rawValue = DateTimeUtils.parseUserInputToISO(rawValue);
+        }
+
+        // Save to appropriate state object
+        if (source === 'Client') {
+          this.state.Client[field] = rawValue;
+        } else if (source === 'Booking') {
+          this.state.Booking[field] = rawValue;
+        }
+      });
+
+      // Wire up Enter key handler to commit changes
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          input.blur(); // Trigger blur handler to commit changes
+        }
+      });
+
+      valueCell.appendChild(input);
       row.appendChild(nameCell);
       row.appendChild(valueCell);
       tbody.appendChild(row);
