@@ -181,6 +181,9 @@ class PDFSettingsPage {
       servicesPerformed: document.getElementById('servicesPerformed').value,
       contactHandle: document.getElementById('contactHandle').value,
 
+      // Business Description
+      businessDescription: document.getElementById('businessDescription').value,
+
       // Terms & Footer
       includeTerms: document.getElementById('includeTerms').checked,
       terms: document.getElementById('terms').value

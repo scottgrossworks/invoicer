@@ -595,6 +595,20 @@ input.invalid {
   background-color: darkgreen;
 }
 
+#clearResponderBtn {
+  background-color: cornflowerblue;
+}
+#clearResponderBtn:hover:not(:disabled) {
+  background-color: blue;
+}
+
+#writeResponderBtn {
+  background-color: var(--LEEDZ_DARKGREEN);
+}
+#writeResponderBtn:hover:not(:disabled) {
+  background-color: darkgreen;
+}
+
 /* Special Information section for ThankYou page */
 .special-info-section {
   margin-top: 20px;
@@ -621,6 +635,12 @@ input.invalid {
 
 /* ThankYou table styling when client found in DB */
 .thankyou-table-from-db {
+  background-color: honeydew;
+  border-color: var(--LEEDZ_GREEN);
+}
+
+/* Responder table styling when client found in DB */
+.responder-table-from-db {
   background-color: honeydew;
   border-color: var(--LEEDZ_GREEN);
 }

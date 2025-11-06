@@ -29,7 +29,8 @@
       "Bash(dir /b /s \"C:\\Users\\Scott\\Desktop\\WKG\\INVOICER\\server\\mcp\")",
       "Bash(dir /b \"C:\\Users\\Scott\\Desktop\\WKG\\INVOICER\\client\")",
       "Bash(findstr:*)",
-      "Bash(dir /b C:UsersScottDesktopWKGINVOICERclient)"
+      "Bash(dir /b C:UsersScottDesktopWKGINVOICERclient)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []

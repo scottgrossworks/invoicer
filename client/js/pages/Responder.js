@@ -1,44 +1,41 @@
 /**
- * Thankyou - Page class for thank you note generation
- * Simplified view of booking data with LLM-powered thank you email generation
- * Similar to invoicer:
+ * Responder - Page class for first contact response email generation
+ * Auto-generates professional first response emails with rate info and booking invitation
+ * Architecture mirrors ThankYou.js but serves opposite end of sales cycle:
  *  -- procedural parse for name/email
  *  -- search DB for Client/Booking
  *  -- if found, display, else run parser
  *  -- include special info section for LLM prompt
- *  -- generate thank you note using LLM and open email compose window
+ *  -- generate first response email using LLM and open email compose window
  */
 
 import { Page } from './Page.js';
 import { DateTimeUtils } from '../utils/DateTimeUtils.js';
 import { log, logError, showToast } from '../logging.js';
 import { PageUtils } from '../utils/Page_Utils.js';
+import Client from '../db/Client.js';
+import Booking from '../db/Booking.js';
 
-export class Thankyou extends Page {
+export class Responder extends Page {
 
   constructor(state) {
-    super('thankyou', state);
+    super('responder', state);
 
-    // Simplified fields for thank you display
-    this.displayFields = [
-      'name',      // Client name
-      'email',     // Client email
-      'title',     // Booking title
-      'startDate', // Booking date
-      'location'   // Booking location
-    ];
+    // Full field list (all Client + Booking fields) like Invoicer
+    this.clientFields = Client.getFieldNames();
+    this.bookingFields = Booking.getFieldNames();
 
-    // Store special info for LLM prompt
+    // Store special info for LLM prompt (deposit policy, additional fees, etc.)
     this.specialInfo = '';
   }
 
   /**
-   * Initialize thank you page (called once on app startup)
+   * Initialize responder page (called once on app startup)
    */
   async initialize() {
     // Wire up button handlers
-    const clearBtn = document.getElementById('clearThankYouBtn');
-    const writeBtn = document.getElementById('writeThankYouBtn');
+    const clearBtn = document.getElementById('clearResponderBtn');
+    const writeBtn = document.getElementById('writeResponderBtn');
 
     if (clearBtn) {
       clearBtn.addEventListener('click', () => this.clear());
@@ -59,17 +56,13 @@ export class Thankyou extends Page {
   // openSettings() inherited from Page.js base class
 
   /**
-   * Called when thank you page becomes visible
+   * Called when responder page becomes visible
    */
   async onShow() {
-    
-    // Load Config data from DB if not already loaded (needed for thank you generation)
-    // console.log('Loading Config from DB...');
-    // console.log('Config BEFORE loadConfigFromDB():', this.state.Config);
 
+    // Load Config data from DB if not already loaded (needed for response generation)
     await this.state.loadConfigFromDB();
 
-    // console.log('Config AFTER loadConfigFromDB():', this.state.Config);
     console.log('Config details:', {
       hasConfig: !!this.state.Config,
       hasCompanyName: !!(this.state.Config?.companyName),
@@ -96,21 +89,6 @@ export class Thankyou extends Page {
     const hasClientData = this.state.Client.name || this.state.Client.email;
     const hasBookingData = this.state.Booking.title || this.state.Booking.location;
 
-    /*
-    console.log('=== DATA CHECK ===');
-    console.log('Client data:', {
-      name: this.state.Client.name,
-      email: this.state.Client.email,
-      hasClientData: hasClientData
-    });
-    console.log('Booking data:', {
-      title: this.state.Booking.title,
-      location: this.state.Booking.location,
-      hasBookingData: hasBookingData
-    });
-    console.log('Current _fromDB flag:', this.state.Client._fromDB);
-    */
-
     if (hasClientData || hasBookingData) {
       console.log('✓ Has data - checking DB for existing client...');
 
@@ -135,15 +113,14 @@ export class Thankyou extends Page {
           this.state.Client.name
         );
 
-        
+
         console.log('DB search results:', {
           found: !!dbClient,
           clientData: dbClient
         });
-      
+
 
         this.state.Client._fromDB = (dbClient) ? true : false;
-        // console.log('=== FINAL _fromDB FLAG:', this.state.Client._fromDB, '===');
       }
 
       // Now populate and show UI
@@ -160,11 +137,11 @@ export class Thankyou extends Page {
    */
   updateFromState(state) {
     this.state = state;
-    this.populateThankYouTable();
+    this.populateResponderTable();
   }
 
   /**
-   * Clear/reset thank you page to initial state
+   * Clear/reset responder page to initial state
    */
   clear() {
     this.state.clear();
@@ -174,7 +151,7 @@ export class Thankyou extends Page {
   }
 
   /**
-   * Get action buttons for thank you page
+   * Get action buttons for responder page
    * Returns null - buttons are statically defined in HTML and wired in initialize()
    */
   getActionButtons() {
@@ -189,19 +166,19 @@ export class Thankyou extends Page {
     super.showLoadingSpinner();
 
     // Hide the table during loading
-    const table = document.getElementById('thankyou_table');
+    const table = document.getElementById('responder_table');
     if (table) {
       table.style.display = 'none';
     }
 
     // Hide special info section during loading
-    const specialInfoSection = document.getElementById('special-info-section');
+    const specialInfoSection = document.getElementById('special-info-section-responder');
     if (specialInfoSection) {
       specialInfoSection.style.display = 'none';
     }
 
     // Hide button wrapper during loading
-    const buttonWrapper = document.getElementById('thankyou-buttons');
+    const buttonWrapper = document.getElementById('responder-buttons');
     if (buttonWrapper) {
       buttonWrapper.style.display = 'none';
     }
@@ -215,54 +192,49 @@ export class Thankyou extends Page {
     super.hideLoadingSpinner();
 
     // Show the table after loading
-    const table = document.getElementById('thankyou_table');
+    const table = document.getElementById('responder_table');
     if (table) {
       table.style.display = 'table';
     }
 
     // Show special info section after loading
-    const specialInfoSection = document.getElementById('special-info-section');
+    const specialInfoSection = document.getElementById('special-info-section-responder');
     if (specialInfoSection) {
       specialInfoSection.style.display = 'block';
     }
 
     // Show button wrapper after loading
-    const buttonWrapper = document.getElementById('thankyou-buttons');
+    const buttonWrapper = document.getElementById('responder-buttons');
     if (buttonWrapper) {
       buttonWrapper.style.display = 'flex';
     }
   }
 
   /**
-   * Populate the thank you table with simplified booking/client fields
+   * Populate the responder table with all booking/client fields
    * table appears with appropriate styling (honeydew + green border if client found in DB,
    *  normal styling otherwise).
+   * Rate fields (hourlyRate, flatRate, totalAmount) are highlighted with paleGreen + bold
    */
-  populateThankYouTable() {
-    const tbody = document.getElementById('thankyou_tbody');
-    const table = document.getElementById('thankyou_table');
+  populateResponderTable() {
+    const tbody = document.getElementById('responder_tbody');
+    const table = document.getElementById('responder_table');
     if (!tbody || !table) return;
 
     // Clear existing rows
     tbody.innerHTML = '';
 
     // Check if client was found in DB and apply styling accordingly
-    /*
-    console.log('=== APPLYING TABLE STYLING ===');
-    console.log('Checking _fromDB flag:', {
-      flag: this.state.Client._fromDB,
-      client: this.state.Client
-    });
-    */
-
     if (this.state.Client._fromDB) {
-      table.classList.add('thankyou-table-from-db');
+      table.classList.add('responder-table-from-db');
     } else {
-      table.classList.remove('thankyou-table-from-db');
+      table.classList.remove('responder-table-from-db');
     }
 
-    // Populate table with simplified fields
-    this.displayFields.forEach(field => {
+    // Populate CLIENT fields
+    this.clientFields.forEach(field => {
+      if (field === 'id' || field === 'createdAt' || field === 'updatedAt') return;
+
       const row = document.createElement('tr');
 
       // Field name cell
@@ -270,23 +242,93 @@ export class Thankyou extends Page {
       nameCell.className = 'field-name';
       nameCell.textContent = field;
 
-      // Field value cell (read-only display)
+      // Field value cell with editable input
       const valueCell = document.createElement('td');
       valueCell.className = 'field-value';
 
-      // Get value from state (check both Client and Booking)
-      let displayValue = this.state.Client[field] || this.state.Booking[field] || '';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'editable-field';
+      input.value = this.state.Client[field] || '';
+      input.dataset.fieldName = field;
+      input.dataset.source = 'Client';
 
-      // Format dates for display
-      if (field === 'startDate' && displayValue) {
+      // Wire up change handler
+      input.addEventListener('blur', () => {
+        const rawValue = input.value.trim();
+        this.state.Client[field] = rawValue;
+      });
+
+      valueCell.appendChild(input);
+      row.appendChild(nameCell);
+      row.appendChild(valueCell);
+      tbody.appendChild(row);
+    });
+
+    // Populate BOOKING fields
+    this.bookingFields.forEach(field => {
+      if (field === 'id' || field === 'clientId' || field === 'createdAt' || field === 'updatedAt') return;
+
+      const row = document.createElement('tr');
+
+      // Field name cell
+      const nameCell = document.createElement('td');
+      nameCell.className = 'field-name';
+      nameCell.textContent = field;
+
+      // Field value cell with editable input
+      const valueCell = document.createElement('td');
+      valueCell.className = 'field-value';
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'editable-field';
+
+      // Get value and format dates
+      let displayValue = this.state.Booking[field] || '';
+      if ((field === 'startDate' || field === 'endDate') && displayValue) {
         displayValue = DateTimeUtils.formatDateForDisplay(displayValue);
       }
 
-      // Create read-only span (not editable)
-      const span = document.createElement('span');
-      span.textContent = displayValue;
-      valueCell.appendChild(span);
+      input.value = displayValue;
+      input.dataset.fieldName = field;
+      input.dataset.source = 'Booking';
 
+      // CRITICAL: Highlight rate fields that user must fill in
+      // Apply to entire row, not just input
+      if (field === 'hourlyRate' || field === 'flatRate' || field === 'totalAmount') {
+        row.style.backgroundColor = 'paleGreen';
+        input.style.backgroundColor = 'transparent';
+        input.style.fontWeight = 'bold';
+      }
+
+      // Wire up change handler
+      input.addEventListener('blur', () => {
+        let rawValue = input.value.trim();
+
+        // Handle date fields
+        if (field === 'startDate' || field === 'endDate') {
+          rawValue = DateTimeUtils.parseUserInputToISO(rawValue);
+        }
+
+        this.state.Booking[field] = rawValue;
+
+        // Auto-calculate total amount when rate/duration changes
+        if (field === 'hourlyRate' || field === 'duration') {
+          this.calculateTotal();
+        }
+
+        // If flatRate is set, update totalAmount initially
+        if (field === 'flatRate') {
+          const flatRate = parseFloat(rawValue) || 0;
+          if (flatRate > 0 && !this.state.Booking.totalAmount) {
+            this.state.Booking.totalAmount = flatRate;
+            this.updateFromState(this.state);
+          }
+        }
+      });
+
+      valueCell.appendChild(input);
       row.appendChild(nameCell);
       row.appendChild(valueCell);
       tbody.appendChild(row);
@@ -297,21 +339,32 @@ export class Thankyou extends Page {
   }
 
   /**
+   * Auto-calculate totalAmount based on hourlyRate * duration
+   */
+  calculateTotal() {
+    const hourlyRate = parseFloat(this.state.Booking.hourlyRate) || 0;
+    const duration = parseFloat(this.state.Booking.duration) || 0;
+
+    if (hourlyRate > 0 && duration > 0) {
+      this.state.Booking.totalAmount = hourlyRate * duration;
+      this.updateFromState(this.state);
+    }
+  }
+
+  /**
    * Populate special info textarea section
    * Calls base class implementation with textarea ID
    */
   populateSpecialInfoSection() {
-    super.populateSpecialInfoSection('specialInfoTextarea');
+    super.populateSpecialInfoSection('specialInfoTextarea-responder');
   }
 
   /**
-   * Generate and send thank you email
+   * Generate and send first response email
    * Triggered by Write button
    */
   async onWrite() {
     try {
-      // console.log('=== THANKYOU WRITE BUTTON CLICKED ===');
-
       // Validate we have required data
       if (!this.state.Client.name || !this.state.Client.email) {
         console.log('ERROR: Validation failed: Missing client name or email');
@@ -319,70 +372,57 @@ export class Thankyou extends Page {
         return;
       }
 
-      if (!this.state.Booking.title) {
-        console.log('ERROR: Validation failed: Missing booking title');
-        showToast('Missing booking information', 'error');
+      // CRITICAL: Validate rate fields are filled in
+      const hourlyRate = parseFloat(this.state.Booking.hourlyRate) || 0;
+      const flatRate = parseFloat(this.state.Booking.flatRate) || 0;
+      const totalAmount = parseFloat(this.state.Booking.totalAmount) || 0;
+
+      if (hourlyRate === 0 && flatRate === 0) {
+        showToast('Please enter hourly rate or flat rate', 'error');
+        return;
+      }
+
+      if (totalAmount === 0) {
+        showToast('Please enter total amount', 'error');
         return;
       }
 
       // Show loading state
       this.showLoadingSpinner();
-      log('Generating thank you note...');
+      log('Generating response email...');
 
-      // Generate thank you text using LLM
-      const thankYouText = await this.generateThankYouText();
+      // Generate response text using LLM
+      const responseText = await this.generateResponderEmail();
 
-      /*
-      console.log('generateThankYouText() returned:', {
-        hasText: !!thankYouText,
-        textLength: thankYouText ? thankYouText.length : 0,
-        preview: thankYouText ? thankYouText.substring(0, 100) + '...' : 'null'
-      });
-      */
-
-      if (!thankYouText) {
+      if (!responseText) {
         console.log('ERROR: LLM returned null or empty text');
-        showToast('Failed to generate thank you text', 'error');
+        showToast('Failed to generate response email', 'error');
         this.hideLoadingSpinner();
         return;
       }
 
-      log('Thank you text generated successfully');
+      log('Response email generated successfully');
 
       // Get current tab and send message to content script
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (tabs && tabs.length > 0) {
           const messagePayload = {
-            action: 'openThankYou',
+            action: 'openResponder',
             clientEmail: this.state.Client.email,
             clientName: this.state.Client.name,
-            subject: `Thank you, ${this.state.Client.name}`,
-            body: thankYouText
+            subject: `Re: ${this.state.Booking.title || 'Your Inquiry'}`,
+            body: responseText
           };
-
-          /*
-          console.log('Sending message to content script:', {
-            tabId: tabs[0].id,
-            action: messagePayload.action,
-            subject: messagePayload.subject,
-            bodyLength: messagePayload.body.length,
-            bodyPreview: messagePayload.body.substring(0, 100) + '...'
-          });
-          */
 
           chrome.tabs.sendMessage(tabs[0].id, messagePayload, (response) => {
             if (chrome.runtime.lastError) {
               console.log('ERROR:  Error sending message to content script:', chrome.runtime.lastError);
               showToast('Failed to open compose window', 'error');
-
               this.hideLoadingSpinner();
             } else {
-              // console.log('Content script response:', response);
-              // log('Compose window opened');
               this.hideLoadingSpinner();
 
               // Close the sidebar to make room for email composition
-              // FIXME FIXME FIXME 11/5: Is this working?
               chrome.tabs.sendMessage(tabs[0].id, { action: 'toggleSidebar' }, () => {
                 console.log('Sidebar closed');
               });
@@ -396,47 +436,48 @@ export class Thankyou extends Page {
       });
 
     } catch (error) {
-      logError('Thank you generation failed:', error);
-      showToast('Error generating thank you', 'error');
+      logError('Response email generation failed:', error);
+      showToast('Error generating response', 'error');
       this.hideLoadingSpinner();
     }
   }
 
   /**
-   * Generate thank you text using LLM
-   * Combines Config (business info) + Client + Booking data
+   * Generate first response email text using LLM
+   * Combines Config (business info + description) + Client + Booking data
    */
-  async generateThankYouText() {
-    const prompt = this.buildThankYouPrompt();
+  async generateResponderEmail() {
+    const prompt = this.buildResponderPrompt();
     return await PageUtils.sendLLMRequest(prompt);
   }
 
   /**
-   * Build LLM prompt for thank you note generation
+   * Build LLM prompt for first response email generation
    */
-  buildThankYouPrompt() {
+  buildResponderPrompt() {
     // Extract business info using utility
     const businessInfo = PageUtils.extractBusinessInfo(this.state.Config);
 
-    const clientName = this.state.Client.name || 'Client';
-    const bookingTitle = this.state.Booking.title || 'service';
+    const clientFirstName = this.state.Client.name?.split(' ')[0] || 'Client';
     const bookingDate = this.state.Booking.startDate || '';
-    const location = this.state.Booking.location || '';
-    const bookingNotes = this.state.Booking.notes || '';
+    const bookingTitle = this.state.Booking.title || 'your event';
+    const hourlyRate = this.state.Booking.hourlyRate || 0;
+    const flatRate = this.state.Booking.flatRate || 0;
+    const totalAmount = this.state.Booking.totalAmount || 0;
     const specialInfo = this.specialInfo || '';
 
-    // Build special info section for prompt
-    const specialInfoSection = specialInfo.trim()
-      ? `\nSPECIAL INFORMATION TO INCLUDE:
-${specialInfo}
-
-IMPORTANT: Naturally weave the special information above into the thank you note. Make it feel personal and authentic, not forced or templated. The special details should enhance the warmth and personalization of the message.`
-      : '';
+    // Generate rate text based on what user entered
+    let rateText = '';
+    if (hourlyRate > 0) {
+      rateText = `My rate is $${hourlyRate}/hr`;
+    } else if (flatRate > 0) {
+      rateText = `My flat rate is $${flatRate}`;
+    }
 
     // Build signature example using utility
     const signatureExample = PageUtils.buildSignatureBlock(businessInfo, 'Scott');
 
-    return `ROLE: Generate a concise, warm thank you email to a client after completing a service.
+    return `ROLE: Generate a professional first contact response email for a potential client inquiry.
 
 BUSINESS INFORMATION:
 - Company: ${businessInfo.businessName}
@@ -444,33 +485,49 @@ BUSINESS INFORMATION:
 - Phone: ${businessInfo.businessPhone}
 - Website: ${businessInfo.businessWebsite}
 - Handle: ${businessInfo.contactHandle}
+- Services: ${businessInfo.servicesPerformed}
+- Description: ${businessInfo.businessDescription}
 
 CLIENT INFORMATION:
-- Name: ${clientName}
+- Name: ${clientFirstName}
 
 BOOKING INFORMATION:
+- Event Date: ${bookingDate}
 - Service: ${bookingTitle}
-- Date: ${bookingDate}
-- Location: ${location}
-- Notes: ${bookingNotes}${specialInfoSection}
+- Hourly Rate: ${hourlyRate}
+- Flat Rate: ${flatRate}
+- Total Amount: ${totalAmount}
+
+RATE TEXT (use this):
+${rateText}
+
+SPECIAL NOTES (place RIGHT AFTER rate):
+${specialInfo}
 
 INSTRUCTIONS:
-1. Write a natural, conversational thank you email (3-6 concise sentences)
-2. Express genuine gratitude for their business
-3. Reference the specific service/event that was completed
-4. If special information is provided above, incorporate it into the message
-5. Keep tone warm but professional
+1. Write a professional, warm first contact email
+2. Express enthusiasm about performing service for the event
+3. Include business description naturally
+4. Use RATE TEXT provided above (already formatted)
+5. Place SPECIAL NOTES immediately after rate statement (deposit policy, additional fees)
 6. ${PageUtils.getEmailFormattingInstructions()}
-7. DO NOT include subject line (will be added automatically)
-8. Return ONLY the email body text, no explanations
+7. Invite client to book the date
+8. DO NOT include subject line (will use Re: original subject)
+9. Return ONLY the email body text
 
 EXAMPLE OUTPUT FORMAT (showing all fields populated):
 
-Dear ${clientName},
+Dear ${clientFirstName},
 
-Thank you for the fun party on ${bookingDate}. I really enjoyed drawing for ${bookingTitle}. ${specialInfo ? specialInfo : 'It was a pleasure working with you.'}
+I would be delighted to [perform service] for you on ${bookingDate}.
 
-Warm regards,
+[Business description]
+
+${rateText}
+
+${specialInfo}
+
+Let's book this date,
 
 ${signatureExample}
 

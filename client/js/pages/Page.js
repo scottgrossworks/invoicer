@@ -319,4 +319,49 @@ export class Page {
       this.hideLoadingSpinner();
     }
   }
+
+  /**
+   * Open PDF settings page (shared across all pages)
+   * Subclasses can override if they need custom settings behavior
+   */
+  async openSettings() {
+    try {
+      // Save current state if it has valid client data
+      if (this.state.Client.name && this.state.Client.name.trim() !== '') {
+        await this.state.save();
+      }
+
+      // Dynamic import of PDF settings - use absolute path from extension root
+      const settingsUrl = chrome.runtime.getURL('js/settings/PDF_settings.js');
+      const { default: PDF_settings } = await import(settingsUrl);
+      const pdfSettings = new PDF_settings(this.state);
+      await pdfSettings.open();
+
+    } catch (error) {
+      console.error('Failed to open settings:', error);
+      // Import showToast if available
+      if (typeof showToast !== 'undefined') {
+        showToast('Settings error', 'error');
+      }
+    }
+  }
+
+  /**
+   * Populate special info textarea section (shared pattern)
+   * @param {string} textareaId - ID of the textarea element
+   */
+  populateSpecialInfoSection(textareaId) {
+    const textarea = document.getElementById(textareaId);
+    if (!textarea) return;
+
+    textarea.value = this.specialInfo || '';
+
+    // Wire up input handler if not already done
+    if (!textarea.dataset.handlerWired) {
+      textarea.addEventListener('input', (e) => {
+        this.specialInfo = e.target.value;
+      });
+      textarea.dataset.handlerWired = 'true';
+    }
+  }
 }

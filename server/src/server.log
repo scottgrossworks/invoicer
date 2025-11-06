@@ -1097,3 +1097,15 @@ Unknown argument `[31mmode[39m`. Did you mean `[32mlte[39m`? Available optio
 [2025-11-05T20:13:53.614Z] POST /clients
 [2025-11-05T20:13:53.645Z] POST /bookings
 [2025-11-05T20:13:53.666Z] POST /config
+[2025-11-05T21:09:09.247Z] GET /clients?email=sinmiedo50%40yahoo.com&name=Efren+Rodriguez
+[2025-11-06T00:56:22.949Z] GET /clients?email=sinmiedo50%40yahoo.com&name=Efren+Rodriguez
+[2025-11-06T18:04:50.493Z] GET /clients?email=sinmiedo50%40yahoo.com&name=Efren+Rodriguez
+[2025-11-06T18:06:21.074Z] GET /config
+[2025-11-06T18:15:46.508Z] GET /clients?email=sinmiedo50%40yahoo.com&name=Efren+Rodriguez
+[2025-11-06T18:23:34.479Z] GET /stats
+[2025-11-06T18:30:10.922Z] GET /config
+[2025-11-06T18:30:10.972Z] GET /clients?email=scott%40wordscansell.com&name=Scott+Fields
+[2025-11-06T20:23:11.116Z] GET /config
+[2025-11-06T20:23:11.153Z] GET /clients?email=scott%40wordscansell.com&name=Scott+Fields
+[2025-11-06T20:23:36.563Z] GET /clients?email=scott%40wordscansell.com&name=Scott+Fields
+[2025-11-06T20:23:41.768Z] GET /clients?email=scott%40wordscansell.com&name=Scott+Fields

@@ -327,11 +327,13 @@ function updateActionButtons(page) {
   const startupButtons = document.getElementById('startup-buttons');
   const invoicerButtons = document.getElementById('invoicer-buttons');
   const thankyouButtons = document.getElementById('thankyou-buttons');
+  const responderButtons = document.getElementById('responder-buttons');
 
   // Hide all button wrappers by default
   if (startupButtons) startupButtons.style.display = 'none';
   if (invoicerButtons) invoicerButtons.style.display = 'none';
   if (thankyouButtons) thankyouButtons.style.display = 'none';
+  if (responderButtons) responderButtons.style.display = 'none';
 
   // Show the appropriate button wrapper based on page name
   if (page.pageName === 'startup' && startupButtons) {
@@ -340,6 +342,8 @@ function updateActionButtons(page) {
     invoicerButtons.style.display = 'flex';
   } else if (page.pageName === 'thankyou' && thankyouButtons) {
     thankyouButtons.style.display = 'flex';
+  } else if (page.pageName === 'responder' && responderButtons) {
+    responderButtons.style.display = 'flex';
   }
 
   // Legacy dynamic button handling (only for pages that provide button config)

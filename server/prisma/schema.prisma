@@ -70,6 +70,7 @@ model Config {
   llmBaseUrl           String?  @default("https://api.anthropic.com")
   llmAnthropicVersion  String?  @default("2023-06-01")
   llmMaxTokens         Int?     @default(1024)
+  businessDescription  String?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 }
