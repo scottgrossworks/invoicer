@@ -151,7 +151,20 @@ cleanFloat(value) {
             throw new Error(`Booking save failed: ${bookingRes.status} ${errorText}`);
           }
 
-          console.log('Booking saved for client:', client.name);
+          const booking = await bookingRes.json();
+
+          // Verify booking creation and ID
+          if (!booking || !booking.id) {
+            console.error('Booking save failed - no valid booking ID returned:', booking);
+            throw new Error('Booking save failed - no valid ID returned');
+          }
+
+          console.log('Booking saved for client:', client.name, '(', booking.id, ')');
+
+          // UPDATE STATE WITH RETURNED IDs
+          state.Client.id = client.id;
+          state.Booking.id = booking.id;
+          state.Booking.clientId = client.id;
         }  // End if (state.Booking exists)
       }  // End loop through clients
 

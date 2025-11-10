@@ -354,18 +354,22 @@ export class Responder extends Page {
     this.populateSpecialInfoSection();
   }
 
-  /**
-   * Auto-calculate totalAmount based on hourlyRate * duration
-   */
+/**
+ * Auto-calculate totalAmount based on hourlyRate * duration
+ */
   calculateTotal() {
-    const hourlyRate = parseFloat(this.state.Booking.hourlyRate) || 0;
-    const duration = parseFloat(this.state.Booking.duration) || 0;
+    const hourlyRate = this.state.Booking.hourlyRate;
+    const duration = this.state.Booking.duration;
 
-    if (hourlyRate > 0 && duration > 0) {
-      this.state.Booking.totalAmount = hourlyRate * duration;
+    // Use shared calculator utility
+    const calculatedTotal = PageUtils.calculateAmount(hourlyRate, duration);
+
+    if (calculatedTotal !== null) {
+      this.state.Booking.totalAmount = calculatedTotal;
       this.updateFromState(this.state);
     }
   }
+
 
   /**
    * Populate special info textarea section

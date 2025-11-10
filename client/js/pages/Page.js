@@ -11,7 +11,7 @@
 
 import { getParsers } from '../provider_registry.js';
 import { mergePageData } from '../state.js';
-import { log, logError } from '../logging.js';
+import { log, logError, showToast } from '../logging.js';
 
 export class Page {
 
@@ -26,6 +26,10 @@ export class Page {
     }
     this.pageName = pageName;
     this.state = state;
+
+    // Bookings cache for cycling through multiple bookings from DB
+    this.bookingsCache = [];
+    this.currentBookingIndex = 0;
   }
 
   /**
@@ -130,6 +134,100 @@ export class Page {
   }
 
   /**
+   * Cycle to next booking in cache, or re-parse if cache exhausted
+   * This is called when user clicks Reload button
+   */
+  async cycleNextBooking() {
+    // If no cache, just reload normally
+    if (this.bookingsCache.length === 0) {
+      console.log('No bookings cache, performing full reload');
+      return await this.reloadParser();
+    }
+
+    // If more bookings available in cache
+    if (this.currentBookingIndex < this.bookingsCache.length - 1) {
+      this.currentBookingIndex++;
+      this.loadBookingFromCache(this.currentBookingIndex);
+
+      // Show toast indicating position
+      const position = this.currentBookingIndex + 1;
+      const total = this.bookingsCache.length;
+      showToast(`Showing booking ${position} of ${total}`, 'info');
+
+      console.log(`Loaded booking ${position} of ${total} from cache`);
+    } else {
+      // Cache exhausted, clear and re-parse
+      console.log('All cached bookings shown, re-parsing page...');
+      this.clearBookingsCache();
+      await this.reloadParser();
+    }
+  }
+
+  /**
+   * Load booking from cache at specified index
+   * @param {number} index - Index in bookingsCache array
+   */
+  loadBookingFromCache(index) {
+    if (index >= 0 && index < this.bookingsCache.length) {
+      const booking = this.bookingsCache[index];
+
+      // Populate Booking state from cached booking
+      Object.assign(this.state.Booking, {
+        id: booking.id,
+        clientId: booking.clientId,
+        title: booking.title,
+        description: booking.description,
+        notes: booking.notes,
+        location: booking.location,
+        startDate: booking.startDate,
+        endDate: booking.endDate,
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+        duration: booking.duration,
+        hourlyRate: booking.hourlyRate,
+        flatRate: booking.flatRate,
+        totalAmount: booking.totalAmount,
+        status: booking.status,
+        source: booking.source
+      });
+
+      // Mark as from cache for potential UI indicators
+      this.state.Booking._fromCache = true;
+
+      // Update UI
+      this.updateFromState(this.state);
+
+      console.log('Loaded booking from cache:', booking.title);
+    }
+  }
+
+  /**
+   * Clear bookings cache
+   */
+  clearBookingsCache() {
+    this.bookingsCache = [];
+    this.currentBookingIndex = 0;
+    console.log('Bookings cache cleared');
+  }
+
+  /**
+   * Store bookings in cache and load first one
+   * @param {Array} bookingsArray - Array of booking objects from DB
+   */
+  populateBookingsCache(bookingsArray) {
+    if (bookingsArray && bookingsArray.length > 0) {
+      this.bookingsCache = bookingsArray;
+      this.currentBookingIndex = 0;
+      this.loadBookingFromCache(0);
+
+      if (bookingsArray.length > 1) {
+        console.log(`Stored ${bookingsArray.length} bookings in cache`);
+        showToast(`Found ${bookingsArray.length} bookings for this client`, 'info');
+      }
+    }
+  }
+
+  /**
    * Reload and run parsers for current page context
    * NEW PIPELINE:
    * 1. Quick extract identity (name/email)
@@ -139,6 +237,9 @@ export class Page {
    */
   async reloadParser() {
     try {
+      // Clear bookings cache when doing full reload
+      this.clearBookingsCache();
+
       this.showLoadingSpinner();
       log('Detecting page type...');
 
@@ -223,38 +324,24 @@ export class Page {
                   console.log('Bookings found:', bookings);
 
                   if (bookings && bookings.length > 0) {
-                    // Use first booking (most recent or most relevant)
-                    const booking = bookings[0];
-                    Object.assign(this.state.Booking, {
-                      title: booking.title,
-                      description: booking.description,
-                      notes: booking.notes,
-                      location: booking.location,
-                      startDate: booking.startDate,
-                      endDate: booking.endDate,
-                      startTime: booking.startTime,
-                      endTime: booking.endTime,
-                      duration: booking.duration,
-                      hourlyRate: booking.hourlyRate,
-                      flatRate: booking.flatRate,
-                      totalAmount: booking.totalAmount,
-                      status: booking.status,
-                      source: booking.source
-                    });
-                    log(`Loaded booking: ${booking.title}`);
+                    // NEW: Store ALL bookings in cache and load first one
+                    this.populateBookingsCache(bookings);
+                    log(`Cached ${bookings.length} booking(s)`);
                   } else {
                     console.log('No bookings found for this client');
+                    // Still update UI with client data only
+                    this.updateFromState(this.state);
                   }
                 } else {
                   console.warn('Failed to fetch bookings:', bookingsResponse.status);
+                  // Still update UI with client data only
+                  this.updateFromState(this.state);
                 }
               } catch (bookingError) {
                 console.error('Error fetching bookings:', bookingError);
                 // Continue anyway - we have client data
+                this.updateFromState(this.state);
               }
-
-              // Update UI
-              this.updateFromState(this.state);
 
               log('Loaded from database');
               matched = true;

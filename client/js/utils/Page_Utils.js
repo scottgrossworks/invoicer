@@ -69,6 +69,97 @@ export class PageUtils {
     }
   }
 
+
+/**
+ * Strips non-numeric characters ('$', 'hours', etc.)
+ * Parses values as floats
+ * Multiplies them
+ * Returns formatted result
+ * Each page would call it from their existing event handlers with their own guard logic.
+ */
+
+  static calculateAmount(hourlyRateValue, durationValue) {
+  // Strip formatting and parse
+  const rate = parseFloat(String(hourlyRateValue).replace(/[$,]/g, '')) || 0;
+  const hours = parseFloat(String(durationValue).replace(/\s*hours\s*/i, '')) || 0;
+  
+  if (rate <= 0 || hours <= 0) return null;
+
+  return rate * hours;
+  }
+
+
+  /**
+   * Validate and correct dates to ensure they're not in the past
+   * Uses smart year inference: if parsed date is past, bump to current/next year
+   *
+   * LOGIC:
+   * - If startDate > 1 day ago: no change (already valid)
+   * - If startDate < 1 day ago: apply smart year correction
+   *   - If parsed month >= current month: use current year
+   *   - If parsed month < current month: use next year
+   *
+   * EXAMPLE: Today is Nov 8, 2025
+   * - Email says "November 5" (no year) → parsed as 2024-11-05 (past)
+   * - Month 11 >= current month 11 → correct to 2025-11-05
+   * - Email says "January 15" (no year) → parsed as 2025-01-15 (past)
+   * - Month 1 < current month 11 → correct to 2026-01-15
+   *
+   * @param {Object} parsedData - LLM parsed data with startDate/endDate
+   * @returns {Object} Corrected data
+   */
+  static validateAndCorrectDates(parsedData) {
+    if (!parsedData || !parsedData.startDate) {
+      return parsedData;
+    }
+
+    const now = new Date();
+    const startDate = new Date(parsedData.startDate);
+
+    // If parsed date is in the past (more than 1 day ago)
+    const oneDayAgo = new Date(now);
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+
+    if (startDate < oneDayAgo) {
+      console.warn('=== PAST DATE DETECTED ===');
+      console.warn('Parsed date:', parsedData.startDate);
+      console.warn('Applying smart year correction...');
+
+      // Extract month/day from parsed date
+      const month = startDate.getMonth();
+      const day = startDate.getDate();
+      const currentMonth = now.getMonth();
+
+      // Smart year inference:
+      // - If month >= current month: use current year
+      // - If month < current month: use next year
+      const correctedYear = month >= currentMonth ? now.getFullYear() : now.getFullYear() + 1;
+
+      // Rebuild date with corrected year, preserving time if present
+      const corrected = new Date(startDate);
+      corrected.setFullYear(correctedYear);
+      parsedData.startDate = corrected.toISOString();
+
+      console.log('Corrected startDate:', parsedData.startDate);
+
+      // Also correct endDate if it exists and is in the past
+      if (parsedData.endDate) {
+        const endDate = new Date(parsedData.endDate);
+        if (endDate < oneDayAgo) {
+          const endMonth = endDate.getMonth();
+          const correctedEndYear = endMonth >= currentMonth ? now.getFullYear() : now.getFullYear() + 1;
+          const correctedEnd = new Date(endDate);
+          correctedEnd.setFullYear(correctedEndYear);
+          parsedData.endDate = correctedEnd.toISOString();
+          console.log('Corrected endDate:', parsedData.endDate);
+        }
+      }
+    }
+
+    return parsedData;
+  }
+
+
   /**
    * Extract business config fields from state
    * @param {object} config - Config object from state

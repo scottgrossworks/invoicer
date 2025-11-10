@@ -8,6 +8,7 @@
  * 4. Send the complete and accurate data to the LLM for processing.
  */
 import { EventParser } from './event_parser.js';
+import { PageUtils } from '../utils/Page_Utils.js';
 import Client from '../db/Client.js';
 import Booking from '../db/Booking.js';
 
@@ -129,7 +130,12 @@ class GmailParser extends EventParser {
       const firstContent = contentArray?.[0];
       const textContent = firstContent?.text || firstContent;
 
-      const parsedResult = textContent ? this._parseLLMResponse(textContent) : null;
+      let parsedResult = textContent ? this._parseLLMResponse(textContent) : null;
+
+      // Validate and correct dates (prevent past bookings)
+      if (parsedResult) {
+        parsedResult = PageUtils.validateAndCorrectDates(parsedResult);
+      }
 
       return parsedResult;
 
@@ -278,7 +284,20 @@ class GmailParser extends EventParser {
 
   _buildLLMPrompt(emailData, threadContent, parserConfig) {
     const knownInfo = `Sender Name: ${emailData.name || 'N/A'}\nSender Email: ${emailData.email || 'N/A'}`;
-    const systemPrompt = parserConfig?.systemPrompt || 'Extract booking information from the following email thread and output JSON.';
+
+    // Inject current date context for smart date parsing
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const nextYear = currentYear + 1;
+    const currentDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
+
+    let systemPrompt = parserConfig?.systemPrompt || 'Extract booking information from the following email thread and output JSON.';
+
+    // Replace template variables with actual dates
+    systemPrompt = systemPrompt
+      .replace(/\{\{CURRENT_DATE\}\}/g, currentDate)
+      .replace(/\{\{CURRENT_YEAR\}\}/g, currentYear)
+      .replace(/\{\{NEXT_YEAR\}\}/g, nextYear);
 
     return `${systemPrompt}\n\n${knownInfo}\n\nEmail Thread Content:\n${threadContent}`;
   }

@@ -30,7 +30,8 @@
       "Bash(dir /b \"C:\\Users\\Scott\\Desktop\\WKG\\INVOICER\\client\")",
       "Bash(findstr:*)",
       "Bash(dir /b C:UsersScottDesktopWKGINVOICERclient)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "WebFetch(domain:code.claude.com)"
     ],
     "deny": [],
     "ask": []

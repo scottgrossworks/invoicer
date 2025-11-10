@@ -381,7 +381,8 @@ function setupHeaderButtons() {
   if (reloadBtn) {
     reloadBtn.addEventListener('click', async () => {
       if (CURRENT_PAGE) {
-        await CURRENT_PAGE.reloadParser();
+        // Cycle through cached bookings or reload if exhausted
+        await CURRENT_PAGE.cycleNextBooking();
       }
     });
   }
@@ -390,7 +391,8 @@ function setupHeaderButtons() {
   if (reloadBtnClients) {
     reloadBtnClients.addEventListener('click', async () => {
       if (CURRENT_PAGE) {
-        await CURRENT_PAGE.reloadParser();
+        // Cycle through cached bookings or reload if exhausted
+        await CURRENT_PAGE.cycleNextBooking();
       }
     });
   }
@@ -399,7 +401,8 @@ function setupHeaderButtons() {
   if (reloadBtnThankYou) {
     reloadBtnThankYou.addEventListener('click', async () => {
       if (CURRENT_PAGE) {
-        await CURRENT_PAGE.reloadParser();
+        // Cycle through cached bookings or reload if exhausted
+        await CURRENT_PAGE.cycleNextBooking();
       }
     });
   }

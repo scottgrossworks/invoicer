@@ -6,6 +6,7 @@
 import { Page } from './Page.js';
 import { DateTimeUtils } from '../utils/DateTimeUtils.js';
 import { ValidationUtils } from '../utils/ValidationUtils.js';
+import { PageUtils } from '../utils/Page_Utils.js';
 import { log, logError, logValidation, showToast } from '../logging.js';
 import Client from '../db/Client.js';
 import Booking from '../db/Booking.js';
@@ -63,13 +64,242 @@ export class Invoicer extends Page {
   }
 
   /**
-   * Clear/reset invoicer to initial state
+   * Add current booking to Google Calendar
+   * Uses Chrome identity API for OAuth token, similar to Gmailer.js pattern
    */
-  clear() {
-    this.state.clear();
-    this.updateFromState(this.state);
-    log('Cleared');
-    console.log('State after clear:', JSON.stringify(this.state.toObject(), null, 2));
+  async addToCalendar() {
+    try {
+      // VALIDATION: Check if we have a saved booking with required fields
+      if (!this.state.Booking.id) {
+        showToast('Please save the booking first before adding to calendar', 'error');
+        return;
+      }
+
+      if (!this.state.Booking.startDate) {
+        showToast('Booking must have a start date', 'error');
+        return;
+      }
+
+      // Show loading state
+      showToast('Adding to calendar...', 'info');
+
+      // STEP 1: Get OAuth token from Chrome identity API
+      const token = await new Promise((resolve, reject) => {
+        chrome.identity.getAuthToken({ interactive: true }, (token) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(token);
+          }
+        });
+      });
+
+      console.log('OAuth token obtained for Calendar API');
+
+      // STEP 2: Construct Calendar event object from Booking data
+      const calendarEvent = this.buildCalendarEvent();
+
+      // DEBUG: Log what we're sending to Google
+      console.log('=== CALENDAR API REQUEST ===');
+      console.log('Booking data:', {
+        startDate: this.state.Booking.startDate,
+        startTime: this.state.Booking.startTime,
+        endDate: this.state.Booking.endDate,
+        endTime: this.state.Booking.endTime
+      });
+      console.log('Calendar event payload:', JSON.stringify(calendarEvent, null, 2));
+
+      // STEP 3: POST to Google Calendar API
+      const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(calendarEvent)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('=== CALENDAR API ERROR ===');
+        console.error('Status:', response.status);
+        console.error('Status Text:', response.statusText);
+        console.error('Error details:', JSON.stringify(errorData, null, 2));
+        throw new Error(`Calendar API error: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      // SUCCESS
+      showToast('Booking added to Google Calendar successfully', 'success');
+      console.log('Calendar event created:', result);
+
+    } catch (error) {
+      // ERROR HANDLING
+      logError('Failed to add booking to calendar:', error);
+
+      // User-friendly error messages
+      if (error.message.includes('OAuth2')) {
+        showToast('Calendar authorization failed. Are you logged into Chrome with a Google account?', 'error');
+      } else if (error.message.includes('Calendar API')) {
+        showToast('Google Calendar API error. Please try again.', 'error');
+      } else {
+        showToast('Failed to add booking to calendar', 'error');
+      }
+    }
+  }
+
+  /**
+   * Build Google Calendar event object from current Booking state
+   * @returns {Object} Calendar API event object
+   */
+  buildCalendarEvent() {
+    const booking = this.state.Booking;
+    const client = this.state.Client;
+
+    // Build event object following Google Calendar API v3 format
+    const event = {
+      summary: booking.title || 'Booking',
+      description: this.buildEventDescription(),
+      location: booking.location || undefined
+    };
+
+    // Handle date/time combinations
+    // CASE 1: Full datetime (startDate + startTime + endDate + endTime)
+    if (booking.startDate && booking.startTime && booking.endDate && booking.endTime) {
+      // CONVERT 12-hour to 24-hour format before combining
+      // Database stores times like "2:00pm", Calendar API needs "14:00"
+      const startTime24 = DateTimeUtils.convertTo24Hour(booking.startTime);
+      const endTime24 = DateTimeUtils.convertTo24Hour(booking.endTime);
+
+      console.log('Time conversion:', {
+        startTime12: booking.startTime,
+        startTime24: startTime24,
+        endTime12: booking.endTime,
+        endTime24: endTime24
+      });
+
+      event.start = {
+        dateTime: this.combineDateAndTime(booking.startDate, startTime24),
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      };
+      event.end = {
+        dateTime: this.combineDateAndTime(booking.endDate, endTime24),
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      };
+    }
+    // CASE 2: All-day event (startDate only, or startDate + endDate without times)
+    else if (booking.startDate) {
+      event.start = {
+        date: this.extractDateOnly(booking.startDate)
+      };
+      event.end = {
+        date: booking.endDate ? this.extractDateOnly(booking.endDate) : this.extractDateOnly(booking.startDate)
+      };
+    }
+    // CASE 3: No date (shouldn't happen due to validation, but handle gracefully)
+    else {
+      throw new Error('Booking must have at least a start date');
+    }
+
+    // Add client as attendee if email exists
+    if (client.email) {
+      event.attendees = [{ email: client.email }];
+    }
+
+    return event;
+  }
+
+  /**
+   * Build event description from booking and client data
+   * @returns {string} Formatted description
+   */
+  buildEventDescription() {
+    const booking = this.state.Booking;
+    const client = this.state.Client;
+    const parts = [];
+
+    // Client info
+    if (client.name) {
+      parts.push(`Client: ${client.name}`);
+    }
+    if (client.company) {
+      parts.push(`Company: ${client.company}`);
+    }
+    if (client.email) {
+      parts.push(`Email: ${client.email}`);
+    }
+    if (client.phone) {
+      parts.push(`Phone: ${client.phone}`);
+    }
+
+    // Booking details
+    if (booking.description) {
+      parts.push(`\nDescription: ${booking.description}`);
+    }
+    if (booking.duration) {
+      parts.push(`Duration: ${booking.duration} hours`);
+    }
+    if (booking.hourlyRate) {
+      parts.push(`Rate: $${booking.hourlyRate}/hour`);
+    }
+    if (booking.flatRate) {
+      parts.push(`Flat Rate: $${booking.flatRate}`);
+    }
+    if (booking.totalAmount) {
+      parts.push(`Total: $${booking.totalAmount}`);
+    }
+    if (booking.notes) {
+      parts.push(`\nNotes: ${booking.notes}`);
+    }
+
+    return parts.join('\n');
+  }
+
+  /**
+   * Combine ISO date string and 24-hour time string into RFC3339 datetime
+   * @param {string} isoDate - ISO date string (e.g., "2025-11-15")
+   * @param {string} time24 - 24-hour time (e.g., "14:30")
+   * @returns {string} RFC3339 datetime string with timezone offset
+   */
+  combineDateAndTime(isoDate, time24) {
+    // isoDate format: "2025-11-15T00:00:00.000Z" or "2025-11-15"
+    // time24 format: "14:30"
+
+    // Validate time24 format (should be HH:mm or H:mm)
+    if (!time24 || !/^\d{1,2}:\d{2}$/.test(time24)) {
+      console.error('Invalid time format:', time24);
+      throw new Error(`Invalid time format: "${time24}". Expected 24-hour format like "14:30"`);
+    }
+
+    const dateOnly = this.extractDateOnly(isoDate);
+
+    // Build datetime and get timezone offset
+    const date = new Date(`${dateOnly}T${time24}:00`);
+
+    // Validate the date is valid
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date created from:', { dateOnly, time24 });
+      throw new Error(`Invalid datetime: ${dateOnly}T${time24}:00`);
+    }
+
+    const offset = -date.getTimezoneOffset();
+    const offsetHours = String(Math.floor(Math.abs(offset) / 60)).padStart(2, '0');
+    const offsetMins = String(Math.abs(offset) % 60).padStart(2, '0');
+    const offsetSign = offset >= 0 ? '+' : '-';
+
+    // Return RFC3339 format: "2025-11-15T14:30:00-08:00"
+    return `${dateOnly}T${time24}:00${offsetSign}${offsetHours}:${offsetMins}`;
+  }
+
+  /**
+   * Extract date portion from ISO datetime string
+   * @param {string} isoDate - ISO date string
+   * @returns {string} Date in YYYY-MM-DD format
+   */
+  extractDateOnly(isoDate) {
+    // Handle both "2025-11-15T00:00:00.000Z" and "2025-11-15" formats
+    return isoDate.split('T')[0];
   }
 
   /**
@@ -77,7 +307,7 @@ export class Invoicer extends Page {
    */
   getActionButtons() {
     return [
-      { id: 'cancelBtn', label: 'Clear', handler: () => this.clear() },
+      { id: 'cancelBtn', label: 'Calendar', handler: () => this.addToCalendar() },
       { id: 'saveBtn', label: 'Save', handler: () => this.onSave() },
       { id: 'pdfBtn', label: 'PDF', handler: () => this.onPdf() }
     ];
@@ -337,32 +567,34 @@ export class Invoicer extends Page {
     }
   }
 
+
   /**
    * Auto-calculate totalAmount based on hourlyRate * duration
    * Only calculates if totalAmount and flatRate are not set
    */
   calculateTotalAmount() {
     // Get current values from STATE (already synced)
-    const hourlyRate = parseFloat(this.state.Booking.hourlyRate) || 0;
-    const duration = parseFloat(this.state.Booking.duration) || 0;
+    const hourlyRate = this.state.Booking.hourlyRate;
+    const duration = this.state.Booking.duration;
     const flatRate = parseFloat(this.state.Booking.flatRate) || 0;
     const currentTotal = parseFloat(this.state.Booking.totalAmount) || 0;
 
     // Guard clauses - only calculate if conditions are met
-    if (hourlyRate <= 0 || duration <= 0) return;
     if (flatRate > 0) return;
     if (currentTotal > 0) return;
 
-    // Calculate total
-    const calculatedTotal = hourlyRate * duration;
+    // Use shared calculator utility
+    const calculatedTotal = PageUtils.calculateAmount(hourlyRate, duration);
 
-    // Update STATE
-    this.state.Booking.totalAmount = calculatedTotal;
+    if (calculatedTotal !== null) {
+      // Update STATE
+      this.state.Booking.totalAmount = calculatedTotal;
 
-    // Update form display
-    const totalAmountInput = document.querySelector('[data-field="totalAmount"]');
-    if (totalAmountInput) {
-      totalAmountInput.value = Invoicer.formatCurrency(calculatedTotal);
+      // Update form display
+      const totalAmountInput = document.querySelector('[data-field="totalAmount"]');
+      if (totalAmountInput) {
+        totalAmountInput.value = Invoicer.formatCurrency(calculatedTotal);
+      }
     }
   }
 
@@ -397,6 +629,12 @@ export class Invoicer extends Page {
 
       // Show toast on success/failure
       if (this.state.status === 'saved') {
+        // Set _fromDB flag after successful save to trigger green styling
+        this.state.Client._fromDB = true;
+
+        // Refresh UI to show green "from DB" styling and updated IDs
+        this.updateFromState(this.state);
+
         showToast('Data saved successfully', 'success');
       } else {
         showToast('Database server is not available. You can still generate and preview invoices.', 'error');
