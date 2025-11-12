@@ -26,9 +26,10 @@ export class Invoicer extends Page {
    * Initialize invoicer page (called once on app startup)
    */
   async initialize() {
-    // Setup settings button handler
+    // Setup settings button handler (only if not already bound)
     const settingsBtn = document.getElementById('settingsBtn');
-    if (settingsBtn) {
+    if (settingsBtn && !settingsBtn.dataset.listenerBound) {
+      settingsBtn.dataset.listenerBound = 'true';
       settingsBtn.addEventListener('click', async () => {
         await this.openSettings();
       });
@@ -579,10 +580,9 @@ export class Invoicer extends Page {
     const flatRate = parseFloat(this.state.Booking.flatRate) || 0;
     const currentTotal = parseFloat(this.state.Booking.totalAmount) || 0;
 
-    // Guard clauses - only calculate if conditions are met
+    // if a flat Rate is set, do not auto-calculate
     if (flatRate > 0) return;
-    if (currentTotal > 0) return;
-
+   
     // Use shared calculator utility
     const calculatedTotal = PageUtils.calculateAmount(hourlyRate, duration);
 

@@ -275,10 +275,28 @@ function saveLastActivePage(pageName) {
 }
 
 /**
+ * Hide all button wrappers immediately
+ */
+function hideAllButtons() {
+  const startupButtons = document.getElementById('startup-buttons');
+  const invoicerButtons = document.getElementById('invoicer-buttons');
+  const thankyouButtons = document.getElementById('thankyou-buttons');
+  const responderButtons = document.getElementById('responder-buttons');
+
+  if (startupButtons) startupButtons.style.display = 'none';
+  if (invoicerButtons) invoicerButtons.style.display = 'none';
+  if (thankyouButtons) thankyouButtons.style.display = 'none';
+  if (responderButtons) responderButtons.style.display = 'none';
+}
+
+/**
  * Switch to a different page
  * @param {string} pageName - Name of the page to switch to
  */
 async function switchToPage(pageName) {
+  // IMMEDIATELY hide all buttons before any page switching
+  hideAllButtons();
+
   // Hide current page
   if (CURRENT_PAGE) {
     await CURRENT_PAGE.onHide();
@@ -293,10 +311,14 @@ async function switchToPage(pageName) {
   }
 
   page.getPageElement().style.display = 'flex';
+
+  // Wait for page to fully load (includes parsing and data loading)
   await page.onShow();
 
-  // Update UI
+  // Update UI (app label)
   updateAppLabel(pageName);
+
+  // Show buttons LAST - after all page loading and parsing is complete
   updateActionButtons(page);
 
   CURRENT_PAGE = page;

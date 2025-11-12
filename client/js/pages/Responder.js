@@ -46,7 +46,8 @@ export class Responder extends Page {
 
     // Setup settings button handler (reuses invoicer config)
     const settingsBtn = document.getElementById('settingsBtn');
-    if (settingsBtn) {
+    if (settingsBtn && !settingsBtn.dataset.listenerBound) {
+      settingsBtn.dataset.listenerBound = 'true';
       settingsBtn.addEventListener('click', async () => {
         await this.openSettings();
       });
