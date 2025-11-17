@@ -1410,3 +1410,24 @@ The column `main.Config.businessDescription` does not exist in the current datab
     at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:610:5
 [2025-11-17T17:40:27.958Z] Database connected successfully
 [2025-11-17T17:40:27.962Z] ! Local API running on http://localhost:3000
+[2025-11-17T19:12:30.619Z] GET /config
+[2025-11-17T19:12:30.672Z] * Uncaught Exception: Error: EPIPE: broken pipe, write
+    at Socket._write (node:internal/net:63:18)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+    at console.value (node:internal/console/constructor:298:16)
+    at console.log (node:internal/console/constructor:384:26)
+    at Object.mc (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:21:432)
+    at EventEmitter.<anonymous> (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:130:3902)
+    at EventEmitter.emit (node:events:518:28)
+    at _r.logger (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:112:1253)
+[2025-11-17T19:24:44.936Z] Database connected successfully
+[2025-11-17T19:24:44.940Z] ! Local API running on http://localhost:3000
+[2025-11-17T19:28:37.475Z] GET /config
+[2025-11-17T19:28:47.998Z] GET /clients?email=petauton%40lyceela.org&name=Dominique+Petauton
+[2025-11-17T19:28:50.861Z] GET /clients?email=records%40lyceela.org&name=Gladys+Deneux
+[2025-11-17T19:50:10.074Z] GET /config
+[2025-11-17T20:51:14.683Z] GET /config
+[2025-11-17T21:02:00.806Z] GET /config
+[2025-11-17T21:02:00.820Z] GET /clients?email=petauton%40lyceela.org&name=Dominique+Petauton

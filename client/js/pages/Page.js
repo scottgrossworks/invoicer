@@ -265,30 +265,36 @@ export class Page {
             log(`Parser ${p.name} matched!`);
 
             // STEP 1: Quick identity extraction (name/email only)
-            log('Extracting identity...');
-            const identityResponse = await new Promise(resolve => {
-              chrome.tabs.sendMessage(tabId, {
-                type: 'leedz_extract_identity'
-              }, resolve);
-            });
-
+            // NOTE: This is optional - if parser doesn't support quickExtractIdentity, skip it
             let dbClient = null;
-            if (identityResponse?.ok && identityResponse?.identity) {
-              const identity = identityResponse.identity;
-              console.log('Identity extracted:', identity);
+            try {
+              log('Extracting identity...');
+              const identityResponse = await new Promise(resolve => {
+                chrome.tabs.sendMessage(tabId, {
+                  type: 'leedz_extract_identity'
+                }, resolve);
+              });
 
-              // STEP 2: Search DB if we have identity data
-              if (window.DB_LAYER && (identity.email || identity.name)) {
-                log('Searching database...');
-                dbClient = await window.DB_LAYER.searchClient(identity.email, identity.name);
-                console.log('DB search result:', dbClient);
-              } else {
-                if (!window.DB_LAYER) {
-                  console.log('DB_LAYER not available - skipping DB search');
+              if (identityResponse?.ok && identityResponse?.identity) {
+                const identity = identityResponse.identity;
+                console.log('Identity extracted:', identity);
+
+                // STEP 2: Search DB if we have identity data
+                if (window.DB_LAYER && (identity.email || identity.name)) {
+                  log('Searching database...');
+                  dbClient = await window.DB_LAYER.searchClient(identity.email, identity.name);
+                  console.log('DB search result:', dbClient);
                 } else {
-                  console.log('No identity data - skipping DB search');
+                  if (!window.DB_LAYER) {
+                    console.log('DB_LAYER not available - skipping DB search');
+                  } else {
+                    console.log('No identity data - skipping DB search');
+                  }
                 }
               }
+            } catch (identityError) {
+              // Identity extraction failed - this is OK, just skip DB search
+              console.log('Identity extraction not supported by this parser - skipping DB search');
             }
 
             // STEP 3: If found in DB, use that data and skip full parse

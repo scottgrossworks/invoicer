@@ -251,6 +251,10 @@ export class ClientCapture extends Page {
     // Add table to frame container
     frameContainer.appendChild(table);
 
+    // Create button container for Delete + Email buttons (horizontal row)
+    const buttonRow = document.createElement('div');
+    buttonRow.className = 'client-button-row';
+
     // Create delete button
     const deleteBtn = document.createElement('button');
     deleteBtn.id = `deleteClientBtn-${index}`;
@@ -261,8 +265,22 @@ export class ClientCapture extends Page {
     // Wire delete button click handler
     deleteBtn.addEventListener('click', () => this.deleteClient(index));
 
-    // Add delete button to frame container
-    frameContainer.appendChild(deleteBtn);
+    // Create email button (takes user to Outreach page with this client)
+    const emailBtn = document.createElement('button');
+    emailBtn.id = `emailClientBtn-${index}`;
+    emailBtn.className = 'sidebar-button email-client-btn';
+    emailBtn.textContent = 'Email';
+    emailBtn.setAttribute('data-client-index', index);
+
+    // Wire email button click handler
+    emailBtn.addEventListener('click', () => this.emailClient(index));
+
+    // Add buttons to button row
+    buttonRow.appendChild(deleteBtn);
+    buttonRow.appendChild(emailBtn);
+
+    // Add button row to frame container
+    frameContainer.appendChild(buttonRow);
 
     return frameContainer;
   }
@@ -290,6 +308,38 @@ export class ClientCapture extends Page {
     // Show feedback
     showToast('Client deleted', 'info');
     log(`Client at index ${index} deleted`);
+  }
+
+  /**
+   * Email a client - navigate to Outreach page with this client
+   * @param {number} index - Index of client to email
+   */
+  async emailClient(index) {
+    // Get the client to email
+    const client = this.clients[index];
+
+    if (!client) {
+      showToast('Client not found', 'error');
+      return;
+    }
+
+    // Sync current form data to state first
+    this.syncFormToState();
+
+    // Set the clicked client as the current client in state
+    Object.assign(this.state.Client, client);
+
+    // Also create a single-client array for Outreach to use
+    this.state.setClients([client]);
+
+    // Navigate to Outreach page
+    if (window.switchToPage) {
+      await window.switchToPage('outreach');
+      log(`Navigated to Outreach with client: ${client.name || client.email}`);
+    } else {
+      showToast('Navigation error - please try again', 'error');
+      console.error('window.switchToPage not available');
+    }
   }
 
   /**

@@ -609,6 +609,20 @@ input.invalid {
   background-color: darkgreen;
 }
 
+#clearOutreachBtn {
+  background-color: cornflowerblue;
+}
+#clearOutreachBtn:hover:not(:disabled) {
+  background-color: blue;
+}
+
+#writeOutreachBtn {
+  background-color: var(--LEEDZ_DARKGREEN);
+}
+#writeOutreachBtn:hover:not(:disabled) {
+  background-color: darkgreen;
+}
+
 /* Special Information section for ThankYou page */
 .special-info-section {
   margin-top: 20px;
@@ -645,13 +659,37 @@ input.invalid {
   border-color: var(--LEEDZ_GREEN);
 }
 
+/* Outreach table styling when client found in DB */
+.outreach-table-from-db {
+  background-color: honeydew;
+  border-color: var(--LEEDZ_GREEN);
+}
+
+/* Client button row - horizontal layout for Delete + Email buttons */
+.client-button-row {
+  display: flex;
+  gap: 10px;
+  margin: 10px auto;
+  width: 100%;
+  justify-content: center;
+}
+
 .delete-client-btn {
   background-color: coral;
-  width: 50%;
-  margin: 10px auto;
+  flex: 1;
+  max-width: 45%;
 }
 .delete-client-btn:hover:not(:disabled) {
   background-color: darkorange;
+}
+
+.email-client-btn {
+  background-color: dodgerblue;
+  flex: 1;
+  max-width: 45%;
+}
+.email-client-btn:hover:not(:disabled) {
+  background-color: royalblue;
 }
 
 

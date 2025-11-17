@@ -184,6 +184,9 @@ async function initializeApp() {
     const lastPage = await getLastActivePage();
     await switchToPage(lastPage || LEEDZ_CONFIG.ui.defaultPage);
 
+    // Expose switchToPage globally so pages can navigate
+    window.switchToPage = switchToPage;
+
   } catch (error) {
     console.error('Failed to initialize app:', error);
     log('Initialization failed');
@@ -282,11 +285,13 @@ function hideAllButtons() {
   const invoicerButtons = document.getElementById('invoicer-buttons');
   const thankyouButtons = document.getElementById('thankyou-buttons');
   const responderButtons = document.getElementById('responder-buttons');
+  const outreachButtons = document.getElementById('outreach-buttons');
 
   if (startupButtons) startupButtons.style.display = 'none';
   if (invoicerButtons) invoicerButtons.style.display = 'none';
   if (thankyouButtons) thankyouButtons.style.display = 'none';
   if (responderButtons) responderButtons.style.display = 'none';
+  if (outreachButtons) outreachButtons.style.display = 'none';
 }
 
 /**
@@ -294,37 +299,67 @@ function hideAllButtons() {
  * @param {string} pageName - Name of the page to switch to
  */
 async function switchToPage(pageName) {
-  // IMMEDIATELY hide all buttons before any page switching
+  // STEP 1: IMMEDIATELY hide all buttons before any page switching
   hideAllButtons();
 
-  // Hide current page
+  // STEP 2: Hide current page and cleanup
   if (CURRENT_PAGE) {
+    // Call onHide() - lets page cleanup, save state, stop parsers
     await CURRENT_PAGE.onHide();
+
+    // Hide all spinners on current page
+    hideAllSpinners(CURRENT_PAGE.pageId);
+
+    // Hide page element
     CURRENT_PAGE.getPageElement().style.display = 'none';
   }
 
-  // Show the selected page
+  // STEP 3: Validate new page exists
   const page = PAGES[pageName];
   if (!page) {
     console.error(`Page not found: ${pageName}`);
     return;
   }
 
+  // STEP 4: Show the new page container (empty initially)
   page.getPageElement().style.display = 'flex';
 
-  // Wait for page to fully load (includes parsing and data loading)
+  // STEP 5: Wait for page to fully load (includes parsing and data loading)
   await page.onShow();
 
-  // Update UI (app label)
+  // STEP 6: Update UI (app label)
   updateAppLabel(pageName);
 
-  // Show buttons LAST - after all page loading and parsing is complete
+  // STEP 7: Show buttons LAST - after all page loading and parsing is complete
   updateActionButtons(page);
 
   CURRENT_PAGE = page;
 
-  // Save current page to chrome storage
+  // STEP 8: Save current page to chrome storage
   saveLastActivePage(pageName);
+}
+
+/**
+ * Hide all loading spinners on a specific page
+ * @param {string} pageId - ID of the page (e.g., 'clients', 'invoicer')
+ */
+function hideAllSpinners(pageId) {
+  // All possible spinner IDs by page
+  const spinnerIds = {
+    'clients': 'loading_spinner_clients',
+    'invoicer': 'loading_spinner',
+    'thankyou': 'loading_spinner_thankyou',
+    'responder': 'loading_spinner_responder',
+    'outreach': 'loading_spinner_outreach'
+  };
+
+  const spinnerId = spinnerIds[pageId];
+  if (spinnerId) {
+    const spinner = document.getElementById(spinnerId);
+    if (spinner) {
+      spinner.style.display = 'none';
+    }
+  }
 }
 
 /**
@@ -350,12 +385,14 @@ function updateActionButtons(page) {
   const invoicerButtons = document.getElementById('invoicer-buttons');
   const thankyouButtons = document.getElementById('thankyou-buttons');
   const responderButtons = document.getElementById('responder-buttons');
+  const outreachButtons = document.getElementById('outreach-buttons');
 
   // Hide all button wrappers by default
   if (startupButtons) startupButtons.style.display = 'none';
   if (invoicerButtons) invoicerButtons.style.display = 'none';
   if (thankyouButtons) thankyouButtons.style.display = 'none';
   if (responderButtons) responderButtons.style.display = 'none';
+  if (outreachButtons) outreachButtons.style.display = 'none';
 
   // Show the appropriate button wrapper based on page name
   if (page.pageName === 'startup' && startupButtons) {
@@ -366,6 +403,8 @@ function updateActionButtons(page) {
     thankyouButtons.style.display = 'flex';
   } else if (page.pageName === 'responder' && responderButtons) {
     responderButtons.style.display = 'flex';
+  } else if (page.pageName === 'outreach' && outreachButtons) {
+    outreachButtons.style.display = 'flex';
   }
 
   // Legacy dynamic button handling (only for pages that provide button config)

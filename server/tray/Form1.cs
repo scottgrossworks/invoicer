@@ -113,11 +113,11 @@ private void SetupTrayIcon()
     // Header as disabled item - we'll draw it ourselves
     ToolStripMenuItem header = new ToolStripMenuItem("Leedz Server");
     header.Enabled = false;
-    header.BackColor = Color.ForestGreen;
+
     header.Font = new Font("Segoe UI", 12, FontStyle.Bold);
     header.Paint += (s, e) => {
         // Fill background
-        e.Graphics.FillRectangle(new SolidBrush(Color.DarkGreen), e.ClipRectangle);
+        e.Graphics.FillRectangle(new SolidBrush(Color.Green), e.ClipRectangle);
         
         // Draw white text centered
         TextRenderer.DrawText(e.Graphics, "Leedz Server", 

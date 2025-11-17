@@ -55,7 +55,7 @@ public class ConfigForm : Form
 
         // Header panel with blue background
         Panel headerPanel = new Panel();
-        headerPanel.BackColor = Color.DodgerBlue;
+        headerPanel.BackColor = Color.Green;
         headerPanel.Location = new Point(0, 0);
         headerPanel.Size = new Size(this.ClientSize.Width, 90);
         headerPanel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
@@ -199,7 +199,7 @@ public class ConfigForm : Form
         Button btnSave = new() {
             Text = "Save",
             ForeColor = Color.White,
-            BackColor = Color.ForestGreen,
+            BackColor = Color.Green,
             Width = buttonWidth,
             Height = buttonHeight,
             DialogResult = DialogResult.OK,
