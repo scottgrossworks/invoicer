@@ -520,7 +520,7 @@ public class ConfigForm : Form
         if (!serverRunning)
         {
             btnExport.Enabled = false;
-            lblStatus.Text = "Server is not running. Start server to enable Export.";
+            lblStatus.Text = "Database export requires the server to be running. Go back to the tray menu and start the server.";
             lblStatus.ForeColor = Color.DarkRed;
         }
         else

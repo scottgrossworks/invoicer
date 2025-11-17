@@ -1462,3 +1462,18 @@ The column `main.Config.businessDescription` does not exist in the current datab
 [2025-11-17T22:58:27.916Z] ! Local API running on http://localhost:3000
 [2025-11-17T22:58:36.493Z] POST /api/export/csv
 [2025-11-17T22:58:36.532Z] CSV export successful: Successfully exported 168 clients, 147 bookings, 1 configs
+[2025-11-17T23:09:42.956Z] POST /api/export/csv
+[2025-11-17T23:09:42.981Z] CSV export successful: Successfully exported 168 clients, 147 bookings, 1 configs
+[2025-11-17T23:10:24.010Z] GET /
+[2025-11-17T23:10:26.658Z] POST /api/export/csv
+[2025-11-17T23:10:26.661Z] * Uncaught Exception: Error: EPIPE: broken pipe, write
+    at Socket._write (node:internal/net:63:18)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+    at console.value (node:internal/console/constructor:298:16)
+    at console.log (node:internal/console/constructor:384:26)
+    at log (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\logging.js:24:11)
+    at requestLogger (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\logging.js:28:3)
+    at Layer.handle [as handle_request] (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\layer.js:95:5)
+    at trim_prefix (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\express\lib\router\index.js:328:13)
