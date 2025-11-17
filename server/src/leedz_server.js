@@ -24,6 +24,7 @@ const { DatabaseFactory } = require('./db_factory');
 const { Client } = require('./Client');
 const { Booking } = require('./Booking');
 const { Config } = require('./Config');
+const { exportAllDataToCSV } = require('./csv_exporter');
 
 // Resolve and validate database path from config
 if (config?.database?.url && config.database.url.startsWith('file:')) {
@@ -594,6 +595,35 @@ async function dumpConfig() {
     throw error;
   }
 }
+
+/**
+ * POST /api/export/csv
+ * Exports all database contents to a CSV file
+ * Request body: { exportPath: string } - full path to output CSV file
+ */
+app.post("/api/export/csv", asyncRoute(async (req, res) => {
+  const { exportPath } = req.body;
+
+  if (!exportPath) {
+    return res.status(400).json({ error: "exportPath is required" });
+  }
+
+  // Validate path ends with .csv
+  if (!exportPath.toLowerCase().endsWith('.csv')) {
+    return res.status(400).json({ error: "Export path must end with .csv" });
+  }
+
+  // Export using Prisma client from db instance
+  const result = await exportAllDataToCSV(db.prisma, exportPath);
+
+  if (result.success) {
+    log(`CSV export successful: ${result.message}`);
+    res.status(200).json(result);
+  } else {
+    log(`CSV export failed: ${result.message}`);
+    res.status(500).json(result);
+  }
+}, "POST /api/export/csv"));
 
 // Export dump functions for MCP server
 module.exports.dumpClients = dumpClients;

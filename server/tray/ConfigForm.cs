@@ -1,7 +1,10 @@
 using System;
 using System.Drawing;
 using System.IO;
+using System.Net.Http;
+using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace tray;
@@ -18,6 +21,8 @@ public class ConfigForm : Form
     private TextBox txtLogFilePath = new();
     private CheckBox chkDebugMode = new();
     private CheckBox chkAutoStart = new();
+    private TextBox txtExportPath = new();
+    private Button btnExport = new();
     private Label lblStatus = new();
 
     private readonly string configFilePath;
@@ -27,6 +32,7 @@ public class ConfigForm : Form
         this.configFilePath = configFilePath;
         InitializeForm();
         LoadCurrentConfig();
+        CheckServerStatus();
     }
 
     private void InitializeForm()
@@ -44,10 +50,10 @@ public class ConfigForm : Form
         }
         catch { }
 
-        // CRITICAL FIX 1: Increased height to 820 (was 720)
-        this.ClientSize = new Size(850, 820);
-        this.MinimumSize = new Size(750, 750);
-        this.MaximumSize = new Size(1200, 1100);
+        // 
+        this.ClientSize = new Size(900, 984);
+        this.MinimumSize = new Size(800, 900);
+        this.MaximumSize = new Size(1200, 1200);
         this.StartPosition = FormStartPosition.CenterScreen;
         this.FormBorderStyle = FormBorderStyle.Sizable;
         this.MaximizeBox = true;
@@ -89,7 +95,7 @@ public class ConfigForm : Form
         int yPos = 10;
         int labelWidth = 200;
         int controlWidth = 500;
-        int controlHeight = 40;
+        int controlHeight = 50;
         int leftMargin = 15;
         int labelToTextboxMargin = 10;
         int controlToControlSpacing = 30;
@@ -165,6 +171,38 @@ public class ConfigForm : Form
         chkAutoStart.Enabled = false;
         contentPanel.Controls.Add(chkAutoStart);
         yPos += chkAutoStart.Height + controlToControlSpacing;
+
+        // Export Path Label
+        Label lblExportPath = new() {
+            Text = "DB Export Path:",
+            Left = leftMargin,
+            Top = yPos,
+            Width = labelWidth,
+            AutoSize = true
+        };
+        contentPanel.Controls.Add(lblExportPath);
+
+        // Export Path TextBox and Export Button on same row
+        txtExportPath.Left = leftMargin;
+        txtExportPath.Top = yPos + lblExportPath.Height + labelToTextboxMargin;
+        txtExportPath.Width = 350;  // Shorter to make room for button
+        txtExportPath.Height = controlHeight;
+        txtExportPath.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+        contentPanel.Controls.Add(txtExportPath);
+
+        // Export Button (dodger blue, white text) on same row
+        btnExport.Text = "Export";
+        btnExport.Left = txtExportPath.Left + txtExportPath.Width + 20;  // 20px gap
+        btnExport.Top = txtExportPath.Top;
+        btnExport.Width = 180;
+        btnExport.Height = controlHeight;
+        btnExport.BackColor = Color.DodgerBlue;
+        btnExport.ForeColor = Color.White;
+        btnExport.Font = new Font("Segoe UI", 10, FontStyle.Bold);
+        btnExport.Click += OnExportClick;
+        contentPanel.Controls.Add(btnExport);
+
+        yPos = txtExportPath.Top + txtExportPath.Height + controlToControlSpacing;
 
         // Status Label
         lblStatus.Text = "";
@@ -262,6 +300,23 @@ public class ConfigForm : Form
                     if (logging.TryGetProperty("level", out var level))
                         chkDebugMode.Checked = (level.GetString() == "debug");
                 }
+
+                // Set default export path: <log directory>/<database_name>.csv
+                string logFilePath = txtLogFilePath.Text;
+                string dbPath = txtDbPath.Text;
+
+                if (!string.IsNullOrEmpty(logFilePath) && !string.IsNullOrEmpty(dbPath))
+                {
+                    // Extract log directory
+                    string logDirectory = Path.GetDirectoryName(logFilePath) ?? "";
+
+                    // Extract database name from URL (e.g., "file:./data/leedz_invoicer.sqlite" -> "leedz_invoicer")
+                    string dbFileName = Path.GetFileNameWithoutExtension(dbPath.Replace("file:", "").Replace("./", ""));
+
+                    // Construct default export path
+                    string defaultExportPath = Path.Combine(logDirectory, $"{dbFileName}.csv");
+                    txtExportPath.Text = defaultExportPath;
+                }
             }
         }
         catch (Exception ex)
@@ -352,5 +407,148 @@ public class ConfigForm : Form
     public int GetConfiguredPort()
     {
         return int.TryParse(txtServerPort.Text, out int port) ? port : 3000;
+    }
+
+    /// <summary>
+    /// Export button click handler - calls API to export database to CSV
+    /// </summary>
+    private async void OnExportClick(object? sender, EventArgs e)
+    {
+        try
+        {
+            // Get export path from textbox
+            string exportPath = txtExportPath.Text.Trim();
+
+            // Validate export path
+            if (string.IsNullOrWhiteSpace(exportPath))
+            {
+                lblStatus.Text = "Export path cannot be empty.";
+                lblStatus.ForeColor = Color.DarkRed;
+                return;
+            }
+
+            // Ensure path ends with .csv
+            if (!exportPath.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+            {
+                exportPath += ".csv";
+                txtExportPath.Text = exportPath;
+            }
+
+            // Disable button during export
+            btnExport.Enabled = false;
+            btnExport.Text = "Exporting...";
+            lblStatus.Text = "Exporting database to CSV...";
+            lblStatus.ForeColor = Color.DarkBlue;
+
+            // Get server port
+            int port = GetConfiguredPort();
+            string apiUrl = $"http://localhost:{port}/api/export/csv";
+
+            // Prepare request
+            using var client = new HttpClient();
+            client.Timeout = TimeSpan.FromSeconds(30);
+
+            var requestBody = new
+            {
+                exportPath = exportPath
+            };
+
+            string jsonBody = JsonSerializer.Serialize(requestBody);
+            var content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+
+            // Send POST request
+            HttpResponseMessage response = await client.PostAsync(apiUrl, content);
+
+            // Parse response
+            string responseBody = await response.Content.ReadAsStringAsync();
+            using (var doc = JsonDocument.Parse(responseBody))
+            {
+                var root = doc.RootElement;
+
+                if (response.IsSuccessStatusCode && root.TryGetProperty("success", out var success) && success.GetBoolean())
+                {
+                    string message = root.TryGetProperty("message", out var msg) ? msg.GetString() ?? "Export successful" : "Export successful";
+                    lblStatus.Text = $"Success: {message}";
+                    lblStatus.ForeColor = Color.DarkGreen;
+
+                    // Show success message box
+                    MessageBox.Show($"Database exported successfully to:\n{exportPath}\n\n{message}",
+                        "Export Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    string errorMsg = root.TryGetProperty("message", out var msg) ? msg.GetString() ?? "Unknown error" : "Unknown error";
+                    lblStatus.Text = $"Export failed: {errorMsg}";
+                    lblStatus.ForeColor = Color.DarkRed;
+
+                    MessageBox.Show($"Export failed:\n{errorMsg}",
+                        "Export Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+        catch (HttpRequestException httpEx)
+        {
+            lblStatus.Text = "Server connection failed. Is the server running?";
+            lblStatus.ForeColor = Color.DarkRed;
+            MessageBox.Show($"Cannot connect to server:\n{httpEx.Message}\n\nMake sure the server is running.",
+                "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        catch (Exception ex)
+        {
+            lblStatus.Text = $"Export error: {ex.Message}";
+            lblStatus.ForeColor = Color.DarkRed;
+            MessageBox.Show($"Export failed:\n{ex.Message}",
+                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            // Re-enable button
+            btnExport.Enabled = true;
+            btnExport.Text = "Export";
+        }
+    }
+
+    /// <summary>
+    /// Check if server is running on configured port - called when form opens
+    /// Disables Export button and shows red status message if server is not running
+    /// </summary>
+    private async void CheckServerStatus()
+    {
+        int port = GetConfiguredPort();
+        bool serverRunning = await IsServerRunning(port);
+
+        if (!serverRunning)
+        {
+            btnExport.Enabled = false;
+            lblStatus.Text = "Server is not running. Start server to enable Export.";
+            lblStatus.ForeColor = Color.DarkRed;
+        }
+        else
+        {
+            btnExport.Enabled = true;
+            lblStatus.Text = "";
+        }
+    }
+
+    /// <summary>
+    /// Test if server is running by attempting a quick health check
+    /// </summary>
+    /// <param name="port">Server port to check</param>
+    /// <returns>True if server responds, false otherwise</returns>
+    private async Task<bool> IsServerRunning(int port)
+    {
+        try
+        {
+            using var client = new HttpClient();
+            client.Timeout = TimeSpan.FromSeconds(2);
+
+            // Try to connect to server root endpoint
+            HttpResponseMessage response = await client.GetAsync($"http://localhost:{port}/");
+            return response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.NotFound;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }
