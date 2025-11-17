@@ -31,7 +31,11 @@
       "Bash(findstr:*)",
       "Bash(dir /b C:UsersScottDesktopWKGINVOICERclient)",
       "Bash(dir:*)",
-      "WebFetch(domain:code.claude.com)"
+      "WebFetch(domain:code.claude.com)",
+      "Bash(dotnet build:*)",
+      "Bash(if not exist dist mkdir dist)",
+      "Bash(if not exist distimg mkdir distimg)",
+      "Bash(build.bat)"
     ],
     "deny": [],
     "ask": []

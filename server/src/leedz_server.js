@@ -25,6 +25,13 @@ const { Client } = require('./Client');
 const { Booking } = require('./Booking');
 const { Config } = require('./Config');
 
+// Resolve and validate database path from config
+if (config?.database?.url && config.database.url.startsWith('file:')) {
+  const relativePath = config.database.url.replace(/^file:/, '');
+  const absolutePath = path.resolve(__dirname, '..', relativePath);
+  config.database.url = 'file:' + absolutePath;
+}
+
 const app = express();
 const db = DatabaseFactory.createDatabase(config);
 const { initLogging, log, requestLogger, attachProcessHandlers } = require('./logging');

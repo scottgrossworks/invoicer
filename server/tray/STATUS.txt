@@ -1,0 +1,261 @@
+TRAY APPLICATION STATUS - CRITICAL ISSUES
+==========================================
+Date: 2025-11-16
+Component: Windows System Tray Launcher (C# .NET 8.0)
+Status: PARTIALLY FUNCTIONAL - UI RENDERING FAILURES
+
+WORKING COMPONENTS:
+-------------------
+✓ Build system (dotnet build + build.bat)
+✓ Deployment to server/tray/dist/
+✓ Tray icon appears in system tray
+✓ Tray icon is clickable (left/right click)
+✓ Context menu appears
+✓ Config dialog opens and functions
+✓ Config dialog spacing and layout CORRECT
+✓ Save/Cancel buttons work properly
+✓ Server start/stop process management works
+✓ Log file writing works
+✓ ApplicationIcon embedded in tray.csproj
+
+CRITICAL RENDERING FAILURES:
+----------------------------
+❌ CONTEXT MENU HEADER (PRIMARY ISSUE):
+   - Goal: Green header bar with white text "Leedz Server" spanning 100% menu width
+   - Actual: Green bar only covers 75-80% of menu width
+   - White text either invisible or unreadable (font too small/wrong color)
+   - Menu height collapses to ~100px (menu items not visible)
+   - CustomMenuRenderer implemented but NOT achieving desired visual
+
+❌ TASKBAR ICON (SECONDARY ISSUE):
+   - Goal: Custom Leedz icon.ico displayed in Windows taskbar
+   - Actual: Generic Windows icon shows instead
+   - Icon file exists at server/tray/img/icon.ico
+   - ApplicationIcon set in tray.csproj line 9
+   - Form1 and ConfigForm both set this.Icon in constructors
+   - Still shows generic icon
+
+PROJECT GOALS:
+--------------
+Windows system tray application that:
+1. Launches Node.js server (server/src/leedz_server.js) on user demand
+2. Professional branded UI with green header "Leedz Server"
+3. Custom icon in taskbar and tray
+4. Configuration dialog for server settings (port, database, logging)
+
+ARCHITECTURE:
+-------------
+Language: C# .NET 8.0 Windows Forms
+Entry Point: Program.cs -> Form1 constructor
+Main Form: Form1.cs (hidden, contains NotifyIcon)
+Config Dialog: ConfigForm.cs (modal, shows on Configure click)
+Icon: server/tray/img/icon.ico (32x32, 32-bit, single size)
+
+DEPLOYMENT:
+-----------
+Source: server/tray/
+Build Output: server/tray/bin/Release/net8.0-windows/
+Deployment: server/tray/dist/
+  - tray.exe (main executable)
+  - tray.dll
+  - tray.runtimeconfig.json
+  - img/icon.ico
+
+Path Resolution (from dist/tray.exe):
+  - Icon: ../../img/icon.ico → server/tray/img/icon.ico
+  - Server: ../../ → server/
+  - Config: ../../server_config.json → server/server_config.json
+  - Script: ../../src/leedz_server.js → server/src/leedz_server.js
+
+KEY FILES:
+----------
+1. Form1.cs - Main application form
+   - Lines 16-61: CustomMenuRenderer class
+   - Lines 146-168: Context menu setup
+   - Lines 86-90: Form icon initialization
+
+2. ConfigForm.cs - Settings dialog
+   - Lines 36-45: Dialog icon initialization
+   - Lines 32-179: Form layout (WORKING CORRECTLY)
+
+3. tray.csproj - Project configuration
+   - Line 9: ApplicationIcon setting
+
+4. build.bat - Build and deployment script
+
+CONTEXT MENU TECHNICAL DETAILS:
+--------------------------------
+Current Implementation (Form1.cs:146-168):
+- ContextMenuStrip with CustomMenuRenderer
+- Header is ToolStripMenuItem with:
+  * Enabled = false
+  * BackColor = DarkGreen
+  * ForeColor = White
+  * Font = Segoe UI 14pt Bold
+  * Padding = (40, 18, 40, 18)
+- CustomRenderer overrides:
+  * OnRenderMenuItemBackground - paints green rectangle
+  * OnRenderItemText - skips default text, manually draws white text
+
+Problem: CustomRenderer uses e.Item.Owner.Width to paint full width,
+but menu calculates its own width based on item content/padding.
+Result: Mismatch between painted rectangle and actual menu bounds.
+
+ATTEMPTED FIXES (ALL FAILED):
+------------------------------
+1. Setting header.AutoSize = true → breaks menu height entirely
+2. Setting menu.AutoSize = true → collapses menu to 100px
+3. Setting header.Width manually (250-300px) → doesn't force menu width
+4. Removing AutoSize → same issues
+5. Varying padding (20-60px) → inconsistent, doesn't fix width
+6. Using e.Item.ContentRectangle → doesn't span full width
+7. Using e.Item.Bounds → doesn't span full width
+8. Drawing text at different font sizes (12-16pt) → text visibility issues
+9. Setting header.Height → affects individual item, not menu
+10. Multiple rebuild/redeploy cycles → no change
+
+ROOT CAUSE ANALYSIS:
+-------------------
+ContextMenuStrip calculates its width based on:
+1. Longest ToolStripMenuItem text + padding
+2. Icon space (if any items have icons)
+3. Submenu arrow space (if any items have submenus)
+4. System-defined margins
+
+The header item contributes to this calculation, but:
+- Its padding increases height, not menu width enough
+- CustomRenderer paints AFTER width is calculated
+- Painting at e.Item.Owner.Width paints beyond actual visible menu bounds
+- Menu has internal margins/borders that aren't in Owner.Width
+
+Windows Forms ContextMenuStrip rendering pipeline:
+1. Measure phase: Calculates item sizes
+2. Layout phase: Positions items and determines strip size
+3. Render phase: OnRenderMenuItemBackground called
+4. By render time, menu width is FIXED
+
+PROPOSED SOLUTIONS FOR NEXT LLM:
+---------------------------------
+Option A: OwnerDraw Approach
+- Set header.OwnerDraw = true
+- Handle Paint event directly
+- Manually measure and draw at correct dimensions
+
+Option B: ToolStripControlHost
+- Embed a Panel control as menu item
+- Panel has BackColor = DarkGreen
+- Panel contains Label with white text
+- Gives full control over dimensions
+
+Option C: Force Menu Width
+- Pre-calculate desired menu width (e.g., 280px)
+- Set ALL menu items to exact width
+- Ensure header width matches
+- Test if this forces menu to size correctly
+
+Option D: Custom ToolStripDropDown
+- Inherit from ToolStripDropDown instead of using ContextMenuStrip
+- Override OnPaint to draw green header before items
+- Full control over rendering
+
+Option E: Abandon Header
+- Accept that Windows Forms ContextMenuStrip has limitations
+- Use simple menu without styled header
+- Focus on functionality over aesthetics
+
+TASKBAR ICON ISSUE:
+-------------------
+Possible Causes:
+1. Icon file only has 32x32 size (needs 16x16, 48x48, 256x256 too)
+2. ApplicationIcon not properly embedded during build
+3. Icon cache not cleared after rebuild
+4. Old tray.exe still running (file lock)
+5. Windows Explorer needs restart to refresh icon
+
+Diagnostic Steps:
+1. Use ResourceHacker or similar tool to verify icon in tray.exe
+2. Check if icon appears in exe properties → Details → Icon
+3. Clear icon cache: ie4uinit.exe -ClearIconCache
+4. Restart Windows Explorer process
+5. Create new multi-size .ico file with IconsExtract tool
+
+BUILD & TEST PROCEDURE:
+-----------------------
+1. Close ALL instances of tray.exe (check Task Manager)
+2. cd server/tray
+3. dotnet build -c Release
+4. build.bat
+5. server\tray\dist\tray.exe
+6. Right-click tray icon → verify menu appearance
+7. Check taskbar for custom icon
+8. Click Configure → verify dialog appearance
+
+CONFIGURATION DIALOG STATUS:
+-----------------------------
+✓ WORKING CORRECTLY - DO NOT MODIFY
+- Form size: 750x720
+- Padding: 30px all sides
+- Green header: 90px tall, 22pt font
+- Field spacing: 115px between fields
+- Label-to-textbox: 18px
+- Textbox size: 520x40
+- Buttons: 160x55, proper spacing
+- All visual requirements MET
+
+USER REQUIREMENTS (EXACT):
+---------------------------
+Context Menu:
+1. Green header bar MUST span 100% of menu width (edge to edge)
+2. White text "Leedz Server" MUST be clearly visible and centered
+3. Header height approximately 70px
+4. All menu items MUST be visible (Start Server, Configure, Stop Server, Exit)
+5. Menu must be proper height (not truncated to 100px)
+
+Taskbar Icon:
+6. Custom icon.ico MUST show in Windows taskbar
+7. Icon MUST appear for both main app and Config dialog
+
+SUCCESS CRITERIA:
+-----------------
+[ ] Context menu green header spans 100% width
+[ ] White text "Leedz Server" clearly visible
+[ ] All 4 menu items visible and clickable
+[ ] Custom icon shows in taskbar
+[ ] Config dialog maintains current correct layout
+
+INSTRUCTIONS FOR NEXT LLM:
+---------------------------
+DO NOT:
+- Try AutoSize variations (already attempted)
+- Try manual Width settings (already attempted)
+- Try different padding values (already attempted)
+- Make multiple changes without testing
+- Modify ConfigForm layout (it's working correctly)
+
+DO:
+1. Read this entire status file first
+2. Research ToolStripMenuItem OwnerDraw property
+3. Consider ToolStripControlHost approach
+4. Test with minimal example before full implementation
+5. Use MessageBox to debug menu.Width vs header.Width
+6. Focus on ONE issue at a time (menu header OR icon, not both)
+7. Test after EVERY single change
+8. Document what you try and results
+
+REFERENCE IMPLEMENTATION:
+-------------------------
+If all else fails, consider these working alternatives:
+- Windows Forms NotifyIcon examples on Microsoft Docs
+- Stack Overflow: "ContextMenuStrip full width header"
+- GitHub: Search for "tray application custom menu" in C#
+
+The core functionality works. The only issues are visual rendering
+of the context menu header and taskbar icon display. These are
+Windows Forms rendering issues, not logic issues.
+
+CONTACT INFO:
+-------------
+For questions about business logic or server integration,
+refer to main project STATUS.txt in server/ directory.
+
+This document focuses solely on the tray application UI issues.

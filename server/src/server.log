@@ -1389,3 +1389,24 @@ The column `main.Config.businessDescription` does not exist in the current datab
 [2025-11-12T21:49:57.130Z] POST /clients
 [2025-11-12T21:49:57.158Z] POST /bookings
 [2025-11-12T21:49:57.183Z] POST /config
+[2025-11-14T01:25:54.504Z] GET /config
+[2025-11-14T01:40:08.630Z] GET /config
+[2025-11-14T01:41:40.321Z] GET /config
+[2025-11-14T01:42:54.323Z] GET /stats
+[2025-11-14T01:43:11.320Z] GET /config
+[2025-11-14T01:45:17.595Z] POST /clients
+[2025-11-14T01:45:17.640Z] POST /bookings
+[2025-11-14T01:45:17.672Z] POST /config
+[2025-11-14T01:45:53.931Z] GET /config
+[2025-11-14T01:45:55.960Z] GET /config
+[2025-11-14T01:54:30.681Z] GET /config
+[2025-11-17T06:26:13.221Z] * Failed to start server: PrismaClientInitializationError: Error querying the database: Error code 14: Unable to open the database file
+    at t (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:112:2488)
+    at async Prisma_Sqlite_DB.connect (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:19:5)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:610:5
+[2025-11-17T06:26:16.122Z] * Failed to start server: PrismaClientInitializationError: Error querying the database: Error code 14: Unable to open the database file
+    at t (C:\Users\Scott\Desktop\WKG\INVOICER\server\node_modules\@prisma\client\runtime\library.js:112:2488)
+    at async Prisma_Sqlite_DB.connect (C:\Users\Scott\Desktop\WKG\INVOICER\server\src\prisma_sqlite_db.js:19:5)
+    at async C:\Users\Scott\Desktop\WKG\INVOICER\server\src\leedz_server.js:610:5
+[2025-11-17T17:40:27.958Z] Database connected successfully
+[2025-11-17T17:40:27.962Z] ! Local API running on http://localhost:3000

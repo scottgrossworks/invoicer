@@ -51,3 +51,4 @@ pids
 # Build outputs
 dist/
 build/
+.fake

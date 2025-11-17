@@ -616,7 +616,7 @@ input.invalid {
 
 .special-info-label {
   font-weight: bold;
-  margin-bottom: 8px;
+  margin:8px;
   font-size: 14px;
 }
 

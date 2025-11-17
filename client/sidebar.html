@@ -347,6 +347,60 @@
     </div><!-- END page-responder -->
 
 
+    <!-- ========================================== -->
+    <!-- OUTREACH PAGE (Outreach Email Generator)  -->
+    <!-- ========================================== -->
+    <div id="page-outreach" class="page-content">
+
+      <div class="section-header">
+        <label for="display_win_outreach">Outreach Generator</label>
+        <div class="header-buttons">
+          <button id="reloadBtnOutreach" class="reload-button" title="Reload the parser">
+            <span>
+              <img src="icons/arrows_white.png" class="button-icon" alt="reload parser"/>
+            </span>
+          </button>
+          <button id="settingsBtnOutreach" class="settings-button" title="Open settings">
+            <span>
+              <img src="icons/settings.png" class="button-icon" alt="settings"/>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div id="display_win_outreach" class="display-win">
+        <div id="loading_spinner_outreach" class="loading-spinner" style="display: none;">
+          <img src="icons/wait_spinner.gif" alt="Loading..." />
+          <span>Generating...</span>
+        </div>
+        <table id="outreach_table" class="booking-table">
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody id="outreach_tbody">
+            <!-- Dynamic rows will be inserted here -->
+          </tbody>
+        </table>
+
+        <!-- Special Information Section -->
+        <div id="special-info-section-outreach" class="special-info-section">
+          <div class="special-info-label">
+            Special Information
+          </div>
+          <textarea
+            id="specialInfoTextarea-outreach"
+            class="special-info-textarea"
+            placeholder="Add details about services, rates, availability to include in outreach..."
+          ></textarea>
+        </div>
+      </div>
+
+    </div><!-- END page-outreach -->
+
+
   </main>
 
   <!-- STARTUP BUTTONS - Fixed position outside scrolling area, above footer -->
@@ -397,6 +451,18 @@
     </button>
 
     <button id="writeResponderBtn" class="sidebar-button" title="Generate and send first response">
+      Write
+    </button>
+  </div>
+
+  <!-- OUTREACH BUTTONS - Fixed position outside scrolling area, above footer -->
+  <!-- Only visible when outreach page is active -->
+  <div class="button-wrapper" id="outreach-buttons" style="display: none;">
+    <button id="clearOutreachBtn" class="sidebar-button" title="Clear and reset">
+      Clear
+    </button>
+
+    <button id="writeOutreachBtn" class="sidebar-button" title="Generate and send outreach">
       Write
     </button>
   </div>
