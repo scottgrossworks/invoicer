@@ -329,13 +329,28 @@ export class ClientCapture extends Page {
     // Set the clicked client as the current client in state
     Object.assign(this.state.Client, client);
 
-    // Also create a single-client array for Outreach to use
-    this.state.setClients([client]);
+    // Send ALL clients to Outreach, but reorder so clicked client is first
+    // This way Outreach will start with the clicked client at index 0
+    const reorderedClients = [];
+
+    // First element: the clicked client
+    reorderedClients.push(this.clients[index]);
+
+    // Then add all other clients
+    for (let i = 0; i < this.clients.length; i++) {
+      if (i !== index) {
+        reorderedClients.push(this.clients[i]);
+      }
+    }
+
+    this.state.setClients(reorderedClients);
+
+    console.log(`Sending ${reorderedClients.length} clients to Outreach (clicked client at index 0)`);
 
     // Navigate to Outreach page
     if (window.switchToPage) {
       await window.switchToPage('outreach');
-      log(`Navigated to Outreach with client: ${client.name || client.email}`);
+      log(`Navigated to Outreach with ${reorderedClients.length} client(s)`);
     } else {
       showToast('Navigation error - please try again', 'error');
       console.error('window.switchToPage not available');

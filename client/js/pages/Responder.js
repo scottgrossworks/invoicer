@@ -13,6 +13,7 @@ import { Page } from './Page.js';
 import { DateTimeUtils } from '../utils/DateTimeUtils.js';
 import { log, logError, showToast } from '../logging.js';
 import { PageUtils } from '../utils/Page_Utils.js';
+import { Calculator } from '../utils/Calculator.js';
 import Client from '../db/Client.js';
 import Booking from '../db/Booking.js';
 
@@ -274,9 +275,12 @@ export class Responder extends Page {
       tbody.appendChild(row);
     });
 
-    // Populate BOOKING fields
+    // Populate BOOKING fields (excluding rate fields - handled by Calculator below)
+    const rateFields = ['hourlyRate', 'flatRate', 'totalAmount'];
+    const skipFields = ['id', 'clientId', 'createdAt', 'updatedAt', ...rateFields];
+
     this.bookingFields.forEach(field => {
-      if (field === 'id' || field === 'clientId' || field === 'createdAt' || field === 'updatedAt') return;
+      if (skipFields.includes(field)) return;
 
       const row = document.createElement('tr');
 
@@ -303,14 +307,6 @@ export class Responder extends Page {
       input.dataset.fieldName = field;
       input.dataset.source = 'Booking';
 
-      // CRITICAL: Highlight rate fields that user must fill in
-      // Apply to entire row, not just input
-      if (field === 'hourlyRate' || field === 'flatRate' || field === 'totalAmount') {
-        row.style.backgroundColor = 'paleGreen';
-        input.style.backgroundColor = 'transparent';
-        input.style.fontWeight = 'bold';
-      }
-
       // Wire up change handler
       input.addEventListener('blur', () => {
         let rawValue = input.value.trim();
@@ -321,20 +317,6 @@ export class Responder extends Page {
         }
 
         this.state.Booking[field] = rawValue;
-
-        // Auto-calculate total amount when rate/duration changes
-        if (field === 'hourlyRate' || field === 'duration') {
-          this.calculateTotal();
-        }
-
-        // If flatRate is set, update totalAmount initially
-        if (field === 'flatRate') {
-          const flatRate = parseFloat(rawValue) || 0;
-          if (flatRate > 0 && !this.state.Booking.totalAmount) {
-            this.state.Booking.totalAmount = flatRate;
-            this.updateFromState(this.state);
-          }
-        }
       });
 
       // Wire up Enter key handler to commit changes
@@ -351,26 +333,18 @@ export class Responder extends Page {
       tbody.appendChild(row);
     });
 
+    // Populate Booking rate fields using Calculator
+    // No duration field for Responder - defaults to 1 internally
+    Calculator.renderFields(
+      tbody,
+      this.state.Booking,
+      () => this.updateFromState(this.state),
+      { includeDuration: false }
+    );
+
     // Populate Special Info textarea (separate section below table)
     this.populateSpecialInfoSection();
   }
-
-/**
- * Auto-calculate totalAmount based on hourlyRate * duration
- */
-  calculateTotal() {
-    const hourlyRate = this.state.Booking.hourlyRate;
-    const duration = this.state.Booking.duration;
-
-    // Use shared calculator utility
-    const calculatedTotal = PageUtils.calculateAmount(hourlyRate, duration);
-
-    if (calculatedTotal !== null) {
-      this.state.Booking.totalAmount = calculatedTotal;
-      this.updateFromState(this.state);
-    }
-  }
-
 
   /**
    * Populate special info textarea section
@@ -378,6 +352,28 @@ export class Responder extends Page {
    */
   populateSpecialInfoSection() {
     super.populateSpecialInfoSection('specialInfoTextarea-responder');
+  }
+
+  /**
+   * Override reloadParser to ONLY work on Gmail pages
+   * Responder is specifically for extracting client/booking data from Gmail emails
+   */
+  async reloadParser() {
+    // Get current URL
+    const { url } = await new Promise(resolve => {
+      chrome.runtime.sendMessage({ type: 'leedz_get_tab_url' }, resolve);
+    });
+
+    // Validate this is a Gmail page
+    if (!url || !url.includes('mail.google.com')) {
+      console.log('Responder page only works on Gmail - current URL:', url);
+      showToast('Responder page requires a Gmail email to be open', 'warning');
+      this.hideLoadingSpinner();
+      return;
+    }
+
+    // Call parent implementation
+    await super.reloadParser();
   }
 
   /**
@@ -393,18 +389,10 @@ export class Responder extends Page {
         return;
       }
 
-      // CRITICAL: Validate rate fields are filled in
-      const hourlyRate = parseFloat(this.state.Booking.hourlyRate) || 0;
-      const flatRate = parseFloat(this.state.Booking.flatRate) || 0;
-      const totalAmount = parseFloat(this.state.Booking.totalAmount) || 0;
-
-      if (hourlyRate === 0 && flatRate === 0) {
-        showToast('Please enter hourly rate or flat rate', 'error');
-        return;
-      }
-
-      if (totalAmount === 0) {
-        showToast('Please enter total amount', 'error');
+      // Validate rate fields using Calculator
+      const validation = Calculator.validateRates(this.state.Booking);
+      if (!validation.valid) {
+        showToast(validation.message, 'error');
         return;
       }
 

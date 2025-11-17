@@ -7,20 +7,12 @@
 import { Page } from './Page.js';
 import { log, logError, showToast } from '../logging.js';
 import { PageUtils } from '../utils/Page_Utils.js';
+import { Calculator } from '../utils/Calculator.js';
 
 export class Outreach extends Page {
 
   constructor(state) {
     super('outreach', state);
-
-    // Simplified fields for outreach display
-    this.displayFields = [
-      'name',        // Client name
-      'email',       // Client email
-      'hourlyRate',  // Booking hourly rate
-      'flatRate',    // Booking flat rate
-      'totalAmount'  // Booking total amount
-    ];
 
     // Store special info for LLM prompt
     this.specialInfo = '';
@@ -319,8 +311,9 @@ export class Outreach extends Page {
       table.classList.remove('outreach-table-from-db');
     }
 
-    // Populate table rows
-    this.displayFields.forEach(field => {
+    // Populate Client fields (name, email)
+    const clientFields = ['name', 'email'];
+    clientFields.forEach(field => {
       const row = document.createElement('tr');
 
       // Field name cell
@@ -336,48 +329,12 @@ export class Outreach extends Page {
       input.type = 'text';
       input.className = 'editable-field';
       input.dataset.fieldName = field;
-
-      // Determine source and get value
-      let displayValue = '';
-      let source = '';
-      if (field === 'name' || field === 'email') {
-        displayValue = this.state.Client[field] || '';
-        source = 'Client';
-      } else if (field === 'hourlyRate' || field === 'flatRate' || field === 'totalAmount') {
-        displayValue = this.state.Booking[field] || '';
-        source = 'Booking';
-
-        // Highlight rate fields with paleGreen
-        row.style.backgroundColor = 'paleGreen';
-        input.style.backgroundColor = 'transparent';
-        input.style.fontWeight = 'bold';
-      }
-      input.dataset.source = source;
-      input.value = displayValue;
+      input.dataset.source = 'Client';
+      input.value = this.state.Client[field] || '';
 
       // Change handler
       input.addEventListener('blur', () => {
-        let rawValue = input.value.trim();
-
-        if (source === 'Client') {
-          this.state.Client[field] = rawValue;
-        } else if (source === 'Booking') {
-          this.state.Booking[field] = rawValue;
-
-          // Auto-calculate total
-          if (field === 'hourlyRate' || field === 'duration') {
-            this.calculateTotal();
-          }
-
-          // If flatRate is set, update totalAmount
-          if (field === 'flatRate') {
-            const flatRate = parseFloat(rawValue) || 0;
-            if (flatRate > 0 && !this.state.Booking.totalAmount) {
-              this.state.Booking.totalAmount = flatRate;
-              this.updateFromState(this.state);
-            }
-          }
-        }
+        this.state.Client[field] = input.value.trim();
       });
 
       // Enter key handler
@@ -394,23 +351,17 @@ export class Outreach extends Page {
       tbody.appendChild(row);
     });
 
+    // Populate Booking rate fields using Calculator
+    // No duration field for Outreach - defaults to 1 internally
+    Calculator.renderFields(
+      tbody,
+      this.state.Booking,
+      () => this.updateFromState(this.state),
+      { includeDuration: false }
+    );
+
     // Populate special info textarea
     this.populateSpecialInfoSection();
-  }
-
-  /**
-   * Auto-calculate totalAmount
-   */
-  calculateTotal() {
-    const hourlyRate = this.state.Booking.hourlyRate;
-    const duration = this.state.Booking.duration;
-
-    const calculatedTotal = PageUtils.calculateAmount(hourlyRate, duration);
-
-    if (calculatedTotal !== null) {
-      this.state.Booking.totalAmount = calculatedTotal;
-      this.updateFromState(this.state);
-    }
   }
 
   /**
@@ -432,18 +383,10 @@ export class Outreach extends Page {
         return;
       }
 
-      // Validate rate fields
-      const hourlyRate = parseFloat(this.state.Booking.hourlyRate) || 0;
-      const flatRate = parseFloat(this.state.Booking.flatRate) || 0;
-      const totalAmount = parseFloat(this.state.Booking.totalAmount) || 0;
-
-      if (hourlyRate === 0 && flatRate === 0) {
-        showToast('Please enter hourly rate or flat rate', 'error');
-        return;
-      }
-
-      if (totalAmount === 0) {
-        showToast('Please enter total amount', 'error');
+      // Validate rate fields using Calculator
+      const validation = Calculator.validateRates(this.state.Booking);
+      if (!validation.valid) {
+        showToast(validation.message, 'error');
         return;
       }
 

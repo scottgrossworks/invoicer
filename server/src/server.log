@@ -1431,3 +1431,17 @@ The column `main.Config.businessDescription` does not exist in the current datab
 [2025-11-17T20:51:14.683Z] GET /config
 [2025-11-17T21:02:00.806Z] GET /config
 [2025-11-17T21:02:00.820Z] GET /clients?email=petauton%40lyceela.org&name=Dominique+Petauton
+[2025-11-17T21:18:17.395Z] GET /clients?email=petauton%40lyceela.org&name=Dominique+Petauton
+[2025-11-17T21:19:32.290Z] GET /clients?email=petauton%40lyceela.org&name=Dominique+Petauton
+[2025-11-17T21:28:59.555Z] GET /config
+[2025-11-17T21:28:59.570Z] GET /clients?email=petauton%40lyceela.org&name=Dominique+Petauton
+[2025-11-17T22:08:56.386Z] GET /config
+[2025-11-17T22:15:39.196Z] GET /config
+[2025-11-17T22:16:03.735Z] GET /clients?email=records%40lyceela.org&name=Gladys+Deneux
+[2025-11-17T22:16:07.518Z] GET /clients?email=records%40lyceela.org&name=Gladys+Deneux
+[2025-11-17T22:16:08.517Z] GET /clients?email=records%40lyceela.org&name=Gladys+Deneux
+[2025-11-17T22:16:09.278Z] GET /clients?email=records%40lyceela.org&name=Gladys+Deneux
+[2025-11-17T22:16:10.261Z] GET /clients?email=records%40lyceela.org&name=Gladys+Deneux
+[2025-11-17T22:16:11.110Z] GET /clients?email=records%40lyceela.org&name=Gladys+Deneux
+[2025-11-17T22:16:13.236Z] GET /clients?email=records%40lyceela.org&name=Gladys+Deneux
+[2025-11-17T22:16:14.221Z] GET /clients?email=records%40lyceela.org&name=Gladys+Deneux

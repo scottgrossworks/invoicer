@@ -7,6 +7,7 @@ import { Page } from './Page.js';
 import { DateTimeUtils } from '../utils/DateTimeUtils.js';
 import { ValidationUtils } from '../utils/ValidationUtils.js';
 import { PageUtils } from '../utils/Page_Utils.js';
+import { Calculator } from '../utils/Calculator.js';
 import { log, logError, logValidation, showToast } from '../logging.js';
 import Client from '../db/Client.js';
 import Booking from '../db/Booking.js';
@@ -339,10 +340,16 @@ export class Invoicer extends Page {
       table.classList.remove('thankyou-table-from-db');
     }
 
+    // Skip rate fields - will be rendered by Calculator
+    const rateFields = ['duration', 'hourlyRate', 'flatRate', 'totalAmount'];
+    const skipFields = ['id', 'clientId', 'createdAt', 'updatedAt', ...rateFields];
+
     const allFields = [...this.clientFields, ...this.bookingFields];
 
-    // Populate table rows with booking and client data
+    // Populate table rows with booking and client data (excluding rate fields)
     allFields.forEach(field => {
+      if (skipFields.includes(field)) return;
+
       const row = document.createElement('tr');
 
       // Field name cell
@@ -367,16 +374,6 @@ export class Invoicer extends Page {
       }
       if ((field === 'startDate' || field === 'endDate') && displayValue) {
         displayValue = DateTimeUtils.formatDateForDisplay(displayValue);
-      }
-
-      // CURRENCY
-      if (field === 'hourlyRate' || field === 'flatRate' || field === 'totalAmount') {
-        displayValue = Invoicer.formatCurrency(displayValue);
-      }
-
-      // DURATION
-      if (field === 'duration') {
-        displayValue = Invoicer.formatDuration(displayValue);
       }
 
       // PHONE
@@ -409,6 +406,14 @@ export class Invoicer extends Page {
       row.appendChild(valueCell);
       tbody.appendChild(row);
     });
+
+    // Render rate fields using Calculator (includes duration for Invoicer)
+    Calculator.renderFields(
+      tbody,
+      this.state.Booking,
+      () => this.updateFromState(this.state),
+      { includeDuration: true }
+    );
   }
 
   /**
@@ -422,11 +427,6 @@ export class Invoicer extends Page {
     // Sync to state first
     this.syncFormFieldToState(fieldName, rawValue);
 
-    // Auto-calculate totalAmount if conditions are met
-    if (['hourlyRate', 'duration'].includes(fieldName)) {
-      this.calculateTotalAmount();
-    }
-
     // Auto-calculate duration if time fields are committed
     if (['startTime', 'endTime'].includes(fieldName)) {
       this.calculateDuration();
@@ -434,22 +434,6 @@ export class Invoicer extends Page {
 
     // Format and update display based on field type
     let formattedValue = rawValue;
-
-    // Format currency fields
-    if (['hourlyRate', 'flatRate', 'totalAmount'].includes(fieldName) && rawValue) {
-      const numericValue = parseFloat(rawValue.replace(/[$,]/g, ''));
-      if (!isNaN(numericValue)) {
-        formattedValue = `$${numericValue.toFixed(2)}`;
-      }
-    }
-
-    // Format duration fields
-    if (fieldName === 'duration' && rawValue) {
-      const numericValue = parseFloat(rawValue.replace(/\s*hours\s*/i, ''));
-      if (!isNaN(numericValue)) {
-        formattedValue = `${numericValue} hours`;
-      }
-    }
 
     // Format time fields to 12-hour format
     if (['startTime', 'endTime'].includes(fieldName) && rawValue) {
@@ -557,44 +541,11 @@ export class Invoicer extends Page {
     if (duration !== null) {
       this.state.Booking.duration = duration;
 
-      // Update the duration input field if it exists
-      const durationInput = document.querySelector('input[data-field="duration"]');
-      if (durationInput) {
-        durationInput.value = `${duration} hours`;
-      }
-
-      // Also recalculate total amount
-      this.calculateTotalAmount();
-    }
-  }
-
-
-  /**
-   * Auto-calculate totalAmount based on hourlyRate * duration
-   * Only calculates if totalAmount and flatRate are not set
-   */
-  calculateTotalAmount() {
-    // Get current values from STATE (already synced)
-    const hourlyRate = this.state.Booking.hourlyRate;
-    const duration = this.state.Booking.duration;
-    const flatRate = parseFloat(this.state.Booking.flatRate) || 0;
-    const currentTotal = parseFloat(this.state.Booking.totalAmount) || 0;
-
-    // if a flat Rate is set, do not auto-calculate
-    if (flatRate > 0) return;
-   
-    // Use shared calculator utility
-    const calculatedTotal = PageUtils.calculateAmount(hourlyRate, duration);
-
-    if (calculatedTotal !== null) {
-      // Update STATE
-      this.state.Booking.totalAmount = calculatedTotal;
-
-      // Update form display
-      const totalAmountInput = document.querySelector('[data-field="totalAmount"]');
-      if (totalAmountInput) {
-        totalAmountInput.value = Invoicer.formatCurrency(calculatedTotal);
-      }
+      // Also recalculate total amount using Calculator
+      Calculator.calculateAndUpdateTotal(
+        this.state.Booking,
+        () => this.updateFromState(this.state)
+      );
     }
   }
 

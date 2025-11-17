@@ -129,6 +129,15 @@ async function initializeApp() {
     // Initialize state with persistence
     STATE = await StateFactory.create();
 
+    console.log('=== SIDEBAR STATE LOADED ===', {
+      hasClient: !!(STATE.Client?.name || STATE.Client?.email),
+      clientName: STATE.Client?.name,
+      clientEmail: STATE.Client?.email,
+      hasBooking: !!(STATE.Booking?.title || STATE.Booking?.location),
+      bookingTitle: STATE.Booking?.title,
+      bookingLocation: STATE.Booking?.location
+    });
+
     // Listen for storage changes from settings page
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName === 'local' && changes.currentBookingState) {
@@ -299,6 +308,15 @@ function hideAllButtons() {
  * @param {string} pageName - Name of the page to switch to
  */
 async function switchToPage(pageName) {
+  console.log(`=== SWITCHING TO PAGE: ${pageName} ===`);
+  console.log('STATE before switch:', {
+    hasClient: !!(STATE.Client?.name || STATE.Client?.email),
+    clientName: STATE.Client?.name,
+    clientEmail: STATE.Client?.email,
+    hasBooking: !!(STATE.Booking?.title || STATE.Booking?.location),
+    bookingTitle: STATE.Booking?.title
+  });
+
   // STEP 1: IMMEDIATELY hide all buttons before any page switching
   hideAllButtons();
 

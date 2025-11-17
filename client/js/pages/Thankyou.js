@@ -63,14 +63,24 @@ export class Thankyou extends Page {
    * Called when thank you page becomes visible
    */
   async onShow() {
-    
-    // Load Config data from DB if not already loaded (needed for thank you generation)
-    // console.log('Loading Config from DB...');
-    // console.log('Config BEFORE loadConfigFromDB():', this.state.Config);
 
+    console.log('=== THANKYOU ONSHOW() DIAGNOSTIC ===');
+    console.log('STATE at entry:', {
+      hasClient: !!this.state.Client,
+      clientName: this.state.Client?.name,
+      clientEmail: this.state.Client?.email,
+      clientNameType: typeof this.state.Client?.name,
+      clientEmailType: typeof this.state.Client?.email,
+      hasBooking: !!this.state.Booking,
+      bookingTitle: this.state.Booking?.title,
+      bookingLocation: this.state.Booking?.location,
+      fullClient: this.state.Client,
+      fullBooking: this.state.Booking
+    });
+
+    // Load Config data from DB if not already loaded (needed for thank you generation)
     await this.state.loadConfigFromDB();
 
-    // console.log('Config AFTER loadConfigFromDB():', this.state.Config);
     console.log('Config details:', {
       hasConfig: !!this.state.Config,
       hasCompanyName: !!(this.state.Config?.companyName),
@@ -96,6 +106,12 @@ export class Thankyou extends Page {
     // Check if we have existing data
     const hasClientData = this.state.Client.name || this.state.Client.email;
     const hasBookingData = this.state.Booking.title || this.state.Booking.location;
+
+    console.log('DATA CHECK RESULTS:', {
+      hasClientData: hasClientData,
+      hasBookingData: hasBookingData,
+      willRunParser: !(hasClientData || hasBookingData)
+    });
 
     /*
     console.log('=== DATA CHECK ===');
@@ -340,6 +356,28 @@ export class Thankyou extends Page {
    */
   populateSpecialInfoSection() {
     super.populateSpecialInfoSection('specialInfoTextarea');
+  }
+
+  /**
+   * Override reloadParser to ONLY work on Gmail pages
+   * ThankYou is specifically for extracting booking data from Gmail emails
+   */
+  async reloadParser() {
+    // Get current URL
+    const { url } = await new Promise(resolve => {
+      chrome.runtime.sendMessage({ type: 'leedz_get_tab_url' }, resolve);
+    });
+
+    // Validate this is a Gmail page
+    if (!url || !url.includes('mail.google.com')) {
+      console.log('ThankYou page only works on Gmail - current URL:', url);
+      showToast('ThankYou page requires a Gmail email to be open', 'warning');
+      this.hideLoadingSpinner();
+      return;
+    }
+
+    // Call parent implementation
+    await super.reloadParser();
   }
 
   /**

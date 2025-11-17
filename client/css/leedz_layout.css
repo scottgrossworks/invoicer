@@ -684,7 +684,7 @@ input.invalid {
 }
 
 .email-client-btn {
-  background-color: dodgerblue;
+  background-color: var(--LEEDZ_DARKGREEN);
   flex: 1;
   max-width: 45%;
 }
