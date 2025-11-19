@@ -467,66 +467,51 @@ export class Outreach extends Page {
 
     // Generate rate text
     let rateText = '';
-    if (hourlyRate > 0) {
+    if (totalAmount > 0) {
+      rateText = `My rate would be $${totalAmount} total`;
+    } else if (hourlyRate > 0) {
       rateText = `My rate is $${hourlyRate}/hr`;
     } else if (flatRate > 0) {
-      rateText = `My flat rate is $${flatRate}`;
+      rateText = `My flat rate would be $${flatRate}`;
     }
 
     const signatureExample = PageUtils.buildSignatureBlock(businessInfo, 'Scott');
 
-    return `ROLE: Generate a professional proactive outreach email to a potential client who has NOT yet inquired about services.
-
-BUSINESS INFORMATION:
-- Company: ${businessInfo.businessName}
-- Email: ${businessInfo.businessEmail}
-- Phone: ${businessInfo.businessPhone}
-- Website: ${businessInfo.businessWebsite}
-- Handle: ${businessInfo.contactHandle}
-- Services: ${businessInfo.servicesPerformed}
-- Description: ${businessInfo.businessDescription}
+    return `ROLE: Generate professional outreach email introducing a potential client to your ${businessInfo.servicesPerformed} services.
+ 
+MIN-MAX-LEN: 3-6 sentences
 
 CLIENT INFORMATION:
 - Name: ${clientFirstName}
 
-RATE INFORMATION:
-- Hourly Rate: ${hourlyRate}
-- Flat Rate: ${flatRate}
-- Total Amount: ${totalAmount}
+SPECIAL NOTES (follows welcome): ${specialInfo}
+Give this text priority and style the rest of the email around it.
+Text you generate should compliment SPECIAL NOTES and enrich it with ADDITIONAL INFO without exceeding MIN-MAX-LEN
 
-RATE TEXT (use this):
-${rateText}
-
-SPECIAL NOTES (place RIGHT AFTER rate):
-${specialInfo}
+RATE TEXT (use this verbatim): ${rateText}
 
 INSTRUCTIONS:
-1. Write a professional, warm outreach email
-2. Express interest in providing services to the client
-3. Include business description naturally
-4. Use RATE TEXT provided above (already formatted)
-5. Place SPECIAL NOTES immediately after rate statement (availability, special offers, etc.)
-6. ${PageUtils.getEmailFormattingInstructions()}
-7. Invite client to discuss their needs or book a consultation
-8. Keep tone professional but enthusiastic
-9. DO NOT include subject line (will be added automatically)
-10. Return ONLY the email body text
+1. Write a MIN-MAX-LEN email using the tone of ${specialInfo}
+2. Print ${specialInfo} after the greeting
+3. Use RATE TEXT
+4. add ADDITIONAL INFO but do not exceed MIN-MAX-LEN
+5. ADDITIONAL INFO: summarize ${businessInfo.businessDescription}
+6. conclude with signature
+7. ${PageUtils.getEmailFormattingInstructions()}
+8. DO NOT include subject line (will be added automatically)
+9. Return ONLY the email body text
 
-EXAMPLE OUTPUT FORMAT (showing all fields populated):
+EXAMPLE OUTPUT FORMAT:
 
 Dear ${clientFirstName},
 
-I hope this message finds you well. I wanted to reach out and introduce myself.
-
-[Business description]
+${specialInfo}
 
 ${rateText}
 
-${specialInfo}
+[ADDITIONAL INFO]
 
-I would love to discuss how I can support your needs. Please let me know if you'd be interested in connecting.
-
-Looking forward to hearing from you,
+Let's add you to the calendar,
 
 ${signatureExample}
 

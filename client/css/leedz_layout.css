@@ -1105,6 +1105,10 @@ input.invalid {
   background-color: #17a2b8;
 }
 
+.toast-warning {
+  background-color: #ef4444;
+}
+
 /* ================================================== */
 /* STATUS MESSAGE (PDF Settings Page)                 */
 /* ================================================== */

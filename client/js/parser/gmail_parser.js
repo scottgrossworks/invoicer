@@ -60,15 +60,37 @@ class GmailParser extends EventParser {
 
   /**
    * Extract client data from Gmail header (email, name)
-   * @returns {Array<Object>} Array with single client from sender
+   * @returns {Array<Object>} Array with clients from sender and recipient(s)
    */
   async extractClientData() {
-    const emailData = this._extractEmailAndName();
+    const clients = [];
 
-    // Return array with single client (the sender)
-    return [{
-      email: emailData.email || null,
-      name: emailData.name || null
+    // Client 1: Sender
+    const senderData = this._extractEmailAndName();
+    if (senderData && (senderData.email || senderData.name)) {
+      clients.push({
+        email: senderData.email || null,
+        name: senderData.name || null
+      });
+    }
+
+    // Client 2+: Recipient(s)
+    const recipients = this._extractRecipients();
+    if (recipients && recipients.length > 0) {
+      recipients.forEach(recipient => {
+        if (recipient.email || recipient.name) {
+          clients.push({
+            email: recipient.email || null,
+            name: recipient.name || null
+          });
+        }
+      });
+    }
+
+    // Always return at least sender if available
+    return clients.length > 0 ? clients : [{
+      email: senderData?.email || null,
+      name: senderData?.name || null
     }];
   }
 
@@ -242,6 +264,41 @@ class GmailParser extends EventParser {
     } catch (error) {
       console.error('Error extracting email/name:', error);
       return { email: null, name: null };
+    }
+  }
+
+  /**
+   * Extract recipient(s) from Gmail "To:" field
+   * @returns {Array<Object>} Array of recipient objects [{email, name}, ...]
+   */
+  _extractRecipients() {
+    try {
+      const recipients = [];
+
+      // Find recipient elements in the "To:" field
+      // Gmail uses .g2 for recipient container, and .hB for individual recipients
+      const recipientElements = document.querySelectorAll('.hB[email], .g2 [email]');
+
+      if (recipientElements.length > 0) {
+        recipientElements.forEach(el => {
+          // Skip if this element is in a quote block
+          if (el.closest('.gmail_quote')) return;
+
+          const email = el.getAttribute('email');
+          const rawName = el.getAttribute('name') || el.textContent?.trim();
+          const name = this._normalizeName(rawName);
+
+          // Only add if we have at least email or name
+          if (email || name) {
+            recipients.push({ email, name });
+          }
+        });
+      }
+
+      return recipients;
+    } catch (error) {
+      console.error('Error extracting recipients:', error);
+      return [];
     }
   }
 

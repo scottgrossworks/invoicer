@@ -26,10 +26,14 @@ const { Booking } = require('./Booking');
 const { Config } = require('./Config');
 const { exportAllDataToCSV } = require('./csv_exporter');
 
+// Detect if running in pkg and get actual executable directory
+const isPkg = typeof process.pkg !== 'undefined';
+const baseDir = isPkg ? path.dirname(process.execPath) : path.join(__dirname, '..');
+
 // Resolve and validate database path from config
 if (config?.database?.url && config.database.url.startsWith('file:')) {
   const relativePath = config.database.url.replace(/^file:/, '');
-  const absolutePath = path.resolve(__dirname, '..', relativePath);
+  const absolutePath = path.resolve(baseDir, relativePath);
   config.database.url = 'file:' + absolutePath;
 }
 
@@ -95,7 +99,7 @@ function asyncRoute(handler, operation) {
 
 // Get port from config or environment variable
 const port = process.env.PORT || config.port || 3000;
-initLogging(config.logging, __dirname);
+initLogging(config.logging, baseDir);
 
 app.use(express.json());
 app.use(cors());
@@ -636,6 +640,22 @@ module.exports.dumpConfig = dumpConfig;
  */
 (async () => {
   try {
+    // Ensure data directory exists
+    const fs = require('fs');
+    const dataDir = path.resolve(baseDir, 'data');
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+      log(`Created data directory: ${dataDir}`);
+    }
+
+    // Copy canonical database on first run
+    const dbPath = path.resolve(baseDir, 'data', 'leedz_invoicer.sqlite');
+    const canonicalDbPath = path.resolve(baseDir, 'prisma', 'leedz.sqlite');
+    if (!fs.existsSync(dbPath) && fs.existsSync(canonicalDbPath)) {
+      fs.copyFileSync(canonicalDbPath, dbPath);
+      log(`Initialized database from canonical template: ${dbPath}`);
+    }
+
     // Test database connection with timeout
     await Promise.race([
       db.connect(),

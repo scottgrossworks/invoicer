@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Win32;
 
 namespace tray;
 
@@ -161,14 +162,15 @@ public class ConfigForm : Form
         contentPanel.Controls.Add(chkDebugMode);
         yPos += chkDebugMode.Height + controlToControlSpacing;
 
-        // Auto-Start Checkbox (disabled for now)
-        chkAutoStart.Text = "Enable Auto-Start (not yet implemented)";
+        // Auto-Start Checkbox
+        chkAutoStart.Text = "Start TheLeedz automatically when Windows starts";
         chkAutoStart.Left = leftMargin;
         chkAutoStart.Top = yPos;
         chkAutoStart.Width = 450;
         chkAutoStart.Font = new Font("Segoe UI", 10, FontStyle.Regular);
         chkAutoStart.AutoSize = true;
-        chkAutoStart.Enabled = false;
+        chkAutoStart.Enabled = true;
+        chkAutoStart.CheckedChanged += OnAutoStartChanged;
         contentPanel.Controls.Add(chkAutoStart);
         yPos += chkAutoStart.Height + controlToControlSpacing;
 
@@ -323,6 +325,9 @@ public class ConfigForm : Form
         {
             lblStatus.Text = $"Error loading config: {ex.Message}";
         }
+
+        // Load auto-start state from registry
+        LoadAutoStartState();
     }
 
     private void OnOKClick()
@@ -343,6 +348,80 @@ public class ConfigForm : Form
 
         this.DialogResult = DialogResult.OK;
         this.Close();
+    }
+
+    /// <summary>
+    /// Load auto-start checkbox state from Windows Registry
+    /// </summary>
+    private void LoadAutoStartState()
+    {
+        try
+        {
+            const string keyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
+            const string appName = "TheLeedz";
+
+            using (RegistryKey? key = Registry.CurrentUser.OpenSubKey(keyPath, false))
+            {
+                if (key != null)
+                {
+                    object? value = key.GetValue(appName);
+                    chkAutoStart.Checked = (value != null);
+                }
+            }
+        }
+        catch
+        {
+            // If we can't read registry, default to unchecked
+            chkAutoStart.Checked = false;
+        }
+    }
+
+    /// <summary>
+    /// Event handler for auto-start checkbox change
+    /// Sets or removes registry entry for Windows startup
+    /// </summary>
+    private void OnAutoStartChanged(object? sender, EventArgs e)
+    {
+        try
+        {
+            const string keyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
+            const string appName = "TheLeedz";
+            string exePath = Application.ExecutablePath;
+
+            using (RegistryKey? key = Registry.CurrentUser.OpenSubKey(keyPath, true))
+            {
+                if (key == null)
+                {
+                    MessageBox.Show(
+                        "Cannot access the Windows startup registry key.",
+                        "Error",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error
+                    );
+                    return;
+                }
+
+                if (chkAutoStart.Checked)
+                {
+                    // Enable auto-start: Add registry entry
+                    key.SetValue(appName, exePath);
+                }
+                else
+                {
+                    // Disable auto-start: Remove registry entry
+                    key.DeleteValue(appName, false);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Failed to update auto-start setting: {ex.Message}",
+                "Error",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error
+            );
+        }
     }
 
     private bool ValidateInputs()

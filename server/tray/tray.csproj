@@ -7,6 +7,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>img\icon.ico</ApplicationIcon>
+    <AssemblyName>TheLeedz</AssemblyName>
   </PropertyGroup>
 
 </Project>

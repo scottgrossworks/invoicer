@@ -189,7 +189,7 @@ export class PageUtils {
     if (userName) lines.push(userName);
     if (businessInfo.businessName) lines.push(businessInfo.businessName);
     if (businessInfo.contactHandle) lines.push(businessInfo.contactHandle);
-    if (businessInfo.businessPhone) lines.push(businessInfo.businessPhone);
+    if (businessInfo.businessPhone) lines.push( ValidationUtils.formatPhoneForDisplay(businessInfo.businessPhone));
 
     return lines.join('\n');
   }

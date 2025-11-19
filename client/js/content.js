@@ -366,7 +366,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
         // 1. Click Compose button (for new email)
         console.log('Looking for Compose button...');
         const composeButton = document.querySelector('[aria-label="Compose"]') ||
-                             document.querySelector('[role="button"]:has-text("Compose")') ||
+                             Array.from(document.querySelectorAll('[role="button"]')).find(btn => btn.textContent.includes('Compose')) ||
                              document.querySelector('.T-I.T-I-KE.L3');  // Gmail's compose button class
         if (!composeButton) {
           console.error('Compose button not found in DOM');
