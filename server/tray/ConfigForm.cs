@@ -45,10 +45,19 @@ public class ConfigForm : Form
     {
         this.Text = "Leedz Server Configuration";
 
-        // Icon path fix
+        // Set form icon for taskbar
         try
         {
-            string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../img/icon.ico");
+            string exeDir = AppDomain.CurrentDomain.BaseDirectory;
+
+            // Try packaged mode path first (dist-pkg/leedz-server-win-x64/img/icon.ico)
+            string iconPath = Path.Combine(exeDir, "img/icon.ico");
+            if (!File.Exists(iconPath))
+            {
+                // Fall back to dev mode path (tray/dist/ -> tray/img/icon.ico)
+                iconPath = Path.Combine(exeDir, "../../img/icon.ico");
+            }
+
             if (File.Exists(iconPath))
             {
                 this.Icon = new Icon(iconPath);

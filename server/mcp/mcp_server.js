@@ -239,8 +239,9 @@ function buildClaudeRequestBody(userMessage) {
     return {
         model: config.llm.provider,
         max_tokens: config.llm.max_tokens,
+        system: SYSTEM_PROMPT,
         messages: [
-            { role: 'user', content: `${SYSTEM_PROMPT}\n\n${userMessage}` }
+            { role: 'user', content: userMessage }
         ]
     };
 }

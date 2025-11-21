@@ -262,6 +262,54 @@ app.put("/clients/:id/touch", asyncRoute(async (req, res) => {
   });
 }, "PUT /clients/:id/touch"));
 
+/**
+ * PUT /clients/touch
+ * Marks client as processed by name or email
+ * Accepts: { name: "John Doe" } OR { email: "john@example.com" }
+ * Returns error if client not found or multiple matches
+ */
+app.put("/clients/touch", asyncRoute(async (req, res) => {
+  const { name, email } = req.body;
+
+  if (!name && !email) {
+    return res.status(400).json({
+      error: "Missing required parameter",
+      message: "Must provide either 'name' or 'email'"
+    });
+  }
+
+  // Look up client by email (exact match) or name (contains)
+  const filters = email ? { email } : { name };
+  const clients = await db.getClients(filters);
+
+  if (clients.length === 0) {
+    return res.status(404).json({
+      error: "Client not found",
+      message: email
+        ? `No client found with email: ${email}`
+        : `No client found with name: ${name}`
+    });
+  }
+
+  if (clients.length > 1) {
+    return res.status(400).json({
+      error: "Multiple clients found",
+      message: `Found ${clients.length} clients matching '${name || email}'. Please be more specific or use client ID.`,
+      clients: clients.map(c => ({ id: c.id, name: c.name, email: c.email }))
+    });
+  }
+
+  // Exactly one client found - touch it
+  const client = clients[0];
+  const touchedClient = await db.updateClient(client.id, {});
+
+  res.status(200).json({
+    success: true,
+    message: "Client marked as processed",
+    client: touchedClient
+  });
+}, "PUT /clients/touch"));
+
 // CLIENT STATISTICS ENDPOINTS
 
 /**
