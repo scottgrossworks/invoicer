@@ -21,11 +21,6 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 
-// Load config using fs.readFileSync to bypass Node.js module cache
-// This ensures config changes are picked up on server restart
-const configPath = path.join(__dirname, '..', 'server_config.json');
-const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-
 const { DatabaseFactory } = require('./db_factory');
 const { Client } = require('./Client');
 const { Booking } = require('./Booking');
@@ -36,7 +31,15 @@ const { exportAllDataToCSV } = require('./csv_exporter');
 const isPkg = typeof process.pkg !== 'undefined';
 const baseDir = isPkg ? path.dirname(process.execPath) : path.join(__dirname, '..');
 
+// Load config using fs.readFileSync to bypass Node.js module cache
+// In packaged mode, read from filesystem (next to .exe), not from pkg snapshot
+// This ensures config changes are picked up on server restart
+const configPath = path.join(baseDir, 'server_config.json');
+const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+
 // Logging will be initialized later, so use console for early startup messages
+console.log(`[STARTUP] Running in ${isPkg ? 'PACKAGED' : 'DEV'} mode`);
+console.log(`[STARTUP] Base directory: ${baseDir}`);
 console.log(`[STARTUP] Config loaded from: ${configPath}`);
 console.log(`[STARTUP] Database config: ${JSON.stringify(config.database)}`);
 

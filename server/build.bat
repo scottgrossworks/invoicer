@@ -178,7 +178,8 @@ for %%A in (%ARCHITECTURES%) do (
     set "PKG_DIR=%DIST_DIR%\leedz-server-win-%%A"
 
     :: Create launch_leedz.bat
-    ( echo @echo off
+    (
+        echo @echo off
         echo :: Leedz Server Launcher
         echo :: Starts TheLeedz application and backend server
         echo.
