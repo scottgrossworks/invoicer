@@ -188,7 +188,7 @@ function handleToolsList(id) {
             tools: [
                 {
                     name: 'gmail_send',
-                    description: 'Send email via Gmail using authorized account. Supports plain text and file attachments. When user uploads files, include them in attachments array with base64-encoded content.',
+                    description: 'Send email via Gmail OR save to drafts folder. IMPORTANT: Set draft=true to save email to drafts instead of sending (allows user to manually review, attach files, and send). Set draft=false or omit to send immediately. Ask user preference if unclear. Supports plain text and file attachments.',
                     inputSchema: {
                         type: 'object',
                         properties: {
@@ -211,6 +211,10 @@ function handleToolsList(id) {
                             bcc: {
                                 type: 'string',
                                 description: 'BCC recipients (comma-separated)'
+                            },
+                            draft: {
+                                type: 'boolean',
+                                description: 'If true, save to drafts folder instead of sending immediately. User can then review, attach files, and send manually from Gmail.'
                             },
                             attachments: {
                                 type: 'array',
@@ -259,24 +263,30 @@ async function handleToolCall(id, params) {
 
     // Extract email parameters from tool call
     const args = params.arguments || {};
-    const { to, subject, body, cc, bcc, attachments } = args;
+    const { to, subject, body, cc, bcc, draft, attachments } = args;
 
     if (!to || !subject || !body) {
         return createErrorResponse(id, -32602, 'Missing required parameters: to, subject, body');
     }
 
     try {
-        console.error(`[Gmail MCP] Sending email to ${to}${attachments ? ` with ${attachments.length} attachment(s)` : ''}`);
+        const isDraft = draft === true;
+        const action = isDraft ? 'Creating draft' : 'Sending email';
+        console.error(`[Gmail MCP] ${action} to ${to}${attachments ? ` with ${attachments.length} attachment(s)` : ''}`);
 
         // Build MIME email message
         const mimeMessage = buildMimeMessage(to, subject, body, cc, bcc, attachments);
 
-        // Send via Gmail API
-        const messageId = await sendGmailMessage(mimeMessage);
+        // Send via Gmail API or create draft
+        const result = await sendGmailMessage(mimeMessage, isDraft);
 
-        console.error(`[Gmail MCP] Email sent successfully. Message ID: ${messageId}`);
+        const successMsg = isDraft
+            ? `Draft created successfully for ${to}. Draft ID: ${result}`
+            : `Email sent successfully to ${to}. Message ID: ${result}`;
 
-        return createSuccessResponse(id, `Email sent successfully to ${to}. Message ID: ${messageId}`);
+        console.error(`[Gmail MCP] ${successMsg}`);
+
+        return createSuccessResponse(id, successMsg);
 
     } catch (error) {
         console.error(`[Gmail MCP] Failed to send email: ${error.message}`);
@@ -355,11 +365,12 @@ function buildMimeMessage(to, subject, body, cc, bcc, attachments) {
 }
 
 /**
- * Send email via Gmail API
+ * Send email via Gmail API or create draft
  * @param {string} mimeMessage - RFC 2822 formatted message
- * @returns {Promise<string>} Gmail message ID
+ * @param {boolean} isDraft - If true, create draft instead of sending
+ * @returns {Promise<string>} Gmail message ID or draft ID
  */
-async function sendGmailMessage(mimeMessage) {
+async function sendGmailMessage(mimeMessage, isDraft = false) {
     // Base64url encode the message
     const encodedMessage = Buffer.from(mimeMessage)
         .toString('base64')
@@ -367,10 +378,19 @@ async function sendGmailMessage(mimeMessage) {
         .replace(/\//g, '_')
         .replace(/=+$/, '');
 
+    // Choose endpoint and payload based on draft flag
+    const endpoint = isDraft
+        ? 'https://gmail.googleapis.com/gmail/v1/users/me/drafts'
+        : 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send';
+
+    const payload = isDraft
+        ? { message: { raw: encodedMessage } }
+        : { raw: encodedMessage };
+
     // Call Gmail API
     const response = await axios.post(
-        'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
-        { raw: encodedMessage },
+        endpoint,
+        payload,
         {
             headers: {
                 'Authorization': `Bearer ${oauthToken}`,

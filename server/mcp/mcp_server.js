@@ -1,6 +1,6 @@
 /**
  * ==============================================================================
- * LEEDZ INVOICER - MCP SERVER
+ * LEEDZ - MCP SERVER
  * ==============================================================================
  * 
  * Model Context Protocol server that bridges natural language requests 
@@ -480,13 +480,13 @@ function handleToolsList(id) {
             tools: [
                 {
                     name: 'the_leedz',
-                    description: 'Interact with the Leedz invoicing system. Create clients, manage bookings, generate IDs, and get statistics.',
+                    description: 'Interact with the Leedz CRM system. Create clients, manage bookings, generate IDs, and get statistics.',
                     inputSchema: {
                         type: 'object',
                         properties: {
                             message: {
                                 type: 'string',
-                                description: 'Natural language request to the invoicing system'
+                                description: 'Natural language request to the Leedz CRM'
                             }
                         },
                         required: ['message']
@@ -529,7 +529,7 @@ async function handleToolCall(id, params) {
         const action = await translateWithClaude(userMessage);
 
         if (!action) {
-            return createSuccessResponse(id, "I couldn't understand your request. Please try being more specific about what you want to do with the invoicing system.");
+            return createSuccessResponse(id, "I couldn't understand your request. Please try being more specific about what you want to do with the Leedz.");
         }
 
         // Handle non-actionable requests (conversations)
