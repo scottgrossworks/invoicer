@@ -397,19 +397,15 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
         // Allow menu to close when showing modal dialog
         allowMenuClose = true;
 
-        // 1. Create ConfigForm, passing the full config file path
-        using (ConfigForm configForm = new ConfigForm(CONFIG_FILE))
+        // Create ConfigForm with restart callback
+        using (ConfigForm configForm = new ConfigForm(CONFIG_FILE, () => {
+            StopNodeServer();
+            System.Threading.Thread.Sleep(1000);  // Give server 1 second to fully shut down
+            StartNodeServer();
+        }))
         {
-            // 2. Show modal dialog and wait for user response
-            DialogResult result = configForm.ShowDialog(this);
-
-            // 3. If user clicked OK, restart the server with new config
-            if (result == DialogResult.OK)
-            {
-                StopNodeServer();
-                System.Threading.Thread.Sleep(1000);  // Give server 1 second to fully shut down
-                StartNodeServer();
-            }
+            // Show modal dialog - stays open until user clicks Cancel or closes window
+            configForm.ShowDialog(this);
         }
 
         // Close the menu after Configure dialog closes
@@ -500,6 +496,9 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
     {
         // Set flag to allow menu to close
         allowMenuClose = true;
+
+        // Stop the server before exiting
+        StopNodeServer();
 
         // Clean up tray icon
         if (trayIcon != null) trayIcon.Visible = false;

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Net.Http;
@@ -27,10 +28,12 @@ public class ConfigForm : Form
     private Label lblStatus = new();
 
     private readonly string configFilePath;
+    private readonly Action? onSaveCallback;
 
-    public ConfigForm(string configFilePath)
+    public ConfigForm(string configFilePath, Action? onSaveCallback = null)
     {
         this.configFilePath = configFilePath;
+        this.onSaveCallback = onSaveCallback;
         InitializeForm();
         LoadCurrentConfig();
         CheckServerStatus();
@@ -346,8 +349,18 @@ public class ConfigForm : Form
             return;
         }
 
-        // Save succeeded - status message already set by SaveConfig()
-        // Form remains open so user can make more changes or export
+        // Save succeeded - invoke restart callback if provided
+        try
+        {
+            onSaveCallback?.Invoke();
+            lblStatus.Text = "Configuration saved. Server restarted successfully.";
+            lblStatus.ForeColor = Color.DarkGreen;
+        }
+        catch (Exception ex)
+        {
+            lblStatus.Text = $"Config saved but server restart failed: {ex.Message}";
+            lblStatus.ForeColor = Color.DarkRed;
+        }
     }
 
     /// <summary>
@@ -473,6 +486,7 @@ public class ConfigForm : Form
                 File.Move(tempPath, configFilePath);
 
                 lblStatus.Text = "Configuration saved successfully.";
+                lblStatus.ForeColor = Color.DarkGreen;
                 return true;
             }
         }
@@ -588,19 +602,18 @@ public class ConfigForm : Form
     }
 
     /// <summary>
-    /// Check if server is running on configured port - called when form opens
+    /// Check if server is running - called when form opens
     /// Disables Export button and shows red status message if server is not running
     /// </summary>
-    private async void CheckServerStatus()
+    private void CheckServerStatus()
     {
-        int port = GetConfiguredPort();
-        bool serverRunning = await IsServerRunning(port);
+        bool serverRunning = IsServerRunning();
 
         if (!serverRunning)
         {
             btnExport.Enabled = false;
             btnExport.BackColor = Color.Gray;
-            lblStatus.Text = "Leedz Server is not running.  Start Server in tray menu."; 
+            lblStatus.Text = "Leedz Server is not running.  Start Server in tray menu.";
             lblStatus.ForeColor = Color.DarkRed;
         }
         else
@@ -611,20 +624,29 @@ public class ConfigForm : Form
     }
 
     /// <summary>
-    /// Test if server is running by attempting a quick health check
+    /// Check if server process is running by looking for leedz-server.exe or node.exe
+    /// More reliable than HTTP ping since server might still be starting up
     /// </summary>
-    /// <param name="port">Server port to check</param>
-    /// <returns>True if server responds, false otherwise</returns>
-    private async Task<bool> IsServerRunning(int port)
+    /// <returns>True if server process exists, false otherwise</returns>
+    private bool IsServerRunning()
     {
         try
         {
-            using var client = new HttpClient();
-            client.Timeout = TimeSpan.FromSeconds(2);
+            // Check for packaged exe
+            var leedzProcesses = Process.GetProcessesByName("leedz-server");
+            if (leedzProcesses.Length > 0)
+            {
+                return true;
+            }
 
-            // Try to connect to server root endpoint
-            HttpResponseMessage response = await client.GetAsync($"http://localhost:{port}/");
-            return response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.NotFound;
+            // Check for dev mode (node process)
+            var nodeProcesses = Process.GetProcessesByName("node");
+            if (nodeProcesses.Length > 0)
+            {
+                return true;
+            }
+
+            return false;
         }
         catch
         {

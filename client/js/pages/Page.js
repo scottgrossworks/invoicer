@@ -207,10 +207,10 @@ export class Page {
    * This is called when user clicks Reload button
    */
   async cycleNextBooking() {
-    // If no cache, just reload normally
+    // If no cache, just reload normally (force full parse, skip DB check)
     if (this.bookingsCache.length === 0) {
       console.log('No bookings cache, performing full reload');
-      return await this.reloadParser();
+      return await this.reloadParser({ forceFullParse: true });
     }
 
     // If more bookings available in cache
@@ -225,10 +225,10 @@ export class Page {
 
       console.log(`Loaded booking ${position} of ${total} from cache`);
     } else {
-      // Cache exhausted, clear and re-parse
+      // Cache exhausted, clear and re-parse (force full parse, skip DB check)
       console.log('All cached bookings shown, re-parsing page...');
       this.clearBookingsCache();
-      await this.reloadParser();
+      await this.reloadParser({ forceFullParse: true });
     }
   }
 
@@ -303,8 +303,11 @@ export class Page {
    * 2. Search DB for existing client/booking
    * 3. If found: use DB data (green table), skip full parse
    * 4. If not found: do full parse (procedural + LLM)
+   *
+   * @param {Object} options - Optional configuration
+   * @param {boolean} options.forceFullParse - If true, skip DB check and always do full parse
    */
-  async reloadParser() {
+  async reloadParser(options = {}) {
     try {
       // Clear bookings cache when doing full reload
       this.clearBookingsCache();
@@ -335,35 +338,40 @@ export class Page {
 
             // STEP 1: Quick identity extraction (name/email only)
             // NOTE: This is optional - if parser doesn't support quickExtractIdentity, skip it
+            // SKIP this step if forceFullParse is true (reload button clicked)
             let dbClient = null;
-            try {
-              log('Extracting identity...');
-              const identityResponse = await new Promise(resolve => {
-                chrome.tabs.sendMessage(tabId, {
-                  type: 'leedz_extract_identity'
-                }, resolve);
-              });
+            if (!options.forceFullParse) {
+              try {
+                log('Extracting identity...');
+                const identityResponse = await new Promise(resolve => {
+                  chrome.tabs.sendMessage(tabId, {
+                    type: 'leedz_extract_identity'
+                  }, resolve);
+                });
 
-              if (identityResponse?.ok && identityResponse?.identity) {
-                const identity = identityResponse.identity;
-                console.log('Identity extracted:', identity);
+                if (identityResponse?.ok && identityResponse?.identity) {
+                  const identity = identityResponse.identity;
+                  console.log('Identity extracted:', identity);
 
-                // STEP 2: Search DB if we have identity data
-                if (window.DB_LAYER && (identity.email || identity.name)) {
-                  log('Searching database...');
-                  dbClient = await window.DB_LAYER.searchClient(identity.email, identity.name);
-                  console.log('DB search result:', dbClient);
-                } else {
-                  if (!window.DB_LAYER) {
-                    console.log('DB_LAYER not available - skipping DB search');
+                  // STEP 2: Search DB if we have identity data
+                  if (window.DB_LAYER && (identity.email || identity.name)) {
+                    log('Searching database...');
+                    dbClient = await window.DB_LAYER.searchClient(identity.email, identity.name);
+                    console.log('DB search result:', dbClient);
                   } else {
-                    console.log('No identity data - skipping DB search');
+                    if (!window.DB_LAYER) {
+                      console.log('DB_LAYER not available - skipping DB search');
+                    } else {
+                      console.log('No identity data - skipping DB search');
+                    }
                   }
                 }
+              } catch (identityError) {
+                // Identity extraction failed - this is OK, just skip DB search
+                console.log('Identity extraction not supported by this parser - skipping DB search');
               }
-            } catch (identityError) {
-              // Identity extraction failed - this is OK, just skip DB search
-              console.log('Identity extraction not supported by this parser - skipping DB search');
+            } else {
+              console.log('Force full parse enabled - skipping DB check');
             }
 
             // STEP 3: If found in DB, use that data and skip full parse
@@ -425,6 +433,26 @@ export class Page {
 
             // STEP 4: Not in DB - do full parse (procedural + LLM)
             log('Client not in database - parsing page...');
+
+            // If forceFullParse (reload button), prepare state for fresh booking data
+            if (options.forceFullParse) {
+              // Preserve client name/email if they came from DB
+              const preservedName = this.state.Client._fromDB ? this.state.Client.name : null;
+              const preservedEmail = this.state.Client._fromDB ? this.state.Client.email : null;
+              const preservedFromDB = this.state.Client._fromDB;
+
+              // Clear booking data to get fresh parse
+              this.state.Booking = {};
+
+              // Clear client data except name/email if from DB
+              this.state.Client = {};
+              if (preservedFromDB) {
+                this.state.Client.name = preservedName;
+                this.state.Client.email = preservedEmail;
+                this.state.Client._fromDB = preservedFromDB;
+                console.log('Preserved DB client identity for reload:', { name: preservedName, email: preservedEmail });
+              }
+            }
 
             // Initialize state with parser defaults
             if (p.initialize) {
