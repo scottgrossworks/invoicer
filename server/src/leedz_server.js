@@ -19,7 +19,13 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const config = require('../server_config.json');
+const fs = require('fs');
+
+// Load config using fs.readFileSync to bypass Node.js module cache
+// This ensures config changes are picked up on server restart
+const configPath = path.join(__dirname, '..', 'server_config.json');
+const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+
 const { DatabaseFactory } = require('./db_factory');
 const { Client } = require('./Client');
 const { Booking } = require('./Booking');
@@ -30,11 +36,16 @@ const { exportAllDataToCSV } = require('./csv_exporter');
 const isPkg = typeof process.pkg !== 'undefined';
 const baseDir = isPkg ? path.dirname(process.execPath) : path.join(__dirname, '..');
 
+// Logging will be initialized later, so use console for early startup messages
+console.log(`[STARTUP] Config loaded from: ${configPath}`);
+console.log(`[STARTUP] Database config: ${JSON.stringify(config.database)}`);
+
 // Resolve and validate database path from config
 if (config?.database?.url && config.database.url.startsWith('file:')) {
   const relativePath = config.database.url.replace(/^file:/, '');
   const absolutePath = path.resolve(baseDir, relativePath);
   config.database.url = 'file:' + absolutePath;
+  console.log(`[STARTUP] Resolved database path: ${absolutePath}`);
 }
 
 const app = express();
@@ -677,6 +688,36 @@ app.post("/api/export/csv", asyncRoute(async (req, res) => {
   }
 }, "POST /api/export/csv"));
 
+/**
+ * POST /api/shutdown
+ * Gracefully shuts down the server
+ * Closes database connections, stops HTTP server, and exits process
+ */
+app.post("/api/shutdown", asyncRoute(async (req, res) => {
+  log('[SHUTDOWN] Graceful shutdown requested via API');
+
+  // Send response before shutting down
+  res.status(200).json({
+    success: true,
+    message: "Server shutting down gracefully"
+  });
+
+  // Give response time to send, then shutdown
+  setTimeout(async () => {
+    try {
+      log('[SHUTDOWN] Disconnecting database...');
+      await db.disconnect();
+      log('[SHUTDOWN] Database disconnected');
+
+      log('[SHUTDOWN] Exiting process...');
+      process.exit(0);
+    } catch (err) {
+      log(`[SHUTDOWN] Error during shutdown: ${err.message}`);
+      process.exit(1);
+    }
+  }, 500);
+}, "POST /api/shutdown"));
+
 // Export dump functions for MCP server
 module.exports.dumpClients = dumpClients;
 module.exports.dumpBookings = dumpBookings;
@@ -705,13 +746,14 @@ module.exports.dumpConfig = dumpConfig;
     }
 
     // Test database connection with timeout
+    log('[STARTUP] Attempting database connection...');
     await Promise.race([
       db.connect(),
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Database connection timed out after 10000ms')), 10000)
       )
     ]);
-    log(`Database connected successfully:${canonicalDbPath}`);
+    log(`[STARTUP] Database connected successfully to: ${config.database.url}`);
 
     const server = app.listen(port, () => {
       log(`! Local API running on http://localhost:${port}`);

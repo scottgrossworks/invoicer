@@ -29,11 +29,13 @@ public class ConfigForm : Form
 
     private readonly string configFilePath;
     private readonly Action? onSaveCallback;
+    private readonly Action<string>? logCallback;
 
-    public ConfigForm(string configFilePath, Action? onSaveCallback = null)
+    public ConfigForm(string configFilePath, Action? onSaveCallback = null, Action<string>? logCallback = null)
     {
         this.configFilePath = configFilePath;
         this.onSaveCallback = onSaveCallback;
+        this.logCallback = logCallback;
         InitializeForm();
         LoadCurrentConfig();
         CheckServerStatus();
@@ -118,6 +120,7 @@ public class ConfigForm : Form
         txtDbPath.Width = controlWidth;
         txtDbPath.Height = controlHeight;
         txtDbPath.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+        txtDbPath.TextChanged += OnDbPathChanged;
         contentPanel.Controls.Add(txtDbPath);
         yPos = txtDbPath.Top + txtDbPath.Height + controlToControlSpacing;
 
@@ -276,6 +279,8 @@ public class ConfigForm : Form
         this.CancelButton = btnCancel;
     }
 
+    private string? originalDbPath = null;
+
     private void LoadCurrentConfig()
     {
         try
@@ -292,7 +297,10 @@ public class ConfigForm : Form
                 var root = doc.RootElement;
 
                 if (root.TryGetProperty("database", out var dbObj) && dbObj.TryGetProperty("url", out var dbUrl))
+                {
                     txtDbPath.Text = dbUrl.GetString() ?? "";
+                    originalDbPath = txtDbPath.Text;
+                }
 
                 if (root.TryGetProperty("port", out var port))
                     txtServerPort.Text = port.GetInt32().ToString();
@@ -306,22 +314,8 @@ public class ConfigForm : Form
                         chkDebugMode.Checked = (level.GetString() == "debug");
                 }
 
-                // Set default export path: <log directory>/<database_name>.csv
-                string logFilePath = txtLogFilePath.Text;
-                string dbPath = txtDbPath.Text;
-
-                if (!string.IsNullOrEmpty(logFilePath) && !string.IsNullOrEmpty(dbPath))
-                {
-                    // Extract log directory
-                    string logDirectory = Path.GetDirectoryName(logFilePath) ?? "";
-
-                    // Extract database name from URL (e.g., "file:./data/leedz_invoicer.sqlite" -> "leedz_invoicer")
-                    string dbFileName = Path.GetFileNameWithoutExtension(dbPath.Replace("file:", "").Replace("./", ""));
-
-                    // Construct default export path
-                    string defaultExportPath = Path.Combine(logDirectory, $"{dbFileName}.csv");
-                    txtExportPath.Text = defaultExportPath;
-                }
+                // Set default export path using shared method
+                UpdateExportPath();
             }
         }
         catch (Exception ex)
@@ -343,6 +337,16 @@ public class ConfigForm : Form
             return;
         }
 
+        // Check if database URL changed
+        string newDbPath = txtDbPath.Text;
+        bool dbChanged = (originalDbPath != newDbPath);
+
+        if (dbChanged)
+        {
+            logCallback?.Invoke($"[CONFIG] Database switching from: {originalDbPath}");
+            logCallback?.Invoke($"[CONFIG] Database switching to: {newDbPath}");
+        }
+
         if (!SaveConfig())
         {
             // Save failed - do nothing, form stays open
@@ -350,16 +354,27 @@ public class ConfigForm : Form
         }
 
         // Save succeeded - invoke restart callback if provided
+        if (dbChanged)
+        {
+            logCallback?.Invoke("[CONFIG] Configuration saved. Restarting server with new database...");
+        }
+
         try
         {
             onSaveCallback?.Invoke();
             lblStatus.Text = "Configuration saved. Server restarted successfully.";
             lblStatus.ForeColor = Color.DarkGreen;
+
+            if (dbChanged)
+            {
+                logCallback?.Invoke("[CONFIG] Server restarted successfully with new database");
+            }
         }
         catch (Exception ex)
         {
             lblStatus.Text = $"Config saved but server restart failed: {ex.Message}";
             lblStatus.ForeColor = Color.DarkRed;
+            logCallback?.Invoke($"[CONFIG] Server restart failed: {ex.Message}");
         }
     }
 
@@ -386,6 +401,38 @@ public class ConfigForm : Form
         {
             // If we can't read registry, default to unchecked
             chkAutoStart.Checked = false;
+        }
+    }
+
+    /// <summary>
+    /// Event handler for database path changes
+    /// Automatically updates export path to match database filename
+    /// </summary>
+    private void OnDbPathChanged(object? sender, EventArgs e)
+    {
+        UpdateExportPath();
+    }
+
+    /// <summary>
+    /// Updates the export path based on current database path and log directory
+    /// Format: <log_directory>/<database_name>.csv
+    /// </summary>
+    private void UpdateExportPath()
+    {
+        string logFilePath = txtLogFilePath.Text;
+        string dbPath = txtDbPath.Text;
+
+        if (!string.IsNullOrEmpty(logFilePath) && !string.IsNullOrEmpty(dbPath))
+        {
+            // Extract log directory
+            string logDirectory = Path.GetDirectoryName(logFilePath) ?? "";
+
+            // Extract database name from URL (e.g., "file:./data/leedz_invoicer.sqlite" -> "leedz_invoicer")
+            string dbFileName = Path.GetFileNameWithoutExtension(dbPath.Replace("file:", "").Replace("./", ""));
+
+            // Construct export path
+            string exportPath = Path.Combine(logDirectory, $"{dbFileName}.csv");
+            txtExportPath.Text = exportPath;
         }
     }
 

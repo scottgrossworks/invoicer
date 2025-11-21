@@ -5,8 +5,11 @@ using System.Text.Json;
 using System.Windows.Forms;
 using System.Drawing;
 using System.Runtime.CompilerServices;
-
 using System.Reflection;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
+using System.Linq;
 
 namespace tray;
 
@@ -231,33 +234,37 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
     {
         try
         {
+            DebugWrite("[TRAY] Starting server...");
+
             // If already running, do nothing
             if (nodeProcess != null && !nodeProcess.HasExited)
             {
-                DebugWrite("Leedz server is already running.");
-                MessageBox.Show("Leedz server is already running.");
+                DebugWrite("[TRAY] Server is already running");
                 return;
             }
 
             // Check if server is already running externally (launched by launch_leedz.bat)
             if (IsPackagedDeployment && IsServerRunningExternal())
             {
-                DebugWrite("Server is already running (started externally).");
-                MessageBox.Show("Server is already running (started by launch_leedz.bat).\n\nUse Stop Server to stop it first.");
+                DebugWrite("[TRAY] Server is already running (started externally)");
                 return;
             }
 
             // Validate that server config file exists
             if (!File.Exists(CONFIG_FILE))
             {
-                DebugWrite($"Server config not found at: {CONFIG_FILE}");
+                DebugWrite($"[TRAY] Server config not found at: {CONFIG_FILE}");
                 MessageBox.Show($"Server config not found at: {CONFIG_FILE}");
                 return;
             }
 
+            DebugWrite($"[TRAY] Server config file: {CONFIG_FILE}");
+            DebugWrite($"[TRAY] Working directory: {ServerDir}");
+
             ProcessStartInfo psi;
             if (IsPackagedDeployment)
             {
+                DebugWrite($"[TRAY] Starting packaged server: {SERVER_EXE}");
                 // Production: use leedz-server.exe
                 psi = new ProcessStartInfo(SERVER_EXE)
                 {
@@ -270,6 +277,7 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
             }
             else
             {
+                DebugWrite($"[TRAY] Starting dev server: node {SERVER_SCRIPT}");
                 // Development: use node + script
                 psi = new ProcessStartInfo("node")
                 {
@@ -295,19 +303,20 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
             bool started = nodeProcess.Start();
             if (started)
             {
+                DebugWrite($"[TRAY] Server process started (PID: {nodeProcess.Id})");
                 nodeProcess.BeginOutputReadLine();
                 nodeProcess.BeginErrorReadLine();
                 if (trayIcon != null) trayIcon.Text = "Leedz Server: running";
             }
             else
             {
-                DebugWrite("Failed to start server process.");
+                DebugWrite("[TRAY] Failed to start server process");
                 MessageBox.Show("Failed to start server process.");
             }
         }
         catch (Exception ex)
         {
-            DebugWrite("Error starting server: " + ex.Message);
+            DebugWrite($"[TRAY] Error starting server: {ex.Message}");
             MessageBox.Show("Error starting server: " + ex.Message);
         }
     }
@@ -355,7 +364,7 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
     /// Always writes to log file if _logFilePath is set.
     /// Also attempts console output (fails silently in WinExe).
     /// </summary>
-    private void DebugWrite(string text)
+    public void DebugWrite(string text)
     {
         string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
         string logLine = $"[{timestamp}] {text}";
@@ -397,12 +406,14 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
         // Allow menu to close when showing modal dialog
         allowMenuClose = true;
 
-        // Create ConfigForm with restart callback
+        // Create ConfigForm with restart callback and log callback
         using (ConfigForm configForm = new ConfigForm(CONFIG_FILE, () => {
+            DebugWrite("[CONFIG] Stopping server for configuration change...");
             StopNodeServer();
             System.Threading.Thread.Sleep(1000);  // Give server 1 second to fully shut down
+            DebugWrite("[CONFIG] Starting server with new configuration...");
             StartNodeServer();
-        }))
+        }, DebugWrite))
         {
             // Show modal dialog - stays open until user clicks Cancel or closes window
             configForm.ShowDialog(this);
@@ -428,64 +439,230 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
     }
 
     /// <summary>
-    /// Terminates the server process.
-    /// In packaged mode, kills all leedz-server.exe processes.
-    /// In dev mode, kills the tracked node process.
+    /// Terminates the server process gracefully, then forcefully if needed.
+    /// 1. Attempts graceful shutdown via HTTP API
+    /// 2. Falls back to killing processes by name
+    /// 3. Cleans up orphaned node.exe processes
     /// Updates tray icon tooltip to "stopped" state.
     /// </summary>
     private void StopNodeServer()
     {
         try
         {
+            DebugWrite("[TRAY] Stopping server...");
             bool stopped = false;
 
-            // First, try to stop our tracked process
-            if (nodeProcess != null && !nodeProcess.HasExited)
+            // STEP 1: Try graceful shutdown via HTTP API
+            if (TryGracefulShutdown())
             {
-                try
-                {
-                    nodeProcess.Kill(entireProcessTree: true);
-                }
-                catch
-                {
-                    nodeProcess.Kill();
-                }
-                nodeProcess.WaitForExit(5000);
-                nodeProcess = null;
+                DebugWrite("[TRAY] Graceful shutdown successful");
                 stopped = true;
+                nodeProcess = null;
             }
-
-            // In packaged mode, also kill any external leedz-server.exe processes
-            if (IsPackagedDeployment)
+            else
             {
-                var externalProcesses = Process.GetProcessesByName("leedz-server");
-                foreach (var proc in externalProcesses)
+                DebugWrite("[TRAY] Graceful shutdown failed, falling back to forceful termination");
+
+                // STEP 2: Try to stop our tracked process
+                if (nodeProcess != null && !nodeProcess.HasExited)
                 {
+                    DebugWrite($"[TRAY] Killing tracked process (PID: {nodeProcess.Id})");
                     try
                     {
-                        proc.Kill(entireProcessTree: true);
-                        proc.WaitForExit(5000);
-                        stopped = true;
+                        nodeProcess.Kill(entireProcessTree: true);
+                        nodeProcess.WaitForExit(5000);
                     }
-                    catch { }
+                    catch
+                    {
+                        try
+                        {
+                            nodeProcess.Kill();
+                            nodeProcess.WaitForExit(5000);
+                        }
+                        catch (Exception ex)
+                        {
+                            DebugWrite($"[TRAY] Failed to kill tracked process: {ex.Message}");
+                        }
+                    }
+                    nodeProcess = null;
+                    stopped = true;
                 }
+
+                // STEP 3: In packaged mode, kill leedz-server.exe processes
+                if (IsPackagedDeployment)
+                {
+                    var externalProcesses = Process.GetProcessesByName("leedz-server");
+                    DebugWrite($"[TRAY] Found {externalProcesses.Length} external leedz-server processes");
+                    foreach (var proc in externalProcesses)
+                    {
+                        try
+                        {
+                            DebugWrite($"[TRAY] Killing external process (PID: {proc.Id})");
+                            proc.Kill(entireProcessTree: true);
+                            proc.WaitForExit(5000);
+                            stopped = true;
+                        }
+                        catch (Exception ex)
+                        {
+                            DebugWrite($"[TRAY] Failed to kill PID {proc.Id}: {ex.Message}");
+                        }
+                    }
+                }
+
+                // STEP 4: Clean up orphaned node.exe processes in our working directory
+                KillOrphanedNodeProcesses();
             }
 
             if (trayIcon != null) trayIcon.Text = "Leedz Server: stopped";
 
-            if (!stopped)
+            if (stopped)
             {
-                MessageBox.Show("Server was not running.");
+                DebugWrite("[TRAY] Server stopped successfully");
             }
             else
             {
-                DebugWrite("Server stopped successfully.");
+                DebugWrite("[TRAY] Server was not running");
             }
         }
         catch (Exception ex)
         {
+            DebugWrite($"[TRAY] Error stopping server: {ex.Message}");
             MessageBox.Show("Error stopping server: " + ex.Message);
         }
+    }
+
+    /// <summary>
+    /// Attempts graceful shutdown via HTTP API endpoint
+    /// Returns true if successful, false otherwise
+    /// </summary>
+    private bool TryGracefulShutdown()
+    {
+        try
+        {
+            DebugWrite("[TRAY] Attempting graceful shutdown via API...");
+
+            // Read port from config
+            int port = 3000; // default
+            try
+            {
+                if (File.Exists(CONFIG_FILE))
+                {
+                    string json = File.ReadAllText(CONFIG_FILE);
+                    using (var doc = JsonDocument.Parse(json))
+                    {
+                        if (doc.RootElement.TryGetProperty("port", out var portProp))
+                        {
+                            port = portProp.GetInt32();
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            using (var client = new HttpClient())
+            {
+                client.Timeout = TimeSpan.FromSeconds(3);
+                string url = $"http://localhost:{port}/api/shutdown";
+
+                var content = new StringContent("{}", Encoding.UTF8, "application/json");
+                var response = client.PostAsync(url, content).Result;
+
+                if (response.IsSuccessStatusCode)
+                {
+                    // Wait for process to exit
+                    if (nodeProcess != null && !nodeProcess.HasExited)
+                    {
+                        bool exited = nodeProcess.WaitForExit(5000);
+                        return exited;
+                    }
+                    return true;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugWrite($"[TRAY] Graceful shutdown exception: {ex.Message}");
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Kills orphaned node.exe processes that match our server script path
+    /// This cleans up zombie processes left behind by incomplete shutdowns
+    /// </summary>
+    private void KillOrphanedNodeProcesses()
+    {
+        try
+        {
+            DebugWrite("[TRAY] Checking for orphaned node.exe processes...");
+
+            var nodeProcesses = Process.GetProcessesByName("node");
+            int killedCount = 0;
+
+            string serverScriptPath = Path.GetFullPath(SERVER_SCRIPT).ToLower();
+            string serverDir = ServerDir.ToLower();
+
+            foreach (var proc in nodeProcesses)
+            {
+                try
+                {
+                    // Get command line to check if it's our server
+                    string cmdLine = GetProcessCommandLine(proc);
+
+                    if (!string.IsNullOrEmpty(cmdLine) &&
+                        (cmdLine.ToLower().Contains(serverScriptPath) ||
+                         cmdLine.ToLower().Contains("leedz_server.js")))
+                    {
+                        DebugWrite($"[TRAY] Killing orphaned node process (PID: {proc.Id}): {cmdLine}");
+                        proc.Kill(entireProcessTree: true);
+                        proc.WaitForExit(2000);
+                        killedCount++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    DebugWrite($"[TRAY] Failed to check/kill node process: {ex.Message}");
+                }
+            }
+
+            if (killedCount > 0)
+            {
+                DebugWrite($"[TRAY] Killed {killedCount} orphaned node process(es)");
+            }
+            else
+            {
+                DebugWrite("[TRAY] No orphaned node processes found");
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugWrite($"[TRAY] Error checking orphaned processes: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Gets the command line of a process using WMI
+    /// Returns empty string if unable to retrieve
+    /// </summary>
+    private string GetProcessCommandLine(Process process)
+    {
+        try
+        {
+            using (var searcher = new System.Management.ManagementObjectSearcher(
+                $"SELECT CommandLine FROM Win32_Process WHERE ProcessId = {process.Id}"))
+            {
+                foreach (System.Management.ManagementObject obj in searcher.Get())
+                {
+                    return obj["CommandLine"]?.ToString() ?? "";
+                }
+            }
+        }
+        catch
+        {
+            // WMI access may fail due to permissions
+        }
+        return "";
     }
 
     /// <summary>

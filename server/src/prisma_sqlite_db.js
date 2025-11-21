@@ -4,6 +4,13 @@ const { Leedz_DB } = require('./leedz_db');
 class Prisma_Sqlite_DB extends Leedz_DB {
   constructor(databaseUrl) {
     super();
+    this.databaseUrl = databaseUrl;
+
+    // CRITICAL: Set DATABASE_URL environment variable before creating PrismaClient
+    // This ensures Prisma uses the correct database from server_config.json
+    // The datasources config parameter alone is unreliable across Prisma versions
+    process.env.DATABASE_URL = databaseUrl;
+
     this.prisma = new PrismaClient({
       log: ['query', 'error'],
       errorFormat: 'pretty',
@@ -16,7 +23,11 @@ class Prisma_Sqlite_DB extends Leedz_DB {
   }
 
   async connect() {
+    const { log } = require('./logging');
+    log(`[DB] DATABASE_URL environment variable: ${process.env.DATABASE_URL}`);
+    log(`[DB] Connecting to database: ${this.databaseUrl}`);
     await this.prisma.$connect();
+    log(`[DB] Connection established to: ${this.databaseUrl}`);
   }
 
   async disconnect() {
@@ -618,10 +629,14 @@ class Prisma_Sqlite_DB extends Leedz_DB {
       this.prisma.config.count()
     ]);
 
+    // Extract database name from URL (e.g., "file:./prisma/leedz.sqlite" -> "leedz.sqlite")
+    const dbName = this.databaseUrl.replace('file:', '').split('/').pop().split('\\').pop();
+
     return {
       clients: totalClients,
       bookings: totalBookings,
-      configs: totalConfigs
+      configs: totalConfigs,
+      databaseName: dbName
     };
   }
 }
