@@ -9,6 +9,7 @@
  */
 import { EventParser } from './event_parser.js';
 import { PageUtils } from '../utils/Page_Utils.js';
+import { ValidationUtils } from '../utils/ValidationUtils.js';
 import Client from '../db/Client.js';
 import Booking from '../db/Booking.js';
 
@@ -21,6 +22,7 @@ class GmailParser extends EventParser {
     super();
     this.STATE = null;
     this.name = 'GmailParser';
+    this.userConfig = null; // Stores user's Config data for identity filtering
   }
 
   async _initializeConfig() {
@@ -36,6 +38,26 @@ class GmailParser extends EventParser {
     }
   }
 
+  /**
+   * Load user's Config data for identity filtering
+   * Called during initialize to get companyEmail/companyName
+   */
+  async _loadUserConfig() {
+    try {
+      // Load Config from state if available
+      if (this.STATE && this.STATE.Config) {
+        this.userConfig = this.STATE.Config;
+        console.log('GmailParser: User config loaded from state', {
+          hasEmail: !!this.userConfig.companyEmail,
+          hasName: !!this.userConfig.companyName
+        });
+      }
+    } catch (error) {
+      console.warn('GmailParser: Failed to load user config, identity filtering disabled:', error);
+      this.userConfig = null;
+    }
+  }
+
   async checkPageMatch(url) {
     return (url || window.location.href).includes('mail.google.com');
   }
@@ -43,6 +65,9 @@ class GmailParser extends EventParser {
   async initialize(state) {
     this.STATE = state;
     this.STATE.clear();
+
+    // Load user config for identity filtering
+    await this._loadUserConfig();
   }
 
   /**
@@ -60,6 +85,7 @@ class GmailParser extends EventParser {
 
   /**
    * Extract client data from Gmail header (email, name)
+   * Filters out user's own identity using Config data
    * @returns {Array<Object>} Array with clients from sender and recipient(s)
    */
   async extractClientData() {
@@ -68,10 +94,15 @@ class GmailParser extends EventParser {
     // Client 1: Sender
     const senderData = this._extractEmailAndName();
     if (senderData && (senderData.email || senderData.name)) {
-      clients.push({
-        email: senderData.email || null,
-        name: senderData.name || null
-      });
+      // Filter out user's own identity
+      if (!ValidationUtils.isUserIdentity(senderData.email, senderData.name, this.userConfig)) {
+        clients.push({
+          email: senderData.email || null,
+          name: senderData.name || null
+        });
+      } else {
+        console.log('GmailParser: Filtered out user identity from sender:', senderData);
+      }
     }
 
     // Client 2+: Recipient(s)
@@ -79,19 +110,21 @@ class GmailParser extends EventParser {
     if (recipients && recipients.length > 0) {
       recipients.forEach(recipient => {
         if (recipient.email || recipient.name) {
-          clients.push({
-            email: recipient.email || null,
-            name: recipient.name || null
-          });
+          // Filter out user's own identity
+          if (!ValidationUtils.isUserIdentity(recipient.email, recipient.name, this.userConfig)) {
+            clients.push({
+              email: recipient.email || null,
+              name: recipient.name || null
+            });
+          } else {
+            console.log('GmailParser: Filtered out user identity from recipients:', recipient);
+          }
         }
       });
     }
 
-    // Always return at least sender if available
-    return clients.length > 0 ? clients : [{
-      email: senderData?.email || null,
-      name: senderData?.name || null
-    }];
+    // Return filtered clients, or empty array if all were filtered
+    return clients.length > 0 ? clients : [];
   }
 
   /**

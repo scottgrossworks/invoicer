@@ -21,9 +21,16 @@ export class Gmailer extends Page {
   }
 
   /**
+   * Gmailer is a config/management page - never auto-parses
+   */
+  isStartupPage() {
+    return true;
+  }
+
+  /**
    * Called when gmailer page becomes visible
    */
-  async onShow() {
+  async onShowImpl() {
     // Load MCP config and check server health
     await this.loadMcpConfigAndCheckServer();
   }

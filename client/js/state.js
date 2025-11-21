@@ -286,6 +286,8 @@ export class StateFactory {
   static async create() {
     const state = new State( false );  // Don't auto-load in constructor
     await state.load();  // Wait for load to complete
+
+    /*
     console.log('StateFactory.create() - State loaded:', {
       hasClient: !!(state.Client?.name || state.Client?.email),
       clientName: state.Client?.name,
@@ -293,6 +295,7 @@ export class StateFactory {
       hasBooking: !!(state.Booking?.title || state.Booking?.location),
       bookingTitle: state.Booking?.title
     });
+    */
     return state;
   }
 

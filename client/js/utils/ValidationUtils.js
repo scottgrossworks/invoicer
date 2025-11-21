@@ -193,4 +193,36 @@ export class ValidationUtils {
   static isEmpty(str) {
     return !str || String(str).trim() === '';
   }
+
+  /**
+   * Check if email/name matches the user's own identity
+   * Used to filter out user's own contact info from client lists
+   * @param {string} email - Email to check
+   * @param {string} name - Name to check
+   * @param {object} config - Config object with companyEmail and companyName
+   * @returns {boolean} True if this is the user's identity (should be filtered out)
+   */
+  static isUserIdentity(email, name, config) {
+    if (!config) return false;
+
+    // Normalize emails for comparison (case-insensitive)
+    const normalizeEmail = (e) => e ? e.toLowerCase().trim() : '';
+
+    // Check email match
+    if (email && config.companyEmail) {
+      if (normalizeEmail(email) === normalizeEmail(config.companyEmail)) {
+        return true;
+      }
+    }
+
+    // Check name match (case-insensitive, whitespace normalized)
+    if (name && config.companyName) {
+      const normalizeName = (n) => n ? n.toLowerCase().replace(/\s+/g, ' ').trim() : '';
+      if (normalizeName(name) === normalizeName(config.companyName)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
 }

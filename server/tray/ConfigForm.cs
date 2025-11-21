@@ -242,7 +242,7 @@ public class ConfigForm : Form
             BackColor = Color.Green,
             Width = buttonWidth,
             Height = buttonHeight,
-            DialogResult = DialogResult.OK,
+            // REMOVED: DialogResult = DialogResult.OK - was causing auto-close behavior
             Font = new Font("Segoe UI", 11, FontStyle.Bold)
         };
         btnSave.Click += (s, e) => OnOKClick();
@@ -257,7 +257,7 @@ public class ConfigForm : Form
             Text = "Cancel",
             Width = buttonWidth,
             Height = buttonHeight,
-            DialogResult = DialogResult.Cancel,
+            DialogResult = DialogResult.Cancel,  // FIXME? WILL CLOSE THE DIALOG by default 11/19/25
             Font = new Font("Segoe UI", 11, FontStyle.Regular)
         };
         buttonFlow.Controls.Add(btnCancel);
@@ -336,18 +336,18 @@ public class ConfigForm : Form
 
         if (!ValidateInputs())
         {
-            this.DialogResult = DialogResult.None;
+            // Validation failed - do nothing, form stays open
             return;
         }
 
         if (!SaveConfig())
         {
-            this.DialogResult = DialogResult.None;
+            // Save failed - do nothing, form stays open
             return;
         }
 
-        this.DialogResult = DialogResult.OK;
-        this.Close();
+        // Save succeeded - status message already set by SaveConfig()
+        // Form remains open so user can make more changes or export
     }
 
     /// <summary>
@@ -517,7 +517,7 @@ public class ConfigForm : Form
             btnExport.Enabled = false;
             btnExport.Text = "Exporting...";
             lblStatus.Text = "Exporting database to CSV...";
-            lblStatus.ForeColor = Color.DarkBlue;
+     
 
             // Get server port
             int port = GetConfiguredPort();
@@ -599,7 +599,8 @@ public class ConfigForm : Form
         if (!serverRunning)
         {
             btnExport.Enabled = false;
-            lblStatus.Text = "Database export requires the server to be running. Go back to the tray menu and start the server.";
+            btnExport.BackColor = Color.Gray;
+            lblStatus.Text = "Leedz Server is not running.  Start Server in tray menu."; 
             lblStatus.ForeColor = Color.DarkRed;
         }
         else

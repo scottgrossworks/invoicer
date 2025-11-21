@@ -59,9 +59,9 @@ export class Responder extends Page {
 
   /**
    * Called when responder page becomes visible
+   * Base class handles smart parsing logic
    */
-  async onShow() {
-
+  async onShowImpl() {
     // Load Config data from DB if not already loaded (needed for response generation)
     await this.state.loadConfigFromDB();
 
@@ -87,51 +87,19 @@ export class Responder extends Page {
       console.log('Config loaded successfully from DB:', this.state.Config.companyName);
     }
 
-    // Check if we have existing data
-    const hasClientData = this.state.Client.name || this.state.Client.email;
-    const hasBookingData = this.state.Booking.title || this.state.Booking.location;
-
-    if (hasClientData || hasBookingData) {
-      console.log('✓ Has data - checking DB for existing client...');
-
-      // We have data - but we need to check DB to set _fromDB flag
-      // (flag gets stripped during state save/load, so we must refresh it)
-
-      if (!window.DB_LAYER) {
-        console.log('ERROR:  DB_LAYER not available!');
-        showToast('Database connection unavailable', 'error');
-        this.state.Client._fromDB = false;
-      } else if (!this.state.Client.email && !this.state.Client.name) {
-        console.log('ERROR: No email or name to search with');
-        this.state.Client._fromDB = false;
-      } else {
-          console.log('DB_LAYER available, searching for client:', {
-          email: this.state.Client.email,
-          name: this.state.Client.name
-        });
-
-        const dbClient = await window.DB_LAYER.searchClient(
-          this.state.Client.email,
-          this.state.Client.name
-        );
-
-
-        console.log('DB search results:', {
-          found: !!dbClient,
-          clientData: dbClient
-        });
-
-
-        this.state.Client._fromDB = (dbClient) ? true : false;
-      }
-
-      // Now populate and show UI
-      this.updateFromState(this.state);
+    // Refresh _fromDB flag by checking database
+    if (window.DB_LAYER && (this.state.Client.email || this.state.Client.name)) {
+      const dbClient = await window.DB_LAYER.searchClient(
+        this.state.Client.email,
+        this.state.Client.name
+      );
+      this.state.Client._fromDB = !!dbClient;
     } else {
-      console.log('No DB data found - running parser...');
-      // No data - run parser (it handles showing/hiding spinner)
-      await this.reloadParser();
+      this.state.Client._fromDB = false;
     }
+
+    // Populate and show UI
+    this.updateFromState(this.state);
   }
 
   /**

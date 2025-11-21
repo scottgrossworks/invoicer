@@ -170,7 +170,7 @@ async function initializeApp() {
 
         // Instantiate page
         PAGES[pageConfig.id] = new PageClass(STATE);
-        console.log(`Loaded page: ${pageConfig.id} (${pageConfig.label})`);
+        // console.log(`Loaded page: ${pageConfig.id} (${pageConfig.label})`);
 
       } catch (error) {
         console.error(`Failed to load page ${pageConfig.id}:`, error);

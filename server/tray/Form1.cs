@@ -19,12 +19,16 @@ namespace tray;
 
 public partial class Form1 : Form
 {
-    // Paths - exe deployed to server/tray/dist/tray.exe
+    // Paths - exe deployed to server/tray/dist/tray.exe (dev) or dist-pkg/leedz-server-win-x64/ (prod)
     private string ExeDir => AppDomain.CurrentDomain.BaseDirectory;
-    private string ServerDir => Path.GetFullPath(Path.Combine(ExeDir, "../../"));
+    private string ServerDir => IsPackagedDeployment ? ExeDir : Path.GetFullPath(Path.Combine(ExeDir, "../../"));
+
+    // Detect if running from packaged deployment (leedz-server.exe in same dir as TheLeedz.exe)
+    private bool IsPackagedDeployment => File.Exists(Path.Combine(ExeDir, "leedz-server.exe"));
 
     public string CONFIG_FILE => Path.Combine(ServerDir, "server_config.json");
     public string SERVER_SCRIPT => Path.Combine(ServerDir, "src/leedz_server.js");
+    public string SERVER_EXE => Path.Combine(ExeDir, "leedz-server.exe");
     public string ICON_PATH => Path.Combine(ExeDir, "img/icon.ico");
 
     private string? _logFilePath;
@@ -32,6 +36,12 @@ public partial class Form1 : Form
 
     private NotifyIcon? trayIcon;
     private Process? nodeProcess;
+    private ToolStripMenuItem? headerMenuItem;
+    private ToolStripMenuItem? exitMenuItem;
+    private Font? headerFont;
+    private SolidBrush? greenBrush;
+    private SolidBrush? whiteBrush;
+    private bool allowMenuClose = false;
 
     /// <summary>
     /// Constructor - initializes tray application.
@@ -101,6 +111,11 @@ private void SetupTrayIcon()
         throw new FileNotFoundException($"Icon not found: {ICON_PATH}");
     }
 
+    // Initialize cached objects for Paint event
+    headerFont = new Font("Segoe UI", 12, FontStyle.Bold);
+    greenBrush = new SolidBrush(Color.Green);
+    whiteBrush = new SolidBrush(Color.White);
+
     trayIcon = new NotifyIcon();
     trayIcon.Icon = new Icon(ICON_PATH);
     trayIcon.Text = "Leedz Server (stopped)";
@@ -109,41 +124,79 @@ private void SetupTrayIcon()
     // Create menu with custom renderer for header
     ContextMenuStrip menu = new ContextMenuStrip();
     menu.Renderer = new CustomMenuRenderer();
-    
-    // Header as disabled item - we'll draw it ourselves
-    ToolStripMenuItem header = new ToolStripMenuItem("Leedz Server");
-    header.Enabled = false;
 
-    header.Font = new Font("Segoe UI", 12, FontStyle.Bold);
-    header.Paint += (s, e) => {
+    // Header as disabled item - we'll draw it ourselves
+    headerMenuItem = new ToolStripMenuItem("Leedz Server");
+    headerMenuItem.Enabled = false;
+    headerMenuItem.Font = headerFont;
+    headerMenuItem.Paint += (s, e) => {
         // Fill background
-        e.Graphics.FillRectangle(new SolidBrush(Color.Green), e.ClipRectangle);
-        
+        e.Graphics.FillRectangle(greenBrush, e.ClipRectangle);
+
         // Draw white text centered
-        TextRenderer.DrawText(e.Graphics, "Leedz Server", 
-            new Font("Segoe UI", 12, FontStyle.Bold),
+        TextRenderer.DrawText(e.Graphics, "Leedz Server",
+            headerFont,
             e.ClipRectangle, Color.White,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
-    };
-    
-    header.Padding = new Padding(10);
-    
-    menu.BackColor = Color.WhiteSmoke;
-    menu.Padding = new Padding(5);  
 
-    menu.Items.Add(header);
+        // Draw status indicator circle on the right
+        bool isRunning = IsServerCurrentlyRunning();
+        Color indicatorColor = isRunning ? Color.LimeGreen : Color.Red;
+        int circleSize = 14;
+        int margin = 20;
+        int circleX = e.ClipRectangle.Right - circleSize - margin;
+        int circleY = e.ClipRectangle.Top + (e.ClipRectangle.Height - circleSize) / 2;
+
+        e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        using (SolidBrush indicatorBrush = new SolidBrush(indicatorColor))
+        {
+            e.Graphics.FillEllipse(indicatorBrush, circleX, circleY, circleSize, circleSize);
+        }
+    };
+
+    headerMenuItem.Padding = new Padding(10);
+
+    menu.BackColor = Color.WhiteSmoke;
+    menu.Padding = new Padding(5);
+
+    menu.Items.Add(headerMenuItem);
     menu.Items.Add(new ToolStripSeparator());
     menu.Items.Add("Start Server", null, OnStartServerClick);
     menu.Items.Add("Configure", null, OnConfigClick);
     menu.Items.Add("Stop Server", null, OnStopServerClick);
     menu.Items.Add(new ToolStripSeparator());
-    menu.Items.Add("Exit", null, OnExitClick);
+    exitMenuItem = new ToolStripMenuItem("Exit", null, OnExitClick);
+    menu.Items.Add(exitMenuItem);
+
+    // Prevent menu from closing except for Exit or outside clicks
+    menu.Closing += (s, e) => {
+        // Allow close if Exit was clicked
+        if (allowMenuClose)
+        {
+            allowMenuClose = false; // Reset flag
+            return;
+        }
+
+        // Allow close if user clicked outside, pressed Escape, or lost focus
+        if (e.CloseReason == ToolStripDropDownCloseReason.AppClicked ||
+            e.CloseReason == ToolStripDropDownCloseReason.AppFocusChange ||
+            e.CloseReason == ToolStripDropDownCloseReason.Keyboard)
+        {
+            return; // Allow close
+        }
+
+        // If user clicked a menu item, cancel close - keep menu open
+        if (e.CloseReason == ToolStripDropDownCloseReason.ItemClicked)
+        {
+            e.Cancel = true;
+        }
+    };
 
     trayIcon.ContextMenuStrip = menu;
     trayIcon.MouseClick += (s, e) => {
         if (e.Button == MouseButtons.Left)
         {
-            MethodInfo? mi = typeof(NotifyIcon).GetMethod("ShowContextMenu", 
+            MethodInfo? mi = typeof(NotifyIcon).GetMethod("ShowContextMenu",
                 BindingFlags.NonPublic | BindingFlags.Instance);
             mi?.Invoke(trayIcon, null);
         }
@@ -164,11 +217,14 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
     {
         // Start the Node server when the user clicks Start Server
         StartNodeServer();
+
+        // Refresh header to show updated status circle
+        headerMenuItem?.Invalidate();
     }
 
     /// <summary>
-    /// Starts the Node.js server process (leedz_server.js).
-    /// Validates config file exists, launches node process with redirected stdout/stderr.
+    /// Starts the server process (node + leedz_server.js in dev, or leedz-server.exe in prod).
+    /// Validates config file exists, launches process with redirected stdout/stderr.
     /// Pipes server output to DebugWrite for logging.
     /// </summary>
     private void StartNodeServer()
@@ -178,9 +234,16 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
             // If already running, do nothing
             if (nodeProcess != null && !nodeProcess.HasExited)
             {
-                
                 DebugWrite("Leedz server is already running.");
                 MessageBox.Show("Leedz server is already running.");
+                return;
+            }
+
+            // Check if server is already running externally (launched by launch_leedz.bat)
+            if (IsPackagedDeployment && IsServerRunningExternal())
+            {
+                DebugWrite("Server is already running (started externally).");
+                MessageBox.Show("Server is already running (started by launch_leedz.bat).\n\nUse Stop Server to stop it first.");
                 return;
             }
 
@@ -192,15 +255,32 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
                 return;
             }
 
-            var psi = new ProcessStartInfo("node")
+            ProcessStartInfo psi;
+            if (IsPackagedDeployment)
             {
-                WorkingDirectory = ServerDir,
-                Arguments = SERVER_SCRIPT,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
+                // Production: use leedz-server.exe
+                psi = new ProcessStartInfo(SERVER_EXE)
+                {
+                    WorkingDirectory = ServerDir,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                };
+            }
+            else
+            {
+                // Development: use node + script
+                psi = new ProcessStartInfo("node")
+                {
+                    WorkingDirectory = ServerDir,
+                    Arguments = SERVER_SCRIPT,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                };
+            }
 
             nodeProcess = new Process();
             nodeProcess.StartInfo = psi;
@@ -221,8 +301,8 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
             }
             else
             {
-                DebugWrite("Failed to start Node process.");
-                MessageBox.Show("Failed to start Node process.");
+                DebugWrite("Failed to start server process.");
+                MessageBox.Show("Failed to start server process.");
             }
         }
         catch (Exception ex)
@@ -230,6 +310,44 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
             DebugWrite("Error starting server: " + ex.Message);
             MessageBox.Show("Error starting server: " + ex.Message);
         }
+    }
+
+    /// <summary>
+    /// Checks if leedz-server.exe is already running externally (not started by this tray app).
+    /// Only relevant in packaged deployment.
+    /// </summary>
+    private bool IsServerRunningExternal()
+    {
+        try
+        {
+            var processes = Process.GetProcessesByName("leedz-server");
+            return processes.Length > 0;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Checks if server is currently running (either tracked by this app or externally).
+    /// Used for status indicator display.
+    /// </summary>
+    private bool IsServerCurrentlyRunning()
+    {
+        // Check our tracked process
+        if (nodeProcess != null && !nodeProcess.HasExited)
+        {
+            return true;
+        }
+
+        // In packaged mode, check for external processes
+        if (IsPackagedDeployment)
+        {
+            return IsServerRunningExternal();
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -276,6 +394,9 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
     /// </summary>
     private void OnConfigClick(object? sender, EventArgs e)
     {
+        // Allow menu to close when showing modal dialog
+        allowMenuClose = true;
+
         // 1. Create ConfigForm, passing the full config file path
         using (ConfigForm configForm = new ConfigForm(CONFIG_FILE))
         {
@@ -290,6 +411,12 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
                 StartNodeServer();
             }
         }
+
+        // Close the menu after Configure dialog closes
+        if (trayIcon?.ContextMenuStrip != null)
+        {
+            trayIcon.ContextMenuStrip.Close();
+        }
     }
 
     /// <summary>
@@ -299,45 +426,65 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
     private void OnStopServerClick(object? sender, EventArgs e)
     {
         StopNodeServer();
+
+        // Refresh header to show updated status circle
+        headerMenuItem?.Invalidate();
     }
 
     /// <summary>
-    /// Terminates the Node.js server process.
-    /// Attempts to kill the entire process tree, waits up to 5 seconds for clean exit.
+    /// Terminates the server process.
+    /// In packaged mode, kills all leedz-server.exe processes.
+    /// In dev mode, kills the tracked node process.
     /// Updates tray icon tooltip to "stopped" state.
     /// </summary>
     private void StopNodeServer()
     {
         try
         {
-            if (nodeProcess == null)
-            {
-                MessageBox.Show("Server is not running.");
-                return;
-            }
+            bool stopped = false;
 
-            if (nodeProcess.HasExited)
+            // First, try to stop our tracked process
+            if (nodeProcess != null && !nodeProcess.HasExited)
             {
-                MessageBox.Show("Server process has already exited.");
+                try
+                {
+                    nodeProcess.Kill(entireProcessTree: true);
+                }
+                catch
+                {
+                    nodeProcess.Kill();
+                }
+                nodeProcess.WaitForExit(5000);
                 nodeProcess = null;
-                if (trayIcon != null) trayIcon.Text = "Leedz Server: stopped";
-                return;
+                stopped = true;
             }
 
-            // Try graceful close first
-            try
+            // In packaged mode, also kill any external leedz-server.exe processes
+            if (IsPackagedDeployment)
             {
-                nodeProcess.Kill(entireProcessTree: true);
-            }
-            catch
-            {
-                // fallback
-                nodeProcess.Kill();
+                var externalProcesses = Process.GetProcessesByName("leedz-server");
+                foreach (var proc in externalProcesses)
+                {
+                    try
+                    {
+                        proc.Kill(entireProcessTree: true);
+                        proc.WaitForExit(5000);
+                        stopped = true;
+                    }
+                    catch { }
+                }
             }
 
-            nodeProcess.WaitForExit(5000);
             if (trayIcon != null) trayIcon.Text = "Leedz Server: stopped";
-            nodeProcess = null;
+
+            if (!stopped)
+            {
+                MessageBox.Show("Server was not running.");
+            }
+            else
+            {
+                DebugWrite("Server stopped successfully.");
+            }
         }
         catch (Exception ex)
         {
@@ -351,6 +498,9 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
     /// </summary>
     private void OnExitClick(object? sender, EventArgs e)
     {
+        // Set flag to allow menu to close
+        allowMenuClose = true;
+
         // Clean up tray icon
         if (trayIcon != null) trayIcon.Visible = false;
         Console.WriteLine("Exiting application...");

@@ -6,8 +6,21 @@ let logFilePath = null;
 function initLogging(loggingConfig, baseDir) {
   try {
     logFilePath = path.resolve(baseDir || __dirname, loggingConfig.file);
+
+    // Ensure log directory exists
+    const logDir = path.dirname(logFilePath);
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir, { recursive: true });
+    }
+
+    // Test write to verify permissions
+    const testMessage = `[${new Date().toISOString()}] Logging initialized: ${logFilePath}\n`;
+    fs.appendFileSync(logFilePath, testMessage);
+    console.log(`Logging enabled: ${logFilePath}`);
   } catch (e) {
-    // Fallback: disable file logging
+    // Fallback: disable file logging and warn
+    console.error(`WARNING: Could not initialize file logging to ${logFilePath}: ${e.message}`);
+    console.error('File logging disabled - console only');
     logFilePath = null;
   }
 }
@@ -18,7 +31,10 @@ function log(message) {
     try {
       fs.appendFileSync(logFilePath, entry);
     } catch (e) {
-      console.error('Failed to write to log:', e && e.message ? e.message : e);
+      console.error(`ERROR: Failed to write to log file ${logFilePath}:`, e && e.message ? e.message : e);
+      // Disable further file logging to avoid repeated errors
+      console.error('Disabling file logging due to write error');
+      logFilePath = null;
     }
   }
   console.log(message);

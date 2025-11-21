@@ -19,9 +19,16 @@ export class Startup extends Page {
   }
 
   /**
+   * Startup page never auto-parses
+   */
+  isStartupPage() {
+    return true;
+  }
+
+  /**
    * Called when startup page becomes visible
    */
-  async onShow() {
+  async onShowImpl() {
     // Load config from database and populate form
     await this.loadConfigFromState();
   }

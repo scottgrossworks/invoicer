@@ -47,7 +47,10 @@
       "Bash(pkg:*)",
       "Bash(del dist-pkgleedz-server-win-x64leedz-server.exe)",
       "Bash(echo:*)",
-      "Bash(call build.bat)"
+      "Bash(call build.bat)",
+      "Bash(powershell -Command \"Get-Item ''C:\\Users\\Scott\\Desktop\\WKG\\INVOICER\\server\\tray\\bin\\Release\\net8.0-windows\\TheLeedz.exe'' | Select-Object FullName, LastWriteTime\")",
+      "Bash(powershell -Command \"Get-Item ''C:\\Users\\Scott\\Desktop\\WKG\\INVOICER\\server\\tray\\dist\\TheLeedz.exe'' | Select-Object FullName, LastWriteTime\")",
+      "Bash(powershell:*)"
     ],
     "deny": [],
     "ask": []

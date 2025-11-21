@@ -61,33 +61,11 @@ export class Thankyou extends Page {
 
   /**
    * Called when thank you page becomes visible
+   * Base class handles smart parsing logic
    */
-  async onShow() {
-
-    console.log('=== THANKYOU ONSHOW() DIAGNOSTIC ===');
-    console.log('STATE at entry:', {
-      hasClient: !!this.state.Client,
-      clientName: this.state.Client?.name,
-      clientEmail: this.state.Client?.email,
-      clientNameType: typeof this.state.Client?.name,
-      clientEmailType: typeof this.state.Client?.email,
-      hasBooking: !!this.state.Booking,
-      bookingTitle: this.state.Booking?.title,
-      bookingLocation: this.state.Booking?.location,
-      fullClient: this.state.Client,
-      fullBooking: this.state.Booking
-    });
-
+  async onShowImpl() {
     // Load Config data from DB if not already loaded (needed for thank you generation)
     await this.state.loadConfigFromDB();
-
-    console.log('Config details:', {
-      hasConfig: !!this.state.Config,
-      hasCompanyName: !!(this.state.Config?.companyName),
-      companyName: this.state.Config?.companyName,
-      companyEmail: this.state.Config?.companyEmail,
-      fullConfig: this.state.Config
-    });
 
     // Check if Config was actually loaded from DB and has data
     const hasConfigData = this.state.Config && (
@@ -99,77 +77,22 @@ export class Thankyou extends Page {
     if (!hasConfigData) {
       console.log('Config exists but is empty - no business data configured');
       showToast('No business configuration found - please configure in Settings', 'warning');
-    } else {
-      console.log('Config loaded successfully from DB:', this.state.Config.companyName);
     }
 
-    // Check if we have existing data
-    const hasClientData = this.state.Client.name || this.state.Client.email;
-    const hasBookingData = this.state.Booking.title || this.state.Booking.location;
-
-    console.log('DATA CHECK RESULTS:', {
-      hasClientData: hasClientData,
-      hasBookingData: hasBookingData,
-      willRunParser: !(hasClientData || hasBookingData)
-    });
-
-    /*
-    console.log('=== DATA CHECK ===');
-    console.log('Client data:', {
-      name: this.state.Client.name,
-      email: this.state.Client.email,
-      hasClientData: hasClientData
-    });
-    console.log('Booking data:', {
-      title: this.state.Booking.title,
-      location: this.state.Booking.location,
-      hasBookingData: hasBookingData
-    });
-    console.log('Current _fromDB flag:', this.state.Client._fromDB);
-    */
-
-    if (hasClientData || hasBookingData) {
-      console.log('✓ Has data - checking DB for existing client...');
-
-      // We have data - but we need to check DB to set _fromDB flag
-      // (flag gets stripped during state save/load, so we must refresh it)
-
-      if (!window.DB_LAYER) {
-        console.log('ERROR:  DB_LAYER not available!');
-        showToast('Database connection unavailable', 'error');
-        this.state.Client._fromDB = false;
-      } else if (!this.state.Client.email && !this.state.Client.name) {
-        console.log('ERROR: No email or name to search with');
-        this.state.Client._fromDB = false;
-      } else {
-          console.log('DB_LAYER available, searching for client:', {
-          email: this.state.Client.email,
-          name: this.state.Client.name
-        });
-
-        const dbClient = await window.DB_LAYER.searchClient(
-          this.state.Client.email,
-          this.state.Client.name
-        );
-
-        
-        console.log('DB search results:', {
-          found: !!dbClient,
-          clientData: dbClient
-        });
-      
-
-        this.state.Client._fromDB = (dbClient) ? true : false;
-        // console.log('=== FINAL _fromDB FLAG:', this.state.Client._fromDB, '===');
-      }
-
-      // Now populate and show UI
-      this.updateFromState(this.state);
+    // Refresh _fromDB flag by checking database
+    // (flag gets stripped during state save/load, so we must refresh it)
+    if (window.DB_LAYER && (this.state.Client.email || this.state.Client.name)) {
+      const dbClient = await window.DB_LAYER.searchClient(
+        this.state.Client.email,
+        this.state.Client.name
+      );
+      this.state.Client._fromDB = !!dbClient;
     } else {
-      console.log('No DB data found - running parser...');
-      // No data - run parser (it handles showing/hiding spinner)
-      await this.reloadParser();
+      this.state.Client._fromDB = false;
     }
+
+    // Populate and show UI
+    this.updateFromState(this.state);
   }
 
   /**

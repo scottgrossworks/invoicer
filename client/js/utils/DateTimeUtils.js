@@ -3,6 +3,9 @@
  * Extracted from sidebar.js for reusability across page components
  */
 
+// Global constant for current year - set once to ensure consistency
+const CURRENT_YEAR = new Date().getFullYear();
+
 export class DateTimeUtils {
 
   /**
@@ -124,7 +127,8 @@ export class DateTimeUtils {
 
   /**
    * Parse display date format back to ISO format
-   * @param {string} displayValue - Date in display format (e.g., "January 15, 2025")
+   * Defaults to current year if no year is provided
+   * @param {string} displayValue - Date in display format (e.g., "January 15, 2025" or "January 15")
    * @returns {string} ISO date string with timezone
    */
   static parseDisplayDateToISO(displayValue) {
@@ -136,9 +140,21 @@ export class DateTimeUtils {
       return s;
     }
 
+    // If the string doesn't contain a 4-digit year, append current year
+    let dateStr = s;
+    if (!/\b\d{4}\b/.test(s)) {
+      dateStr = `${s} ${CURRENT_YEAR}`;
+    }
+
     // Try to parse the display format back to ISO
-    const d = new Date(s);
+    const d = new Date(dateStr);
     if (isNaN(d.getTime())) return s;
+
+    // Validate that the date isn't defaulting to some ancient year (1970, 2001, etc.)
+    if (d.getFullYear() < 2000) {
+      // Reset to current year if we got a weird default year
+      d.setFullYear(CURRENT_YEAR);
+    }
 
     // Convert to ISO format with local timezone
     return d.toISOString().slice(0, 19) + this.getTimezoneOffset();
@@ -202,5 +218,60 @@ export class DateTimeUtils {
     } catch (error) {
       return true; // Don't block on parsing errors
     }
+  }
+
+  /**
+   * Format date range with times for invoice display
+   * Smart formatting that:
+   * - Shows dates in "Month Day, Year" format (December 10, 2025)
+   * - Converts times from 24-hour to 12-hour format (18:00 -> 6PM)
+   * - Omits end date if same as start date
+   * - Omits times if not provided
+   *
+   * Examples:
+   * - "December 10, 2025 6PM - 10PM" (same day)
+   * - "December 10, 2025 6PM - December 11, 2025 2AM" (different days)
+   * - "December 10, 2025" (no times)
+   *
+   * @param {string} startDate - ISO date string
+   * @param {string} startTime - Time in 24-hour format (e.g., "18:00")
+   * @param {string} endDate - ISO date string
+   * @param {string} endTime - Time in 24-hour format (e.g., "22:00")
+   * @returns {string} Formatted date/time range for invoice
+   */
+  static formatInvoiceDateTimeRange(startDate, startTime, endDate, endTime) {
+    if (!startDate) return '';
+
+    // Format start date
+    const formattedStartDate = this.formatDateForDisplay(startDate);
+
+    // Check if dates are the same
+    const sameDay = startDate && endDate &&
+                    new Date(startDate).toDateString() === new Date(endDate).toDateString();
+
+    // Build result string
+    let result = formattedStartDate;
+
+    // Add times if provided
+    if (startTime && endTime) {
+      // Convert to 12-hour format without space before AM/PM
+      const start12 = this.convertTo12Hour(startTime).replace(/\s+(AM|PM)/, '$1');
+      const end12 = this.convertTo12Hour(endTime).replace(/\s+(AM|PM)/, '$1');
+
+      if (sameDay) {
+        // Same day: "December 10, 2025 6PM - 10PM"
+        result += ` ${start12} - ${end12}`;
+      } else {
+        // Different days: "December 10, 2025 6PM - December 11, 2025 10PM"
+        const formattedEndDate = this.formatDateForDisplay(endDate);
+        result += ` ${start12} - ${formattedEndDate} ${end12}`;
+      }
+    } else if (startTime) {
+      // Only start time provided
+      const start12 = this.convertTo12Hour(startTime).replace(/\s+(AM|PM)/, '$1');
+      result += ` ${start12}`;
+    }
+
+    return result;
   }
 }

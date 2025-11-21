@@ -85,6 +85,7 @@ class PDF_template {
     HandlebarsInstance.registerHelper('formatDecimalCurrency', this.formatDecimalCurrency);
     HandlebarsInstance.registerHelper('formatAddress', this.formatAddress);
     HandlebarsInstance.registerHelper('formatPhoneForDisplay', this.formatPhoneForDisplay);
+    HandlebarsInstance.registerHelper('formatInvoiceDateTimeRange', this.formatInvoiceDateTimeRange.bind(this));
     HandlebarsInstance.registerHelper('ifShouldShowBankInfo', function(Config, options) {
       if (PDF_template.prototype.shouldShowBankInfo(Config)) {
         return options.fn(this);
@@ -113,6 +114,13 @@ class PDF_template {
       const values = args.slice(0, -1);
       // console.log('OR helper called with:', { values, result: values.some(val => val) });
       return values.some(val => val);
+    });
+
+    // Logical AND helper for Handlebars templates
+    HandlebarsInstance.registerHelper('and', function (...args) {
+      // Remove the last argument which is Handlebars options
+      const values = args.slice(0, -1);
+      return values.every(val => val);
     });
     
     // Calculates hourly rate from total amount and duration
@@ -236,6 +244,51 @@ class PDF_template {
 
     // Return as-is for other formats
     return phone;
+  }
+
+  /**
+   * Format date range with times for invoice display
+   * Smart formatting that omits repeated dates and converts 24-hour to 12-hour time
+   * @param {string} startDate - ISO date string
+   * @param {string} startTime - Time in 24-hour format
+   * @param {string} endDate - ISO date string
+   * @param {string} endTime - Time in 24-hour format
+   * @returns {string} Formatted date/time range
+   */
+  formatInvoiceDateTimeRange(startDate, startTime, endDate, endTime) {
+    if (!startDate) return '';
+
+    // Format start date
+    const formattedStartDate = this.formatDate(startDate);
+
+    // Check if dates are the same
+    const sameDay = startDate && endDate &&
+                    new Date(startDate).toDateString() === new Date(endDate).toDateString();
+
+    // Build result string
+    let result = formattedStartDate;
+
+    // Add times if provided
+    if (startTime && endTime) {
+      // Convert to 12-hour format without space before AM/PM
+      const start12 = this.formatTime(startTime).replace(/\s*(AM|PM)/i, '$1');
+      const end12 = this.formatTime(endTime).replace(/\s*(AM|PM)/i, '$1');
+
+      if (sameDay) {
+        // Same day: "December 10, 2025 6PM - 10PM"
+        result += ` ${start12} - ${end12}`;
+      } else {
+        // Different days: "December 10, 2025 6PM - December 11, 2025 10PM"
+        const formattedEndDate = this.formatDate(endDate);
+        result += ` ${start12} - ${formattedEndDate} ${end12}`;
+      }
+    } else if (startTime) {
+      // Only start time provided
+      const start12 = this.formatTime(startTime).replace(/\s*(AM|PM)/i, '$1');
+      result += ` ${start12}`;
+    }
+
+    return result;
   }
 
   /**

@@ -36,38 +36,27 @@ export class ClientCapture extends Page {
 
   /**
    * Called when client capture page becomes visible
+   * Base class handles smart parsing logic - this just renders
    */
-  async onShow() {
-    // Check if state already has client data (from previous parse or page switch)
-    // Check both Clients array and Client object (singular) for backward compatibility
+  async onShowImpl() {
+    // Check if state already has client data
     const hasClientsArray = this.state.Clients && this.state.Clients.length > 0;
     const hasClientData = this.state.Client && (this.state.Client.name || this.state.Client.email);
-    const hasExistingData = hasClientsArray || hasClientData;
 
-    if (hasExistingData) {
-      // Load existing client data from state
-      if (hasClientsArray) {
-        this.clients = this.state.Clients.map(c => ({ ...c })); // Clone clients from state array
-      } else if (hasClientData) {
-        this.clients = [{ ...this.state.Client }]; // Convert singular Client to array
-      }
-      this.render();
+    if (hasClientsArray) {
+      // Load from Clients array
+      this.clients = this.state.Clients.map(c => ({ ...c }));
+    } else if (hasClientData) {
+      // Load from singular Client object
+      this.clients = [{ ...this.state.Client }];
     } else {
-      // No existing data - show blank frame and auto-parse
+      // No data - show blank frame
       if (this.clients.length === 0) {
         this.clients.push(this._createBlankClient());
       }
-      this.render();
-
-      // Disable buttons until parser completes
-      this.setButtonsEnabled(false);
-
-      // Run parser to extract client data from current page
-      await this.reloadParser();
-
-      // Enable buttons after parser completes
-      this.setButtonsEnabled(true);
     }
+
+    this.render();
   }
 
   /**

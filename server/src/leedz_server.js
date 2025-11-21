@@ -134,11 +134,36 @@ app.post("/clients", asyncRoute(async (req, res) => {
  * GET /clients
  * Retrieves clients from database with optional filtering
  * 11/3/2025: Added company and search query parameters for expanded client filtering
- * Supports query parameters: email, name, company, search
+ * 11/19/2025: Enhanced with additional operators for better MCP discoverability
+ *
+ * Query Parameters:
+ * - email: Exact email match
+ * - name: Partial name match (contains)
+ * - company: Partial company match (contains)
+ * - search: Search across name/email/company fields
+ * - search_any: Comma-separated keywords, matches any (e.g., "French,France,Francais")
+ * - name_startsWith: Names starting with prefix
+ * - email_endsWith: Emails ending with suffix (e.g., ".edu")
+ * - company_not: Exclude specific company
+ * - updatedAt_lt: Updated before date (ISO format)
+ * - updatedAt_gte: Updated on or after date (ISO format)
+ * - orderBy: Sort field (name, email, company, createdAt, updatedAt)
+ * - order: Sort direction (asc or desc)
  */
 app.get("/clients", asyncRoute(async (req, res) => {
-  const { email, name, company, search } = req.query;
-  const filters = { email, name, company, search };
+  const {
+    email, name, company, search, search_any,
+    name_startsWith, email_endsWith, company_not,
+    updatedAt_lt, updatedAt_gte,
+    orderBy, order
+  } = req.query;
+
+  const filters = {
+    email, name, company, search, search_any,
+    name_startsWith, email_endsWith, company_not,
+    updatedAt_lt, updatedAt_gte,
+    orderBy, order
+  };
 
   const results = await db.getClients(filters);
   res.status(200).json(results);
@@ -186,7 +211,7 @@ app.delete("/clients/:id", asyncRoute(async (req, res) => {
 app.put("/clients/:id", asyncRoute(async (req, res) => {
   const { id } = req.params;
   const updateData = req.body;
-  
+
   const existingClient = await db.getClient(id);
   if (!existingClient) {
     return res.status(404).json({ error: "Client not found" });
@@ -199,6 +224,29 @@ app.put("/clients/:id", asyncRoute(async (req, res) => {
 
   res.status(200).json(updatedClient);
 }, "PUT /clients/:id"));
+
+/**
+ * PUT /clients/:id/touch
+ * Marks client as processed by updating updatedAt timestamp without changing data
+ * Useful for workflow tracking - "I've reviewed this client"
+ */
+app.put("/clients/:id/touch", asyncRoute(async (req, res) => {
+  const { id } = req.params;
+
+  const existingClient = await db.getClient(id);
+  if (!existingClient) {
+    return res.status(404).json({ error: "Client not found" });
+  }
+
+  // Update with empty data - Prisma will still update updatedAt timestamp
+  const touchedClient = await db.updateClient(id, {});
+
+  res.status(200).json({
+    success: true,
+    message: "Client marked as processed",
+    client: touchedClient
+  });
+}, "PUT /clients/:id/touch"));
 
 // CLIENT STATISTICS ENDPOINTS
 
@@ -649,7 +697,7 @@ module.exports.dumpConfig = dumpConfig;
     }
 
     // Copy canonical database on first run
-    const dbPath = path.resolve(baseDir, 'data', 'leedz_invoicer.sqlite');
+    const dbPath = path.resolve(baseDir, 'data', 'leedz.sqlite');
     const canonicalDbPath = path.resolve(baseDir, 'prisma', 'leedz.sqlite');
     if (!fs.existsSync(dbPath) && fs.existsSync(canonicalDbPath)) {
       fs.copyFileSync(canonicalDbPath, dbPath);
@@ -663,7 +711,7 @@ module.exports.dumpConfig = dumpConfig;
         setTimeout(() => reject(new Error('Database connection timed out after 10000ms')), 10000)
       )
     ]);
-    log("Database connected successfully");
+    log(`Database connected successfully:${canonicalDbPath}`);
 
     const server = app.listen(port, () => {
       log(`! Local API running on http://localhost:${port}`);

@@ -104,34 +104,84 @@ class Prisma_Sqlite_DB extends Leedz_DB {
 
   async getClients(filters) {
     let where = {};
+    let orderBy = undefined;
 
-    // 11/3/2025: Enhanced client filtering with company and fulltext search support
-    if (filters?.search) {
-      // Fulltext search across name, email, and company fields
-      // SQLite doesn't support mode parameter - contains is case-insensitive by default
+    // 11/19/2025: Enhanced with additional operators for better MCP discoverability
+
+    // PRIORITY 1: search_any - comma-separated multi-keyword OR search
+    if (filters?.search_any) {
+      const keywords = filters.search_any.split(',').map(kw => kw.trim()).filter(kw => kw);
+      where.OR = keywords.flatMap(kw => [
+        { name: { contains: kw } },
+        { email: { contains: kw } },
+        { company: { contains: kw } }
+      ]);
+    }
+    // PRIORITY 2: search - single keyword OR search across fields
+    else if (filters?.search) {
       where.OR = [
         { name: { contains: filters.search } },
         { email: { contains: filters.search } },
         { company: { contains: filters.search } }
       ];
-    } else {
-      // Individual field filters
-      if (filters?.email) {
-        where.email = filters.email;
-      }
-
+    }
+    // PRIORITY 3: Individual field filters with operators
+    else {
+      // Basic contains filters
       if (filters?.name) {
-        // SQLite doesn't support mode parameter - contains is case-insensitive by default
         where.name = { contains: filters.name };
       }
 
       if (filters?.company) {
-        // SQLite doesn't support mode parameter - contains is case-insensitive by default
         where.company = { contains: filters.company };
+      }
+
+      if (filters?.email) {
+        where.email = filters.email;
+      }
+
+      // Operator filters (can be combined with basic filters)
+      if (filters?.name_startsWith) {
+        where.name = { startsWith: filters.name_startsWith };
+      }
+
+      if (filters?.email_endsWith) {
+        where.email = { endsWith: filters.email_endsWith };
+      }
+
+      if (filters?.company_not) {
+        where.company = { not: { contains: filters.company_not } };
+      }
+
+      // Date filters
+      if (filters?.updatedAt_lt) {
+        where.updatedAt = {
+          ...where.updatedAt,
+          lt: new Date(filters.updatedAt_lt)
+        };
+      }
+
+      if (filters?.updatedAt_gte) {
+        where.updatedAt = {
+          ...where.updatedAt,
+          gte: new Date(filters.updatedAt_gte)
+        };
       }
     }
 
-    return await this.prisma.client.findMany({ where });
+    // Sorting - works with all filter types
+    if (filters?.orderBy) {
+      const allowedOrderFields = ['name', 'email', 'company', 'createdAt', 'updatedAt'];
+      if (allowedOrderFields.includes(filters.orderBy)) {
+        const direction = filters.order === 'desc' ? 'desc' : 'asc';
+        orderBy = { [filters.orderBy]: direction };
+      }
+    }
+
+    return await this.prisma.client.findMany({
+      where,
+      orderBy
+    });
   }
 
   async updateClient(id, data) {

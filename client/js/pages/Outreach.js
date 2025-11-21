@@ -58,8 +58,9 @@ export class Outreach extends Page {
 
   /**
    * Called when outreach page becomes visible
+   * Base class handles smart parsing logic
    */
-  async onShow() {
+  async onShowImpl() {
     // Load Config data from DB if not already loaded
     await this.state.loadConfigFromDB();
 
@@ -80,22 +81,17 @@ export class Outreach extends Page {
 
     if (hasClientsArray) {
       // Load clients array from state
-      console.log('Has Clients array - loading from state');
       this.clients = this.state.Clients.map(c => ({ ...c }));
       this.currentClientIndex = 0;
       this.loadCurrentClient();
-      this.updateFromState(this.state);
     } else if (hasClientData) {
       // Single client in state - convert to array
-      console.log('Has Client data - converting to array');
       this.clients = [{ ...this.state.Client }];
       this.currentClientIndex = 0;
       this.loadCurrentClient();
-      this.updateFromState(this.state);
-    } else {
-      console.log('No data found - running parser...');
-      await this.reloadParser();
     }
+
+    this.updateFromState(this.state);
   }
 
   /**

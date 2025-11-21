@@ -39,22 +39,14 @@ export class Invoicer extends Page {
 
   /**
    * Called when invoicer page becomes visible
+   * Base class handles smart parsing logic
    */
-  async onShow() {
+  async onShowImpl() {
     // Load Config data from DB if not already loaded
     await this.state.loadConfigFromDB();
 
     // Populate table with current state
     this.updateFromState(this.state);
-
-    // Only auto-parse if no data exists (preserves manually entered/extracted data)
-    const hasClientData = this.state.Client.name || this.state.Client.email;
-    const hasBookingData = this.state.Booking.title || this.state.Booking.location;
-
-    if (!hasClientData && !hasBookingData) {
-      // Run parser to extract booking data from current page
-      await this.reloadParser();
-    }
   }
 
   /**

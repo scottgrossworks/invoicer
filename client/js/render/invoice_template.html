@@ -53,8 +53,8 @@
               {{#if bookingData.title}}<div class="event-title">{{bookingData.title}}</div>{{/if}}
               {{#if bookingData.description}}<div class="service-description">{{bookingData.description}}</div>{{/if}}
               <br>
-              <div class="service-date">{{formatDate bookingData.startDate}} {{bookingData.startTime}} &ndash; {{formatDate bookingData.endDate}} {{bookingData.endTime}}</div>
-              <div class="service-hours">{{bookingData.duration}} hours</div>
+              <div class="service-date">{{formatInvoiceDateTimeRange bookingData.startDate bookingData.startTime bookingData.endDate bookingData.endTime}}</div>
+              {{#if bookingData.duration}}<div class="service-hours">{{bookingData.duration}}</div>{{/if}}
               <br>
               <div class="service-location">{{bookingData.location}}</div>
               <!-- NOTES HIDDEN: bookingData.notes are private internal notes and should NOT appear on customer-facing invoices -->
@@ -85,10 +85,10 @@
       </table>
     </div>
 
-    {{#if Config.includeTerms}}
+    {{#if (and Config.includeTerms Config.terms)}}
     <div class="terms-section">
       <div class="terms-title">Terms & Conditions</div>
-      {{#if Config.terms}}<div class="terms-content">{{Config.terms}}</div>{{/if}}
+      <div class="terms-content">{{Config.terms}}</div>
     </div>
     {{/if}}
 
