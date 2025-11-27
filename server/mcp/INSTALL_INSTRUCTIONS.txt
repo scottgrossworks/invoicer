@@ -1,0 +1,372 @@
+====================================================================
+LEEDZ MCP PLUGIN INSTALLATION GUIDE
+====================================================================
+
+WHAT IS THIS?
+
+The Leedz MCP (Model Context Protocol) plugin connects AI chat clients
+like Claude Desktop and LM Studio directly to your local Leedz database.
+This lets you manage clients and bookings using natural language in
+your favorite AI chat interface.
+
+Example: "show me all bookings for John Smith in March 2025"
+The plugin translates this to the correct API call and returns results.
+
+====================================================================
+STDIO vs HTTP CLOUD SERVERS - WHY WE DID THIS
+====================================================================
+
+STDIO (Standard Input/Output) Plugin:
+- Runs locally on your computer as a background process
+- Communicates via stdin/stdout (text streams)
+- Your data NEVER leaves your machine
+- Near-instant response times (no network latency)
+- No monthly hosting fees or cloud infrastructure
+- Works offline (no internet required after AI model downloaded)
+
+HTTP Cloud Server (Traditional API):
+- Hosted on remote servers (AWS, Azure, etc.)
+- Requires network connection for every request
+- Data transmitted over internet (security/privacy concerns)
+- Monthly hosting and bandwidth costs
+- Slower response times due to network latency
+
+WHY STDIO?
+We chose STDIO to keep your client data 100% local and private.
+Response times are 10-50x faster than cloud APIs because there's
+no network overhead. You own and control all your data.
+
+LIMITATION:
+Not all AI chat clients support STDIO plugins. Currently works with:
+  - Claude Desktop (Anthropic)
+  - LM Studio
+  - Other MCP-compatible clients
+
+====================================================================
+PREREQUISITES
+====================================================================
+
+BEFORE INSTALLING THE MCP PLUGIN:
+
+1. Node.js must be installed on your system
+   - Required ONLY for the MCP plugin (runs as .js script)
+   - The Leedz server (leedz-server.exe) INCLUDES Node runtime bundled
+     inside - no separate Node installation needed for the server
+   - Check if Node is installed: Open command prompt, type "node --version"
+   - If not installed: Download from https://nodejs.org
+
+   NOTE: If you only want to use the Leedz server and Chrome extension,
+   you do NOT need Node.js. Node is only required if you want to use
+   the MCP plugin with Claude Desktop or LM Studio.
+
+2. The Leedz Server must be installed and running
+   - See server/INSTALL_INSTRUCTIONS.txt
+   - Verify server is running on http://localhost:3000
+
+3. An AI chat client that supports MCP (Claude Desktop or LM Studio)
+
+====================================================================
+INSTALLATION FOR CLAUDE DESKTOP (Windows)
+====================================================================
+
+STEP 1: Locate your Claude Desktop config file
+The config file is at:
+  C:\Users\<YourUsername>\AppData\Roaming\Claude\claude_desktop_config.json
+
+Replace <YourUsername> with your Windows username.
+
+STEP 2: Open the config file in a text editor
+- Right-click the file, select "Open with > Notepad"
+- If the file doesn't exist, create it
+
+STEP 3: Add the Leedz MCP server definition
+
+If your config file is empty, paste this (UPDATE THE PATHS):
+{
+  "mcpServers": {
+    "leedz-mcp": {
+      "command": "C:\\Program Files\\nodejs\\node.exe",
+      "args": ["C:\\Users\\<YourUsername>\\Desktop\\WKG\\INVOICER\\server\\mcp\\mcp_server.js"]
+    }
+  },
+  "globalShortcut": ""
+}
+
+If your config file already has content, add the "leedz-mcp" section
+inside the existing "mcpServers" object:
+
+{
+  "mcpServers": {
+    "leedz-mcp": {
+      "command": "C:\\Program Files\\nodejs\\node.exe",
+      "args": ["C:\\Users\\<YourUsername>\\Desktop\\WKG\\INVOICER\\server\\mcp\\mcp_server.js"]
+    },
+    "other-mcp-server": {
+      ...existing servers...
+    }
+  },
+  "globalShortcut": ""
+}
+
+IMPORTANT PATH NOTES:
+- Replace <YourUsername> with your actual Windows username
+- Use DOUBLE BACKSLASHES (\\) in Windows paths
+- Update the path to match where you installed the Leedz server
+- Common install locations:
+  - C:\\Program Files\\Leedz\\mcp\\mcp_server.js
+  - C:\\Users\\<YourUsername>\\Desktop\\Leedz\\server\\mcp\\mcp_server.js
+
+STEP 4: Save the file and restart Claude Desktop
+
+STEP 5: Verify installation
+Open Claude Desktop and type:
+  "list all clients from the Leedz"
+
+If configured correctly, you'll see your client list.
+
+====================================================================
+INSTALLATION FOR LM STUDIO
+====================================================================
+
+STEP 1: Open LM Studio
+
+STEP 2: Navigate to the Integrations panel
+- Look for the right-side panel labeled "Integrations" or "Program"
+- If not visible, check the View menu or toolbar
+
+STEP 3: Add MCP Server
+- Click the dropdown menu: "Install"
+- Select "MCP"
+- Click "Edit mcp.json"
+
+STEP 4: Add the Leedz MCP server definition
+
+Paste this into the editor (UPDATE THE PATH):
+{
+  "mcpServers": {
+    "leedz-mcp": {
+      "command": "C:\\Program Files\\nodejs\\node.exe",
+      "args": [
+        "C:\\Users\\<YourUsername>\\Desktop\\WKG\\INVOICER\\server\\mcp\\mcp_server.js"
+      ]
+    }
+  }
+}
+
+If you already have other MCP servers configured, add "leedz-mcp"
+to the existing "mcpServers" object.
+
+IMPORTANT PATH NOTES:
+- Replace <YourUsername> with your actual Windows username
+- Use DOUBLE BACKSLASHES (\\) in Windows paths
+- Update the path to match your Leedz server installation
+
+STEP 5: Save the file
+
+STEP 6: Restart LM Studio
+
+STEP 7: Verify installation
+Open a chat and type:
+  "show me all bookings from the Leedz"
+
+If configured correctly, you'll see your booking list.
+
+====================================================================
+HOW THE PLUGIN WORKS
+====================================================================
+
+ARCHITECTURE:
+
+1. You type a natural language request in Claude Desktop or LM Studio
+   Example: "create a booking for Jane Doe on 2025-03-15"
+
+2. The AI client sends your request to the Leedz MCP plugin via STDIO
+
+3. The plugin sends your request to Claude API to translate it into
+   a structured HTTP API call
+   Example: POST /bookings with data {...}
+
+4. The plugin executes the HTTP call against your LOCAL Leedz server
+   (http://localhost:3000)
+
+5. The Leedz server validates the request and executes it against
+   the SQLite database using Prisma ORM
+
+6. Results are returned back through the chain: Server -> Plugin -> AI Client
+
+7. You see a formatted response in your chat window
+
+KEY POINTS:
+
+- The plugin DOES NOT access the database directly
+- All database operations go through the Leedz server API
+- This provides validation, error handling, and security
+- The server API is the "gatekeeper" for all data operations
+
+====================================================================
+CAPABILITIES AND LIMITATIONS
+====================================================================
+
+WHAT THE PLUGIN CAN DO:
+
+CREATE:
+- Create new clients with name, email, phone, company, notes
+- Create new bookings with client info, dates, rates, location, notes
+- Auto-create clients when creating bookings (no separate client creation needed)
+
+READ:
+- List all clients or bookings
+- Search clients by name, email, company, or keyword
+- Filter bookings by client name, email, or date range
+- Get statistics and system info
+- Retrieve configuration settings
+
+UPDATE:
+- Update client information (email, phone, company, notes)
+- Update booking details (dates, location, rates, status)
+- Mark clients as "processed" (touch endpoint)
+- Update system configuration
+
+DELETE:
+- Delete clients by ID
+- Delete bookings by ID
+- WARNING: Deletions are permanent and cannot be undone!
+
+WHAT THE PLUGIN CANNOT DO:
+
+- Direct SQL queries (all access is through the API layer)
+- Bulk operations (processes one item at a time for safety)
+- File uploads (no PDF generation or file management)
+- Email sending (handled by separate gmail-sender MCP plugin)
+- Database migrations or schema changes
+
+====================================================================
+SAFETY AND SECURITY
+====================================================================
+
+IMPORTANT WARNINGS:
+
+1. THE PLUGIN HAS FULL DELETE PERMISSIONS
+   - It can permanently delete clients and bookings if asked
+   - There is no "undo" function
+   - Be careful with deletion requests
+   - Always verify before confirming destructive operations
+
+2. THE PLUGIN CAN MODIFY ALL DATA
+   - Updates to client info, bookings, and config are immediate
+   - Changes are not reversible without database backup
+   - Review requests carefully before executing
+
+3. API GATEKEEPER PROTECTION
+   - The Leedz server validates all requests
+   - Invalid data is rejected (e.g., invalid email formats, dates)
+   - Business logic is enforced (e.g., required fields)
+   - This prevents most accidental data corruption
+
+4. BACKUP RECOMMENDATION
+   - Regularly backup your database file: prisma/leedz.sqlite
+   - Store backups in a safe location
+   - Test restoring from backup periodically
+
+====================================================================
+USAGE EXAMPLES
+====================================================================
+
+LISTING DATA:
+- "list all clients"
+- "show me bookings for March 2025"
+- "find client John Smith"
+- "get all bookings for jane@example.com"
+
+CREATING DATA:
+- "create a client named Bob Jones with email bob@test.com"
+- "create a booking for Jane Doe on 2025-03-15 at Grand Hotel"
+- "add a new booking for john@example.com from March 1 to March 3"
+
+UPDATING DATA:
+- "update client abc123 email to newemail@test.com"
+- "mark client John Doe as processed"
+- "change booking xyz789 location to Conference Center"
+
+SEARCHING:
+- "find clients at company BloomSights"
+- "search for bookings about conference"
+- "show clients with email ending in .edu"
+- "find bookings for Q1 2025"
+
+DELETING (USE WITH CAUTION):
+- "delete client abc123"
+- "delete booking xyz789"
+
+====================================================================
+TROUBLESHOOTING
+====================================================================
+
+PLUGIN NOT SHOWING IN AI CLIENT:
+- Verify config file paths use double backslashes: C:\\path\\to\\file
+- Check that Node.js is installed: "node --version" in command prompt
+- Restart the AI client after editing config file
+- Check AI client logs for error messages
+
+"SERVER CONNECTION FAILED" ERRORS:
+- Verify Leedz server is running (check system tray for icon)
+- Test server: Open browser to http://localhost:3000
+- Check server is on port 3000 (or update mcp_server_config.json)
+- Verify no firewall is blocking localhost connections
+
+"INVALID JSON" OR PARSING ERRORS:
+- Check config file syntax (commas, brackets, quotes)
+- Use a JSON validator: https://jsonlint.com
+- Ensure paths use double backslashes (\\)
+
+PLUGIN GIVES UNEXPECTED RESULTS:
+- Check mcp_server.log file in server/mcp/ directory
+- Verify database has the data you're querying
+- Try simpler, more specific requests
+- Check Leedz server logs for API errors
+
+PLUGIN DOESN'T UNDERSTAND REQUESTS:
+- Be more specific and direct in your phrasing
+- Use concrete names, dates, and identifiers
+- Avoid ambiguous pronouns ("it", "them", "that one")
+- Example: Instead of "update that client", say "update client abc123"
+
+====================================================================
+SUPPORT AND DOCUMENTATION
+====================================================================
+
+For detailed API endpoint documentation, see:
+  server/README.md
+
+For MCP server configuration:
+  server/mcp/mcp_server_config.json
+
+For logs and debugging:
+  server/mcp/mcp_server.log
+
+Email support: theleedz.com@gmail.com
+
+====================================================================
+TECHNICAL DETAILS (ADVANCED USERS)
+====================================================================
+
+CONFIG FILE LOCATION:
+  server/mcp/mcp_server_config.json
+
+IMPORTANT SETTINGS:
+- database.apiUrl: URL of Leedz server (default: http://localhost:3000)
+- llm.api-key: Anthropic API key for natural language translation
+- llm.provider: Claude model used for translation (default: claude-opus-4-1)
+- logging.file: Path to log file (default: ./mcp_server.log)
+
+CHANGING THE API PORT:
+If your Leedz server runs on a different port:
+1. Edit server/mcp/mcp_server_config.json
+2. Change "apiUrl": "http://localhost:3000" to your port
+3. Restart the AI client
+
+LOG FILE:
+All plugin activity is logged to server/mcp/mcp_server.log
+Check this file for debugging and troubleshooting.
+
+====================================================================
