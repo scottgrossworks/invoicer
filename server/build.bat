@@ -171,7 +171,7 @@ echo.
 :: ==========================================
 :: STEP 5: CREATE STARTUP SCRIPTS
 :: ==========================================
-echo [5/5] Creating startup scripts...
+echo [5/6] Creating startup scripts...
 echo.
 
 for %%A in (%ARCHITECTURES%) do (
@@ -201,6 +201,31 @@ echo     - All startup scripts created
 echo.
 
 :: ==========================================
+:: STEP 6: CREATE DISTRIBUTION ZIPS
+:: ==========================================
+echo [6/6] Creating distribution ZIP files...
+echo.
+
+for %%A in (%ARCHITECTURES%) do (
+    set "PKG_DIR=%DIST_DIR%\leedz-server-win-%%A"
+    set "ZIP_NAME=leedz-server-win-%%A.zip"
+
+    :: Delete existing ZIP if present
+    if exist "!ZIP_NAME!" del "!ZIP_NAME!"
+
+    :: Create ZIP using PowerShell
+    powershell -command "Compress-Archive -Path '!PKG_DIR!\*' -DestinationPath '!ZIP_NAME!' -Force"
+
+    if exist "!ZIP_NAME!" (
+        echo     - Created !ZIP_NAME!
+    ) else (
+        echo [WARNING] Failed to create !ZIP_NAME!
+    )
+)
+
+echo.
+
+:: ==========================================
 :: BUILD COMPLETE
 :: ==========================================
 echo.
@@ -213,6 +238,7 @@ echo.
 echo   Packages Created:
 for %%A in (%ARCHITECTURES%) do (
     echo     - leedz-server-win-%%A\
+    echo     - leedz-server-win-%%A.zip
 )
 echo.
 echo   Each package contains:
@@ -223,6 +249,17 @@ echo     - prisma/schema.prisma
 echo     - server_config.json
 echo     - img/icon.ico
 echo     - launch_leedz.bat
+echo.
+echo   Distribution Files:
+for %%A in (%ARCHITECTURES%) do (
+    if exist "leedz-server-win-%%A.zip" (
+        echo     - leedz-server-win-%%A.zip (ready for download^)
+    )
+)
+echo.
+echo   Next Steps:
+echo     1. Upload ZIP files to theleedz.com
+echo     2. Provide INSTALL_INSTRUCTIONS.txt to users
 echo.
 echo   Quick Test:
 echo     cd %DIST_DIR%\leedz-server-win-x64

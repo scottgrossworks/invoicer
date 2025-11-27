@@ -1,0 +1,63 @@
+====================================================================
+LEEDZ CHROME BROWSER EXTENSION INSTALLATION GUIDE
+====================================================================
+
+12/2025: These instructions are temporary, until the Leedz is 
+registered with Google and available on the App Store.  Then the 
+install will be easier, but the program will be harder to update.  
+While the app is in beta, and we are taking your feature requests 
+and bug reports please endure this more cumbersome process.
+
+Email: theleedz.com@gmail.com
+
+--------------------------------------------------------------------
+STEP 1: DOWNLOAD AND EXTRACT
+--------------------------------------------------------------------
+1. Download the file "leedz_invoicer_extension.zip"
+2. Right-click the ZIP file and select "Extract All..."
+3. Choose a permanent location (like your Documents folder)
+   IMPORTANT: Don't delete this folder after installation - the
+   extension needs it to work!
+4. Click "Extract"
+
+--------------------------------------------------------------------
+STEP 2: OPEN CHROME EXTENSIONS PAGE
+--------------------------------------------------------------------
+1. Open Google Chrome browser
+2. In the address bar, type: chrome://extensions
+3. Press Enter
+
+--------------------------------------------------------------------
+STEP 3: ENABLE DEVELOPER MODE
+--------------------------------------------------------------------
+Look for a toggle switch labeled "Developer mode" in the top-right
+corner. Click it to turn it ON (it should turn blue).
+
+--------------------------------------------------------------------
+STEP 4: LOAD THE EXTENSION
+--------------------------------------------------------------------
+1. Click the "Load unpacked" button (appears after Developer mode)
+2. Browse to the folder you extracted in Step 1
+3. Select the folder and click "Select Folder"
+4. The Leedz extension will appear in your extension list
+
+--------------------------------------------------------------------
+STEP 5: START USING LEEDZ
+--------------------------------------------------------------------
+Look for the Leedz icon in your Chrome toolbar (top-right). Click it
+to start creating invoices!
+
+====================================================================
+TROUBLESHOOTING
+====================================================================
+
+SECURITY WARNING: Chrome will show a warning that this extension is
+not from the Chrome Web Store. This is normal for business software
+that hasn't been published publicly. The extension is safe to use.
+
+EXTENSION DISABLED: If Chrome disables the extension after an update,
+simply return to chrome://extensions and re-enable it.
+
+SUPPORT: theleedz.com@gmail.com
+
+====================================================================

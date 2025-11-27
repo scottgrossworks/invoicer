@@ -95,396 +95,155 @@ async function getMatchingParser() {
   throw new Error('No matching parser found for current page');
 }
 
+/**
+ * Unified Gmail compose window handler
+ * @param {Object} options
+ * @param {string} options.mode - 'reply' or 'compose'
+ * @param {string} options.to - Recipient email (for compose mode)
+ * @param {string} options.subject - Email subject
+ * @param {string} options.body - Email body
+ * @param {string} options.actionName - For logging (e.g. 'THANK YOU', 'RESPONDER')
+ */
+async function openGmailCompose({ mode, to, subject, body, actionName }) {
+  console.log(`=== CONTENT SCRIPT: OPEN ${actionName} ===`);
+  // console.log('Received:', {
+  //   mode,
+  //   to,
+  //   subject,
+  //   hasBody: !!body,
+  //   bodyLength: body ? body.length : 0,
+  //   bodyPreview: body ? body.substring(0, 200) + '...' : 'null'
+  // });
+
+  // STEP 1: Open compose window
+  if (mode === 'reply') {
+    const replyButton = document.querySelector('[aria-label="Reply"]');
+    if (!replyButton) {
+      throw new Error('Reply button not found');
+    }
+    replyButton.click();
+    await new Promise(resolve => setTimeout(resolve, 500));
+  } else if (mode === 'compose') {
+    const composeButton = document.querySelector('[aria-label="Compose"]') ||
+                         Array.from(document.querySelectorAll('[role="button"]')).find(btn => btn.textContent.includes('Compose')) ||
+                         document.querySelector('.T-I.T-I-KE.L3');
+    if (!composeButton) {
+      throw new Error('Compose button not found');
+    }
+    composeButton.click();
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Populate TO field
+    if (to) {
+      const toField = document.querySelector('input[name="to"]') ||
+                     document.querySelector('textarea[name="to"]');
+      if (toField) {
+        toField.value = to;
+        toField.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+  }
+
+  // STEP 2: Populate subject field
+  const subjectField = document.querySelector('input[name="subjectbox"]');
+  if (subjectField && !subjectField.value.startsWith('Re:')) {
+    subjectField.value = subject || '';
+    subjectField.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  // STEP 3: Populate body field
+  const selectors = [
+    'div[aria-label="Message Body"][contenteditable="true"]',
+    'div[role="textbox"][aria-label="Message Body"]',
+    'div[contenteditable="true"][aria-label="Message Body"]',
+    'div.Am[contenteditable="true"]',
+    'div[g_editable="true"]'
+  ];
+
+  let bodyField = null;
+  for (const selector of selectors) {
+    bodyField = document.querySelector(selector);
+    if (bodyField) break;
+  }
+
+  if (!bodyField) {
+    console.error('Message body field not found with any selector');
+    // console.log('Available contenteditable elements:',
+    //   Array.from(document.querySelectorAll('[contenteditable="true"]')).map(el => ({
+    //     tag: el.tagName,
+    //     class: el.className,
+    //     ariaLabel: el.getAttribute('aria-label'),
+    //     role: el.getAttribute('role')
+    //   })));
+    throw new Error('Message body field not found');
+  }
+
+  // Insert body content
+  if (bodyField.tagName === 'DIV' && bodyField.contentEditable === 'true') {
+    const htmlBody = (body || '').replace(/\n/g, '<br>');
+    bodyField.innerHTML = htmlBody;
+  } else if (bodyField.tagName === 'TEXTAREA') {
+    bodyField.value = body || '';
+  } else {
+    bodyField.innerHTML = body || '';
+  }
+
+  // Dispatch events
+  bodyField.dispatchEvent(new Event('input', { bubbles: true }));
+  bodyField.dispatchEvent(new Event('change', { bubbles: true }));
+  bodyField.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true }));
+
+  // Focus cursor
+  bodyField.focus();
+}
+
+/**
+ * Helper to handle Gmail compose actions consistently
+ */
+function handleGmailComposeAction(msg, reply, composeOptions) {
+  (async () => {
+    try {
+      await openGmailCompose(composeOptions);
+      reply({ ok: true });
+    } catch (error) {
+      console.error(`Error opening ${composeOptions.actionName} compose:`, error);
+      reply({ ok: false, error: error.message });
+    }
+  })();
+  return true; // keep port open for async reply
+}
+
 // respond to sidebar requests
 chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
   // Open thank you compose window in Gmail
   if (msg.action === 'openThankYou') {
-    (async () => {
-      try {
-        console.log('=== CONTENT SCRIPT: OPEN THANK YOU ===');
-        console.log('Received message:', {
-          action: msg.action,
-          clientName: msg.clientName,
-          clientEmail: msg.clientEmail,
-          subject: msg.subject,
-          hasBody: !!msg.body,
-          bodyLength: msg.body ? msg.body.length : 0,
-          bodyPreview: msg.body ? msg.body.substring(0, 200) + '...' : 'null'
-        });
-        console.log('Full body text received:', msg.body);
-
-        // 1. Click Reply button
-        console.log('Looking for Reply button...');
-        const replyButton = document.querySelector('[aria-label="Reply"]');
-        if (!replyButton) {
-          console.error('Reply button not found in DOM');
-          throw new Error('Reply button not found');
-        }
-        console.log('Reply button found, clicking...');
-        replyButton.click();
-        console.log('Reply button clicked');
-
-        // 2. Wait for compose box to appear
-        console.log('Waiting 500ms for compose box...');
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // 3. Find and populate subject field (if visible)
-        console.log('Looking for subject field...');
-        const subjectField = document.querySelector('input[name="subjectbox"]');
-        if (subjectField && !subjectField.value.startsWith('Re:')) {
-          console.log('Subject field found, populating with:', msg.subject);
-          subjectField.value = msg.subject || 'Thank you';
-          subjectField.dispatchEvent(new Event('input', { bubbles: true }));
-          console.log('Subject populated successfully');
-        } else {
-          console.log('Subject field not found or already has Re:');
-        }
-
-        // 4. Find and populate body field
-        console.log('Looking for body field...');
-
-        // Try multiple selectors for Gmail compose body
-        let bodyField = null;
-        const selectors = [
-          'div[aria-label="Message Body"][contenteditable="true"]',
-          'div[role="textbox"][aria-label="Message Body"]',
-          'div[contenteditable="true"][aria-label="Message Body"]',
-          'div.Am[contenteditable="true"]',  // Gmail's compose body class
-          'div[g_editable="true"]'  // Alternative Gmail class
-        ];
-
-        for (const selector of selectors) {
-          console.log('Trying selector:', selector);
-          bodyField = document.querySelector(selector);
-          if (bodyField) {
-            console.log('Found body field with selector:', selector);
-            break;
-          }
-        }
-
-        if (!bodyField) {
-          console.error('Message body field not found with any selector');
-          console.log('Available contenteditable elements:',
-            Array.from(document.querySelectorAll('[contenteditable="true"]')).map(el => ({
-              tag: el.tagName,
-              class: el.className,
-              ariaLabel: el.getAttribute('aria-label'),
-              role: el.getAttribute('role')
-            })));
-          throw new Error('Message body field not found');
-        }
-
-        console.log('Body field found:', {
-          tag: bodyField.tagName,
-          class: bodyField.className,
-          ariaLabel: bodyField.getAttribute('aria-label'),
-          isContentEditable: bodyField.contentEditable
-        });
-        console.log('Inserting body text (length: ' + (msg.body ? msg.body.length : 0) + ')');
-        console.log('Body text to insert:', msg.body);
-
-        // For contenteditable divs, convert newlines to <br> and use innerHTML
-        // Gmail's contenteditable doesn't render plain text newlines
-        if (bodyField.tagName === 'DIV' && bodyField.contentEditable === 'true') {
-          console.log('Using innerHTML with newlines converted to <br> for contenteditable div');
-          const htmlBody = (msg.body || '').replace(/\n/g, '<br>');
-          bodyField.innerHTML = htmlBody;
-        } else if (bodyField.tagName === 'TEXTAREA') {
-          console.log('Using value for textarea');
-          bodyField.value = msg.body || '';
-        } else {
-          console.log('Using innerHTML as fallback');
-          bodyField.innerHTML = msg.body || '';
-        }
-
-        console.log('Body field content after setting:', bodyField.textContent.substring(0, 200) + '...');
-
-        // Dispatch multiple events to ensure Gmail recognizes the change
-        bodyField.dispatchEvent(new Event('input', { bubbles: true }));
-        bodyField.dispatchEvent(new Event('change', { bubbles: true }));
-        bodyField.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true }));
-        console.log('Events dispatched');
-
-        // 5. Focus cursor in body (so user can start editing)
-        bodyField.focus();
-        console.log('Body field focused');
-
-        console.log('=== THANK YOU COMPOSE COMPLETE ===');
-        reply({ ok: true });
-      } catch (error) {
-        console.error('=== ERROR IN OPEN THANK YOU ===');
-        console.error('Error details:', error);
-        console.error('Error stack:', error.stack);
-        reply({ ok: false, error: error.message });
-      }
-    })();
-
-    return true; // keep port open for async reply
+    return handleGmailComposeAction(msg, reply, {
+      mode: 'reply',
+      subject: msg.subject || 'Thank you',
+      body: msg.body,
+      actionName: 'THANK YOU'
+    });
   }
 
   // Open responder compose window in Gmail
   if (msg.action === 'openResponder') {
-    (async () => {
-      try {
-        console.log('=== CONTENT SCRIPT: OPEN RESPONDER ===');
-        console.log('Received message:', {
-          action: msg.action,
-          clientName: msg.clientName,
-          clientEmail: msg.clientEmail,
-          subject: msg.subject,
-          hasBody: !!msg.body,
-          bodyLength: msg.body ? msg.body.length : 0,
-          bodyPreview: msg.body ? msg.body.substring(0, 200) + '...' : 'null'
-        });
-        console.log('Full body text received:', msg.body);
-
-        // 1. Click Reply button
-        console.log('Looking for Reply button...');
-        const replyButton = document.querySelector('[aria-label="Reply"]');
-        if (!replyButton) {
-          console.error('Reply button not found in DOM');
-          throw new Error('Reply button not found');
-        }
-        console.log('Reply button found, clicking...');
-        replyButton.click();
-        console.log('Reply button clicked');
-
-        // 2. Wait for compose box to appear
-        console.log('Waiting 500ms for compose box...');
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // 3. Find and populate subject field (if visible)
-        console.log('Looking for subject field...');
-        const subjectField = document.querySelector('input[name="subjectbox"]');
-        if (subjectField && !subjectField.value.startsWith('Re:')) {
-          console.log('Subject field found, populating with:', msg.subject);
-          subjectField.value = msg.subject || 'Re: Your Inquiry';
-          subjectField.dispatchEvent(new Event('input', { bubbles: true }));
-          console.log('Subject populated successfully');
-        } else {
-          console.log('Subject field not found or already has Re:');
-        }
-
-        // 4. Find and populate body field
-        console.log('Looking for body field...');
-
-        // Try multiple selectors for Gmail compose body
-        let bodyField = null;
-        const selectors = [
-          'div[aria-label="Message Body"][contenteditable="true"]',
-          'div[role="textbox"][aria-label="Message Body"]',
-          'div[contenteditable="true"][aria-label="Message Body"]',
-          'div.Am[contenteditable="true"]',  // Gmail's compose body class
-          'div[g_editable="true"]'  // Alternative Gmail class
-        ];
-
-        for (const selector of selectors) {
-          console.log('Trying selector:', selector);
-          bodyField = document.querySelector(selector);
-          if (bodyField) {
-            console.log('Found body field with selector:', selector);
-            break;
-          }
-        }
-
-        if (!bodyField) {
-          console.error('Message body field not found with any selector');
-          console.log('Available contenteditable elements:',
-            Array.from(document.querySelectorAll('[contenteditable="true"]')).map(el => ({
-              tag: el.tagName,
-              class: el.className,
-              ariaLabel: el.getAttribute('aria-label'),
-              role: el.getAttribute('role')
-            })));
-          throw new Error('Message body field not found');
-        }
-
-        console.log('Body field found:', {
-          tag: bodyField.tagName,
-          class: bodyField.className,
-          ariaLabel: bodyField.getAttribute('aria-label'),
-          isContentEditable: bodyField.contentEditable
-        });
-        console.log('Inserting body text (length: ' + (msg.body ? msg.body.length : 0) + ')');
-        console.log('Body text to insert:', msg.body);
-
-        // For contenteditable divs, convert newlines to <br> and use innerHTML
-        // Gmail's contenteditable doesn't render plain text newlines
-        if (bodyField.tagName === 'DIV' && bodyField.contentEditable === 'true') {
-          console.log('Using innerHTML with newlines converted to <br> for contenteditable div');
-          const htmlBody = (msg.body || '').replace(/\n/g, '<br>');
-          bodyField.innerHTML = htmlBody;
-        } else if (bodyField.tagName === 'TEXTAREA') {
-          console.log('Using value for textarea');
-          bodyField.value = msg.body || '';
-        } else {
-          console.log('Using innerHTML as fallback');
-          bodyField.innerHTML = msg.body || '';
-        }
-
-        console.log('Body field content after setting:', bodyField.textContent.substring(0, 200) + '...');
-
-        // Dispatch multiple events to ensure Gmail recognizes the change
-        bodyField.dispatchEvent(new Event('input', { bubbles: true }));
-        bodyField.dispatchEvent(new Event('change', { bubbles: true }));
-        bodyField.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true }));
-        console.log('Events dispatched');
-
-        // 5. Focus cursor in body (so user can start editing)
-        bodyField.focus();
-        console.log('Body field focused');
-
-        console.log('=== RESPONDER COMPOSE COMPLETE ===');
-        reply({ ok: true });
-      } catch (error) {
-        console.error('=== ERROR IN OPEN RESPONDER ===');
-        console.error('Error details:', error);
-        console.error('Error stack:', error.stack);
-        reply({ ok: false, error: error.message });
-      }
-    })();
-
-    return true; // keep port open for async reply
+    return handleGmailComposeAction(msg, reply, {
+      mode: 'reply',
+      subject: msg.subject || 'Re: Your Inquiry',
+      body: msg.body,
+      actionName: 'RESPONDER'
+    });
   }
 
   // Open outreach compose window in Gmail (NEW email, not reply)
   if (msg.action === 'openOutreach') {
-    (async () => {
-      try {
-        console.log('=== CONTENT SCRIPT: OPEN OUTREACH ===');
-        console.log('Received message:', {
-          action: msg.action,
-          clientName: msg.clientName,
-          clientEmail: msg.clientEmail,
-          subject: msg.subject,
-          hasBody: !!msg.body,
-          bodyLength: msg.body ? msg.body.length : 0,
-          bodyPreview: msg.body ? msg.body.substring(0, 200) + '...' : 'null'
-        });
-        console.log('Full body text received:', msg.body);
-
-        // 1. Click Compose button (for new email)
-        console.log('Looking for Compose button...');
-        const composeButton = document.querySelector('[aria-label="Compose"]') ||
-                             Array.from(document.querySelectorAll('[role="button"]')).find(btn => btn.textContent.includes('Compose')) ||
-                             document.querySelector('.T-I.T-I-KE.L3');  // Gmail's compose button class
-        if (!composeButton) {
-          console.error('Compose button not found in DOM');
-          throw new Error('Compose button not found');
-        }
-        console.log('Compose button found, clicking...');
-        composeButton.click();
-        console.log('Compose button clicked');
-
-        // 2. Wait for compose box to appear
-        console.log('Waiting 1000ms for compose box...');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // 3. Find and populate recipient field
-        console.log('Looking for recipient field...');
-        const toField = document.querySelector('input[name="to"]') ||
-                       document.querySelector('textarea[name="to"]');
-        if (toField) {
-          console.log('Recipient field found, populating with:', msg.clientEmail);
-          toField.value = msg.clientEmail || '';
-          toField.dispatchEvent(new Event('input', { bubbles: true }));
-          console.log('Recipient populated successfully');
-        } else {
-          console.log('Recipient field not found');
-        }
-
-        // 4. Find and populate subject field
-        console.log('Looking for subject field...');
-        const subjectField = document.querySelector('input[name="subjectbox"]');
-        if (subjectField) {
-          console.log('Subject field found, populating with:', msg.subject);
-          subjectField.value = msg.subject || `Services for ${msg.clientName}`;
-          subjectField.dispatchEvent(new Event('input', { bubbles: true }));
-          console.log('Subject populated successfully');
-        } else {
-          console.log('Subject field not found');
-        }
-
-        // 5. Find and populate body field
-        console.log('Looking for body field...');
-
-        // Try multiple selectors for Gmail compose body
-        let bodyField = null;
-        const selectors = [
-          'div[aria-label="Message Body"][contenteditable="true"]',
-          'div[role="textbox"][aria-label="Message Body"]',
-          'div[contenteditable="true"][aria-label="Message Body"]',
-          'div.Am[contenteditable="true"]',  // Gmail's compose body class
-          'div[g_editable="true"]'  // Alternative Gmail class
-        ];
-
-        for (const selector of selectors) {
-          console.log('Trying selector:', selector);
-          bodyField = document.querySelector(selector);
-          if (bodyField) {
-            console.log('Found body field with selector:', selector);
-            break;
-          }
-        }
-
-        if (!bodyField) {
-          console.error('Message body field not found with any selector');
-          console.log('Available contenteditable elements:',
-            Array.from(document.querySelectorAll('[contenteditable="true"]')).map(el => ({
-              tag: el.tagName,
-              class: el.className,
-              ariaLabel: el.getAttribute('aria-label'),
-              role: el.getAttribute('role')
-            })));
-          throw new Error('Message body field not found');
-        }
-
-        console.log('Body field found:', {
-          tag: bodyField.tagName,
-          class: bodyField.className,
-          ariaLabel: bodyField.getAttribute('aria-label'),
-          isContentEditable: bodyField.contentEditable
-        });
-        console.log('Inserting body text (length: ' + (msg.body ? msg.body.length : 0) + ')');
-        console.log('Body text to insert:', msg.body);
-
-        // For contenteditable divs, convert newlines to <br> and use innerHTML
-        // Gmail's contenteditable doesn't render plain text newlines
-        if (bodyField.tagName === 'DIV' && bodyField.contentEditable === 'true') {
-          console.log('Using innerHTML with newlines converted to <br> for contenteditable div');
-          const htmlBody = (msg.body || '').replace(/\n/g, '<br>');
-          bodyField.innerHTML = htmlBody;
-        } else if (bodyField.tagName === 'TEXTAREA') {
-          console.log('Using value for textarea');
-          bodyField.value = msg.body || '';
-        } else {
-          console.log('Using innerHTML as fallback');
-          bodyField.innerHTML = msg.body || '';
-        }
-
-        console.log('Body field content after setting:', bodyField.textContent.substring(0, 200) + '...');
-
-        // Dispatch multiple events to ensure Gmail recognizes the change
-        bodyField.dispatchEvent(new Event('input', { bubbles: true }));
-        bodyField.dispatchEvent(new Event('change', { bubbles: true }));
-        bodyField.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true }));
-        console.log('Events dispatched');
-
-        // 6. Focus cursor in body (so user can start editing)
-        bodyField.focus();
-        console.log('Body field focused');
-
-        console.log('=== OUTREACH COMPOSE COMPLETE ===');
-        reply({ ok: true });
-      } catch (error) {
-        console.error('=== ERROR IN OPEN OUTREACH ===');
-        console.error('Error details:', error);
-        console.error('Error stack:', error.stack);
-        reply({ ok: false, error: error.message });
-      }
-    })();
-
-    return true; // keep port open for async reply
+    return handleGmailComposeAction(msg, reply, {
+      mode: 'compose',
+      to: msg.clientEmail,
+      subject: msg.subject || `Services for ${msg.clientName}`,
+      body: msg.body,
+      actionName: 'OUTREACH'
+    });
   }
 
   // Quick identity extraction only (name/email for DB lookup)
@@ -587,7 +346,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
     return true; // keep port open for async reply
 
   } else {
-    if (msg.type) console.log("Received Msg [" + msg.type + "] " + (msg.body || 'no body'));
+    // if (msg.type) console.log("Received Msg [" + msg.type + "] " + (msg.body || 'no body'));
   }
   return false; // close port
 });

@@ -1,0 +1,106 @@
+====================================================================
+LEEDZ SERVER INSTALLATION GUIDE
+====================================================================
+
+12/2025: These instructions are temporary, until the Leedz is
+registered with Google and available on the App Store.  Then the
+install will be easier, but the program will be harder to update.
+While the app is in beta, and we are taking your feature requests
+and bug reports please endure this more cumbersome process.
+
+Email: theleedz.com@gmail.com
+
+--------------------------------------------------------------------
+STEP 1: DOWNLOAD AND EXTRACT
+--------------------------------------------------------------------
+1. Download "leedz-server-win-x64.zip" from theleedz.com
+2. Right-click the ZIP file and select "Extract All..."
+3. Choose a permanent location (like C:\Program Files\Leedz)
+   IMPORTANT: Don't delete this folder after installation - this is
+   where your database and settings are stored!
+4. Click "Extract"
+
+You should see a folder containing:
+  - TheLeedz.exe (System tray application)
+  - leedz-server.exe (Backend server)
+  - launch_leedz.bat (Startup script)
+  - prisma/ folder (Database and schema)
+  - server_config.json (Server settings)
+  - img/ folder (Icons)
+
+--------------------------------------------------------------------
+STEP 2: START THE SERVER
+--------------------------------------------------------------------
+1. Double-click "launch_leedz.bat" in the extracted folder
+2. A small icon will appear in your Windows system tray (bottom-right)
+3. A command window will open showing "Server starting on port 3000..."
+4. When you see "Server listening on port 3000", it's ready!
+
+The system tray icon lets you quickly access server controls and
+settings. Right-click the icon to see available options.
+
+--------------------------------------------------------------------
+STEP 3: VERIFY IT'S WORKING
+--------------------------------------------------------------------
+The server is now running and ready to connect with your Chrome
+extension. You can verify by:
+  - Checking the system tray for the Leedz icon
+  - The command window shows "Server listening on port 3000"
+
+Leave the command window open while using Leedz. Closing it will
+stop the server.
+
+--------------------------------------------------------------------
+STEP 4: CONNECT YOUR CHROME EXTENSION
+--------------------------------------------------------------------
+Now install the Leedz Chrome extension (see separate instructions).
+The extension will automatically connect to your local server at
+http://localhost:3000
+
+--------------------------------------------------------------------
+STOPPING AND RESTARTING
+--------------------------------------------------------------------
+TO STOP: Close the command window, or right-click the tray icon
+and select "Exit"
+
+TO RESTART: Double-click "launch_leedz.bat" again
+
+TO AUTO-START ON WINDOWS BOOT (Optional):
+1. Press Win+R, type "shell:startup", press Enter
+2. Right-click in the Startup folder, select "New > Shortcut"
+3. Browse to your launch_leedz.bat file
+4. Click Next, then Finish
+
+====================================================================
+TROUBLESHOOTING
+====================================================================
+
+PORT ALREADY IN USE: If you see "Port 3000 is already in use",
+another program is using that port. Either stop that program or
+edit server_config.json to change the port number.
+
+FIREWALL WARNING: Windows may ask to allow network access. Click
+"Allow access" - the server only runs locally on your computer.
+
+SERVER WON'T START: Make sure you extracted ALL files from the ZIP.
+Try running as Administrator (right-click launch_leedz.bat, select
+"Run as administrator").
+
+EXTENSION CAN'T CONNECT: Verify the server is running (check for
+the tray icon and command window). Make sure no firewall is blocking
+localhost connections.
+
+DATABASE ISSUES: Your database is stored in prisma/leedz.sqlite.
+To backup your data, copy this file to a safe location.
+
+SUPPORT: theleedz.com@gmail.com
+
+====================================================================
+SYSTEM REQUIREMENTS
+====================================================================
+- Windows 10 or later (64-bit)
+- .NET 8 Runtime (usually pre-installed on modern Windows)
+- Port 3000 available (or configure a different port)
+- 50 MB disk space
+
+====================================================================

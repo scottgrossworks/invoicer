@@ -42,43 +42,12 @@ export class Page {
 
   /**
    * Template method: Called when page becomes visible
-   * Implements smart parsing logic:
-   * - Startup page: skip auto-parse
-   * - Has data in STATE: render existing data, skip parse
-   * - No data in STATE: auto-parse then render
-   *
-   * Subclasses should NOT override this - override onShowImpl() instead
+   * Default implementation - just calls onShowImpl()
+   * DataPage subclasses override with full workflow
+   * Startup page uses this default
    */
   async onShow() {
-    // RULE 1: Startup page never auto-parses
-    if (this.isStartupPage()) {
-      await this.onShowImpl();
-      return;
-    }
-
-    // RULE 2: Check if STATE has meaningful data
-    const hasData = this.shouldSkipAutoParse();
-
-    if (hasData) {
-      // Has data - render immediately without parsing
-      console.log(`${this.pageName}: Has existing data, skipping auto-parse`);
-      await this.onShowImpl();
-    } else {
-      // No data - auto-parse before rendering
-      console.log(`${this.pageName}: No data found, auto-parsing...`);
-
-      // Show spinner during parse
-      this.showLoadingSpinner();
-
-      // Run parser
-      await this.reloadParser();
-
-      // Render with parsed data
-      await this.onShowImpl();
-
-      // Hide spinner
-      this.hideLoadingSpinner();
-    }
+    await this.onShowImpl();
   }
 
   /**
@@ -89,33 +58,6 @@ export class Page {
     throw new Error('onShowImpl() must be implemented by subclass');
   }
 
-  /**
-   * Check if this is a startup/config page that should never auto-parse
-   * Subclasses can override to return true for startup-like pages
-   * @returns {boolean} True if startup page
-   */
-  isStartupPage() {
-    return false;
-  }
-
-  /**
-   * Check if STATE has meaningful data (skip auto-parse if true)
-   * @returns {boolean} True if STATE has data to display
-   */
-  shouldSkipAutoParse() {
-    // Check for client data
-    const hasClientData = this.state.Client &&
-                          (this.state.Client.name || this.state.Client.email);
-
-    // Check for booking data
-    const hasBookingData = this.state.Booking &&
-                           (this.state.Booking.title ||
-                            this.state.Booking.startDate ||
-                            this.state.Booking.location);
-
-    // Need BOTH client and booking to skip auto-parse
-    return hasClientData && hasBookingData;
-  }
 
   /**
    * Called when page is hidden (optional)
@@ -312,7 +254,10 @@ export class Page {
       // Clear bookings cache when doing full reload
       this.clearBookingsCache();
 
-      this.showLoadingSpinner();
+      // Skip spinner management if called from DataPage (it manages spinner)
+      if (!options.forceFullParse) {
+        this.showLoadingSpinner();
+      }
       log('Detecting page type...');
 
       // Get current tab URL and tabId
@@ -476,8 +421,10 @@ export class Page {
                   // Merge parsed data into state's sub-objects
                   mergePageData(this.state, response.data);
 
-                  // Update UI from state
-                  this.updateFromState(this.state);
+                  // Update UI from state (skip if forceFullParse - DataPage handles rendering)
+                  if (!options.forceFullParse) {
+                    this.updateFromState(this.state);
+                  }
 
                   resolve();
                 } else {
@@ -506,7 +453,10 @@ export class Page {
       console.log('Parser initialization error:', error.message);
       log('Parser unavailable');
     } finally {
-      this.hideLoadingSpinner();
+      // Skip spinner management if called from DataPage (it manages spinner)
+      if (!options.forceFullParse) {
+        this.hideLoadingSpinner();
+      }
     }
   }
 

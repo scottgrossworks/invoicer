@@ -1,15 +1,10 @@
 /**
  * Responder - Page class for first contact response email generation
+ * Extends DataPage for universal workflow
  * Auto-generates professional first response emails with rate info and booking invitation
- * Architecture mirrors ThankYou.js but serves opposite end of sales cycle:
- *  -- procedural parse for name/email
- *  -- search DB for Client/Booking
- *  -- if found, display, else run parser
- *  -- include special info section for LLM prompt
- *  -- generate first response email using LLM and open email compose window
  */
 
-import { Page } from './Page.js';
+import { DataPage } from './DataPage.js';
 import { DateTimeUtils } from '../utils/DateTimeUtils.js';
 import { log, logError, showToast } from '../logging.js';
 import { PageUtils } from '../utils/Page_Utils.js';
@@ -17,7 +12,7 @@ import { Calculator } from '../utils/Calculator.js';
 import Client from '../db/Client.js';
 import Booking from '../db/Booking.js';
 
-export class Responder extends Page {
+export class Responder extends DataPage {
 
   constructor(state) {
     super('responder', state);
@@ -55,51 +50,76 @@ export class Responder extends Page {
     }
   }
 
-  // openSettings() inherited from Page.js base class
+  // openSettings() inherited from DataPage base class
 
   /**
-   * Called when responder page becomes visible
-   * Base class handles smart parsing logic
+   * DataPage hook: Run full parse (LLM extraction)
    */
-  async onShowImpl() {
-    // Load Config data from DB if not already loaded (needed for response generation)
+  async fullParse() {
+    // Use inherited reloadParser() with forceFullParse to skip prelim/DB (already done in DataPage.onShow)
+    await this.reloadParser({ forceFullParse: true });
+    return { success: true, data: this.state.toObject() };
+  }
+
+  /**
+   * DataPage hook: Render data from STATE cache
+   */
+  async renderFromState(stateData) {
+    await this.state.loadConfigFromDB();
+    if (stateData) {
+      Object.assign(this.state.Client, stateData.Client || {});
+      Object.assign(this.state.Booking, stateData.Booking || {});
+    }
+    this.populateResponderTable();
+  }
+
+  /**
+   * DataPage hook: Render data from database (with green styling)
+   */
+  async renderFromDB(dbData) {
     await this.state.loadConfigFromDB();
 
-    console.log('Config details:', {
-      hasConfig: !!this.state.Config,
-      hasCompanyName: !!(this.state.Config?.companyName),
-      companyName: this.state.Config?.companyName,
-      companyEmail: this.state.Config?.companyEmail,
-      fullConfig: this.state.Config
+    Object.assign(this.state.Client, {
+      name: dbData.name || '',
+      email: dbData.email || '',
+      phone: dbData.phone || '',
+      company: dbData.company || '',
+      website: dbData.website || '',
+      clientNotes: dbData.clientNotes || '',
+      _fromDB: true
     });
 
-    // Check if Config was actually loaded from DB and has data
-    const hasConfigData = this.state.Config && (
-      this.state.Config.companyName ||
-      this.state.Config.companyEmail ||
-      this.state.Config.companyAddress
-    );
-
-    if (!hasConfigData) {
-      console.log('Config exists but is empty - no business data configured');
-      showToast('No business configuration found - please configure in Settings', 'warning');
-    } else {
-      console.log('Config loaded successfully from DB:', this.state.Config.companyName);
+    if (dbData.bookings?.length > 0) {
+      Object.assign(this.state.Booking, {
+        ...dbData.bookings[0],
+        _fromDB: true
+      });
     }
 
-    // Refresh _fromDB flag by checking database
-    if (window.DB_LAYER && (this.state.Client.email || this.state.Client.name)) {
-      const dbClient = await window.DB_LAYER.searchClient(
-        this.state.Client.email,
-        this.state.Client.name
-      );
-      this.state.Client._fromDB = !!dbClient;
-    } else {
-      this.state.Client._fromDB = false;
+    this.populateResponderTable(true);
+  }
+
+  /**
+   * DataPage hook: Render data from fresh parse
+   */
+  async renderFromParse(parseResult) {
+    await this.state.loadConfigFromDB();
+
+    if (parseResult.data?.Client) {
+      Object.assign(this.state.Client, parseResult.data.Client);
+    }
+    if (parseResult.data?.Booking) {
+      Object.assign(this.state.Booking, parseResult.data.Booking);
     }
 
-    // Populate and show UI
-    this.updateFromState(this.state);
+    this.populateResponderTable();
+  }
+
+  /**
+   * Not used - DataPage calls hooks directly
+   */
+  async onShowImpl() {
+    // DataPage workflow doesn't use this
   }
 
   /**
@@ -281,7 +301,7 @@ export class Responder extends Page {
 
         // Handle date fields
         if (field === 'startDate' || field === 'endDate') {
-          rawValue = DateTimeUtils.parseUserInputToISO(rawValue);
+          rawValue = DateTimeUtils.parseDisplayDateToISO(rawValue);
         }
 
         this.state.Booking[field] = rawValue;

@@ -1,20 +1,15 @@
 /**
  * Thankyou - Page class for thank you note generation
+ * Extends DataPage for universal workflow
  * Simplified view of booking data with LLM-powered thank you email generation
- * Similar to invoicer:
- *  -- procedural parse for name/email
- *  -- search DB for Client/Booking
- *  -- if found, display, else run parser
- *  -- include special info section for LLM prompt
- *  -- generate thank you note using LLM and open email compose window
  */
 
-import { Page } from './Page.js';
+import { DataPage } from './DataPage.js';
 import { DateTimeUtils } from '../utils/DateTimeUtils.js';
 import { log, logError, showToast } from '../logging.js';
 import { PageUtils } from '../utils/Page_Utils.js';
 
-export class Thankyou extends Page {
+export class Thankyou extends DataPage {
 
   constructor(state) {
     super('thankyou', state);
@@ -57,42 +52,76 @@ export class Thankyou extends Page {
     }
   }
 
-  // openSettings() inherited from Page.js base class
+  // openSettings() inherited from DataPage base class
 
   /**
-   * Called when thank you page becomes visible
-   * Base class handles smart parsing logic
+   * DataPage hook: Run full parse (LLM extraction)
    */
-  async onShowImpl() {
-    // Load Config data from DB if not already loaded (needed for thank you generation)
+  async fullParse() {
+    // Use inherited reloadParser() with forceFullParse to skip prelim/DB (already done in DataPage.onShow)
+    await this.reloadParser({ forceFullParse: true });
+    return { success: true, data: this.state.toObject() };
+  }
+
+  /**
+   * DataPage hook: Render data from STATE cache
+   */
+  async renderFromState(stateData) {
+    await this.state.loadConfigFromDB();
+    if (stateData) {
+      Object.assign(this.state.Client, stateData.Client || {});
+      Object.assign(this.state.Booking, stateData.Booking || {});
+    }
+    this.populateThankYouTable();
+  }
+
+  /**
+   * DataPage hook: Render data from database (with green styling)
+   */
+  async renderFromDB(dbData) {
     await this.state.loadConfigFromDB();
 
-    // Check if Config was actually loaded from DB and has data
-    const hasConfigData = this.state.Config && (
-      this.state.Config.companyName ||
-      this.state.Config.companyEmail ||
-      this.state.Config.companyAddress
-    );
+    Object.assign(this.state.Client, {
+      name: dbData.name || '',
+      email: dbData.email || '',
+      phone: dbData.phone || '',
+      company: dbData.company || '',
+      website: dbData.website || '',
+      clientNotes: dbData.clientNotes || '',
+      _fromDB: true
+    });
 
-    if (!hasConfigData) {
-      console.log('Config exists but is empty - no business data configured');
-      showToast('No business configuration found - please configure in Settings', 'warning');
+    if (dbData.bookings?.length > 0) {
+      Object.assign(this.state.Booking, {
+        ...dbData.bookings[0],
+        _fromDB: true
+      });
     }
 
-    // Refresh _fromDB flag by checking database
-    // (flag gets stripped during state save/load, so we must refresh it)
-    if (window.DB_LAYER && (this.state.Client.email || this.state.Client.name)) {
-      const dbClient = await window.DB_LAYER.searchClient(
-        this.state.Client.email,
-        this.state.Client.name
-      );
-      this.state.Client._fromDB = !!dbClient;
-    } else {
-      this.state.Client._fromDB = false;
+    this.populateThankYouTable(true);
+  }
+
+  /**
+   * DataPage hook: Render data from fresh parse
+   */
+  async renderFromParse(parseResult) {
+    await this.state.loadConfigFromDB();
+
+    if (parseResult.data?.Client) {
+      Object.assign(this.state.Client, parseResult.data.Client);
+    }
+    if (parseResult.data?.Booking) {
+      Object.assign(this.state.Booking, parseResult.data.Booking);
     }
 
-    // Populate and show UI
-    this.updateFromState(this.state);
+    this.populateThankYouTable();
+  }
+
+  /**
+   * Not used - DataPage calls hooks directly
+   */
+  async onShowImpl() {
+    // DataPage workflow doesn't use this
   }
 
   /**
@@ -244,7 +273,7 @@ export class Thankyou extends Page {
 
         // Handle date fields
         if (field === 'startDate') {
-          rawValue = DateTimeUtils.parseUserInputToISO(rawValue);
+          rawValue = DateTimeUtils.parseDisplayDateToISO(rawValue);
         }
 
         // Save to appropriate state object

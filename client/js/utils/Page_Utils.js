@@ -4,6 +4,8 @@
  * Provides reusable functionality for email generation, LLM requests, and formatting
  */
 
+import { ValidationUtils } from './ValidationUtils.js';
+
 export class PageUtils {
 
   /**

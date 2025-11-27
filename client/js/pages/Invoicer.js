@@ -1,9 +1,9 @@
 /**
  * Invoicer - Page class for booking/invoice management
- * Extracted from monolithic sidebar.js
+ * Extends DataPage for universal workflow
  */
 
-import { Page } from './Page.js';
+import { DataPage } from './DataPage.js';
 import { DateTimeUtils } from '../utils/DateTimeUtils.js';
 import { ValidationUtils } from '../utils/ValidationUtils.js';
 import { PageUtils } from '../utils/Page_Utils.js';
@@ -12,7 +12,7 @@ import { log, logError, logValidation, showToast } from '../logging.js';
 import Client from '../db/Client.js';
 import Booking from '../db/Booking.js';
 
-export class Invoicer extends Page {
+export class Invoicer extends DataPage {
 
   constructor(state) {
     super('invoicer', state);
@@ -38,15 +38,85 @@ export class Invoicer extends Page {
   }
 
   /**
-   * Called when invoicer page becomes visible
-   * Base class handles smart parsing logic
+   * DataPage hook: Run full parse (LLM extraction)
    */
-  async onShowImpl() {
-    // Load Config data from DB if not already loaded
+  async fullParse() {
+    // Use inherited reloadParser() with forceFullParse to skip prelim/DB (already done in DataPage.onShow)
+    await this.reloadParser({ forceFullParse: true });
+    return { success: true, data: this.state.toObject() };
+  }
+
+  /**
+   * DataPage hook: Render data from STATE cache
+   */
+  async renderFromState(stateData) {
+    // Load Config data from DB
     await this.state.loadConfigFromDB();
 
-    // Populate table with current state
-    this.updateFromState(this.state);
+    // Update state
+    if (stateData) {
+      Object.assign(this.state.Client, stateData.Client || {});
+      Object.assign(this.state.Booking, stateData.Booking || {});
+    }
+
+    // Render
+    this.populateBookingTable();
+  }
+
+  /**
+   * DataPage hook: Render data from database (with green styling)
+   */
+  async renderFromDB(dbData) {
+    // Load Config data from DB
+    await this.state.loadConfigFromDB();
+
+    // Update client from DB
+    Object.assign(this.state.Client, {
+      name: dbData.name || '',
+      email: dbData.email || '',
+      phone: dbData.phone || '',
+      company: dbData.company || '',
+      website: dbData.website || '',
+      clientNotes: dbData.clientNotes || '',
+      _fromDB: true
+    });
+
+    // If DB has bookings, use first one
+    if (dbData.bookings?.length > 0) {
+      Object.assign(this.state.Booking, {
+        ...dbData.bookings[0],
+        _fromDB: true
+      });
+    }
+
+    // Render with green styling
+    this.populateBookingTable(true); // Pass fromDB flag
+  }
+
+  /**
+   * DataPage hook: Render data from fresh parse
+   */
+  async renderFromParse(parseResult) {
+    // Load Config data from DB
+    await this.state.loadConfigFromDB();
+
+    // Update state from parse
+    if (parseResult.data?.Client) {
+      Object.assign(this.state.Client, parseResult.data.Client);
+    }
+    if (parseResult.data?.Booking) {
+      Object.assign(this.state.Booking, parseResult.data.Booking);
+    }
+
+    // Render
+    this.populateBookingTable();
+  }
+
+  /**
+   * Not used - DataPage calls hooks directly
+   */
+  async onShowImpl() {
+    // DataPage workflow doesn't use this
   }
 
   /**

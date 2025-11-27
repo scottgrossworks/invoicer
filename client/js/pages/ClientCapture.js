@@ -1,14 +1,15 @@
 /**
  * ClientCapture - Page class for capturing multiple clients
  * Each client gets its own table frame
+ * Extends DataPage for universal workflow
  */
 
-import { Page } from './Page.js';
+import { DataPage } from './DataPage.js';
 import { ValidationUtils } from '../utils/ValidationUtils.js';
 import { log, logError, showToast } from '../logging.js';
 import Client from '../db/Client.js';
 
-export class ClientCapture extends Page {
+export class ClientCapture extends DataPage {
 
   constructor(state) {
     super('clients', state);
@@ -35,28 +36,88 @@ export class ClientCapture extends Page {
   }
 
   /**
-   * Called when client capture page becomes visible
-   * Base class handles smart parsing logic - this just renders
+   * DataPage hook: Run full parse (LLM extraction)
+   * @returns {Promise<Object>} { success: boolean, data: Object, error: string }
    */
-  async onShowImpl() {
-    // Check if state already has client data
-    const hasClientsArray = this.state.Clients && this.state.Clients.length > 0;
-    const hasClientData = this.state.Client && (this.state.Client.name || this.state.Client.email);
+  async fullParse() {
+    console.log('=== ClientCapture.fullParse() called ===');
+    const result = await this.reloadParser();
+    console.log('=== reloadParser result:', result);
 
-    if (hasClientsArray) {
-      // Load from Clients array
-      this.clients = this.state.Clients.map(c => ({ ...c }));
-    } else if (hasClientData) {
-      // Load from singular Client object
-      this.clients = [{ ...this.state.Client }];
+    if (result.success) {
+      return {
+        success: true,
+        data: { Clients: result.clients },
+        fromDB: result.fromDB
+      };
+    }
+    return result;
+  }
+
+  /**
+   * DataPage hook: Render data from STATE cache
+   * @param {Object} stateData - State data to render
+   */
+  async renderFromState(stateData) {
+    // Load from state (or show blank if no data)
+    if (stateData?.Clients?.length > 0) {
+      this.clients = stateData.Clients.map(c => ({ ...c }));
+    } else if (stateData?.Client?.name || stateData?.Client?.email) {
+      this.clients = [{ ...stateData.Client }];
     } else {
-      // No data - show blank frame
-      if (this.clients.length === 0) {
-        this.clients.push(this._createBlankClient());
-      }
+      // No meaningful state data - show blank frame
+      this.clients = [this._createBlankClient()];
     }
 
     this.render();
+  }
+
+  /**
+   * DataPage hook: Render data from database (with green styling)
+   * @param {Object} dbData - Database client data
+   */
+  async renderFromDB(dbData) {
+    // Mark as from DB for green styling
+    const client = {
+      name: dbData.name || '',
+      email: dbData.email || '',
+      phone: dbData.phone || '',
+      company: dbData.company || '',
+      website: dbData.website || '',
+      clientNotes: dbData.clientNotes || '',
+      _fromDB: true
+    };
+
+    this.clients = [client];
+
+    // Update state
+    Object.assign(this.state.Client, client);
+    this.state.setClients([client]);
+
+    this.render();
+  }
+
+  /**
+   * DataPage hook: Render data from fresh parse
+   * @param {Object} parseResult - Parse result data
+   */
+  async renderFromParse(parseResult) {
+    if (parseResult?.success && parseResult?.data?.Clients?.length > 0) {
+      this.clients = parseResult.data.Clients.map(c => ({ ...c }));
+    } else {
+      // No data or parse failed - show blank frame
+      this.clients = [this._createBlankClient()];
+    }
+
+    this.render();
+  }
+
+  /**
+   * Not used - DataPage calls onShowImpl() directly
+   * Kept for compatibility
+   */
+  async onShowImpl() {
+    // DataPage workflow doesn't use this
   }
 
   /**
@@ -406,91 +467,59 @@ export class ClientCapture extends Page {
 
   /**
    * Reload parser to extract clients from current page
+   * Pure logic - no UI updates (caller handles spinner, render, toast)
+   * @returns {Promise<Object>} { success: boolean, clients: Array, fromDB: boolean, error: string }
    */
   async reloadParser() {
     console.log('=== ClientCapture.reloadParser() called ===');
     try {
-      this.setButtonsEnabled(false);
-
-      // Clear display but preserve spinner
-      const container = document.getElementById('display_win_clients');
-      if (container) {
-        const spinner = container.querySelector('.loading-spinner');
-        container.innerHTML = '';
-        if (spinner) {
-          container.appendChild(spinner);
-        }
-      }
-      this.showLoadingSpinner();
-
-      log('Running client parser...');
-
       // Get current tab URL and tabId
       const { url, tabId } = await new Promise(resolve => {
         chrome.runtime.sendMessage({ type: 'leedz_get_tab_url' }, resolve);
       });
 
       if (!url || !tabId) {
-        log('Cannot auto-detect page data');
-        log('No page detected');
-        return;
+        return { success: false, error: 'No page detected' };
       }
 
       // Send message to content script to run matching parser (extractClientData only)
-      await new Promise((resolve, reject) => {
+      const response = await new Promise((resolve) => {
         chrome.tabs.sendMessage(tabId, {
-          type: 'leedz_extract_client',  // New message type for client-only extraction
+          type: 'leedz_extract_client',
           state: this.state.toObject()
-        }, (response) => {
-          if (response?.ok && response?.data) {
-            log(`Parser completed successfully`);
-
-            // Extract clients array from response (state.Clients)
-            const clientsArray = response.data.Clients;
-
-            if (clientsArray && Array.isArray(clientsArray) && clientsArray.length > 0) {
-              // Check if client is from DB
-              const fromDB = clientsArray[0]._fromDB === true;
-
-              // Replace all frames with extracted clients
-              this.clients = clientsArray.map(client => ({
-                name: client.name || '',
-                email: client.email || '',
-                phone: client.phone || '',
-                company: client.company || '',
-                website: client.website || '',
-                clientNotes: client.clientNotes || '',
-                _fromDB: client._fromDB || false
-              }));
-              this.render();
-
-              // Show appropriate toast
-              if (fromDB) {
-                showToast('Client Found', 'info');
-              } else {
-                showToast(`Extracted ${clientsArray.length} client${clientsArray.length > 1 ? 's' : ''}`, 'success');
-              }
-            } else {
-              log('No client data found on page');
-              showToast('No client data found on this page', 'info');
-            }
-
-            resolve();
-          } else {
-            logError(`Parser failed:`, response?.error || 'Unknown error');
-            log('Parse failed');
-            resolve(); // Still resolve even on failure
-          }
-        });
+        }, resolve);
       });
+
+      if (response?.ok && response?.data) {
+        // Extract clients array from response
+        const clientsArray = response.data.Clients;
+
+        if (clientsArray && Array.isArray(clientsArray) && clientsArray.length > 0) {
+          // Check if client is from DB
+          const fromDB = clientsArray[0]._fromDB === true;
+
+          // Update internal clients array
+          this.clients = clientsArray.map(client => ({
+            name: client.name || '',
+            email: client.email || '',
+            phone: client.phone || '',
+            company: client.company || '',
+            website: client.website || '',
+            clientNotes: client.clientNotes || '',
+            _fromDB: client._fromDB || false
+          }));
+
+          return { success: true, clients: this.clients, fromDB };
+        } else {
+          return { success: false, error: 'No client data found on page' };
+        }
+      } else {
+        return { success: false, error: response?.error || 'Parser failed' };
+      }
 
     } catch (error) {
       console.error('Parser initialization error:', error);
-      log('Parser unavailable');
-      showToast('Parser error - see console', 'error');
-    } finally {
-      this.hideLoadingSpinner();
-      this.setButtonsEnabled(true);
+      return { success: false, error: error.message };
     }
   }
 }

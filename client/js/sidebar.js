@@ -486,6 +486,16 @@ function setupHeaderButtons() {
     });
   }
 
+  const reloadBtnResponder = document.getElementById('reloadBtnResponder');
+  if (reloadBtnResponder) {
+    reloadBtnResponder.addEventListener('click', async () => {
+      if (CURRENT_PAGE) {
+        // Cycle through cached bookings or reload if exhausted
+        await CURRENT_PAGE.cycleNextBooking();
+      }
+    });
+  }
+
   const settingsBtn = document.getElementById('settingsBtn');
   if (settingsBtn) {
     settingsBtn.addEventListener('click', async () => {

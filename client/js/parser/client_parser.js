@@ -51,6 +51,48 @@ class ClientParser extends ProfileParser {
   }
 
   /**
+   * Quick extraction of first email/name found on page (for DB lookup)
+   * Scans page text for email addresses and nearby names
+   * @returns {Promise<Object|null>} {email, name} or null
+   */
+  async quickExtractIdentity() {
+    try {
+      // Get page text
+      const pageText = document.body.textContent || '';
+
+      // Extract first email using regex
+      const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/;
+      const emailMatch = pageText.match(emailRegex);
+      const email = emailMatch ? emailMatch[0] : null;
+
+      // Try to find a name near the email
+      let name = null;
+      if (email) {
+        // Get context around email (100 chars before and after)
+        const emailIndex = pageText.indexOf(email);
+        const contextStart = Math.max(0, emailIndex - 100);
+        const contextEnd = Math.min(pageText.length, emailIndex + 100);
+        const context = pageText.substring(contextStart, contextEnd);
+
+        // Look for name pattern (2-3 capitalized words)
+        const nameRegex = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})\b/;
+        const nameMatch = context.match(nameRegex);
+        name = nameMatch ? nameMatch[1] : null;
+      }
+
+      if (email || name) {
+        console.log('ClientParser quick identity:', { email, name });
+        return { email, name };
+      }
+
+      return null;
+    } catch (error) {
+      console.error('ClientParser quick identity extraction failed:', error);
+      return null;
+    }
+  }
+
+  /**
    * Extract client data from page content using LLM
    * @returns {Array<Object>} Array of clients extracted from page
    */

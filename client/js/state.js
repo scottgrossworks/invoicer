@@ -195,7 +195,7 @@ class State {
 
     // If no Config data found load from DB
     if ( !this.Config || !this.Config.companyName ) {
-      console.log('Config needs to be loaded from DB');
+      // console.log('Config needs to be loaded from DB');
 
       const dbLayer = await getDbLayer();
       console.log('DB Layer:', {
@@ -208,17 +208,13 @@ class State {
         return;
       }
 
-      console.log('Calling dbLayer.load()...');
+      // console.log('Calling dbLayer.load()...');
       const dbConfig = await dbLayer.load();
-      console.log('dbLayer.load() returned:', {
-        hasConfig: !!dbConfig,
-        configData: dbConfig
-      });
 
       if (dbConfig) {
         Object.assign(this.Config, dbConfig);
         console.log("Config loaded from database successfully");
-        console.log("Config now contains:", this.Config);
+        // console.log("Config now contains:", this.Config);
         // CONFIG LOADED - DO NOT SAVE YET
         // Save will happen after parser completes and populates Client/Booking data
 
