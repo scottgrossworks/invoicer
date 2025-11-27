@@ -2,13 +2,6 @@
 LEEDZ SERVER INSTALLATION GUIDE
 ====================================================================
 
-12/2025: These instructions are temporary, until the Leedz is
-registered with Google and available on the App Store.  Then the
-install will be easier, but the program will be harder to update.
-While the app is in beta, and we are taking your feature requests
-and bug reports please endure this more cumbersome process.
-
-Email: theleedz.com@gmail.com
 
 --------------------------------------------------------------------
 STEP 1: DOWNLOAD AND EXTRACT
@@ -65,11 +58,13 @@ and select "Exit"
 
 TO RESTART: Double-click "launch_leedz.bat" again
 
-TO AUTO-START ON WINDOWS BOOT (Optional):
-1. Press Win+R, type "shell:startup", press Enter
-2. Right-click in the Startup folder, select "New > Shortcut"
-3. Browse to your launch_leedz.bat file
-4. Click Next, then Finish
+TO AUTO-START ON WINDOWS BOOT (Recommended):
+1. Right-click the Leedz tray icon
+2. Select "Settings"
+3. Check the box: "Start TheLeedz automatically when Windows starts"
+4. Click "Save"
+
+Now Leedz will automatically start every time Windows boots!
 
 ====================================================================
 TROUBLESHOOTING
