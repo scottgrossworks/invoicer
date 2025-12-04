@@ -128,8 +128,9 @@ export class DateTimeUtils {
   /**
    * Parse display date format back to ISO format
    * Defaults to current year if no year is provided
+   * Uses noon (12:00:00) to avoid timezone off-by-one errors
    * @param {string} displayValue - Date in display format (e.g., "January 15, 2025" or "January 15")
-   * @returns {string} ISO date string with timezone
+   * @returns {string} ISO date string with timezone at noon
    */
   static parseDisplayDateToISO(displayValue) {
     if (!displayValue) return displayValue;
@@ -146,8 +147,9 @@ export class DateTimeUtils {
       dateStr = `${s} ${CURRENT_YEAR}`;
     }
 
-    // Try to parse the display format back to ISO
-    const d = new Date(dateStr);
+    // Parse with noon time to avoid timezone off-by-one errors
+    // Midnight can shift to previous day when converting to/from UTC
+    const d = new Date(dateStr + ' 12:00:00');
     if (isNaN(d.getTime())) return s;
 
     // Validate that the date isn't defaulting to some ancient year (1970, 2001, etc.)
@@ -156,8 +158,9 @@ export class DateTimeUtils {
       d.setFullYear(CURRENT_YEAR);
     }
 
-    // Convert to ISO format with local timezone
-    return d.toISOString().slice(0, 19) + this.getTimezoneOffset();
+    // Convert to ISO format at noon with local timezone
+    // Using noon ensures date stays consistent across all timezones (UTC-12 to UTC+14)
+    return d.toISOString().slice(0, 11) + '12:00:00' + this.getTimezoneOffset();
   }
 
   /**

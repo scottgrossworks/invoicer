@@ -1,13 +1,14 @@
 /**
  * state.js - Simple state management for invoice data
  * Directly exposes Client/Booking/Config objects with storage persistence
- * 
- * 
- * Bring the DB layer into the state object -- use to save not only to 
+ *
+ *
+ * Bring the DB layer into the state object -- use to save not only to
  * chrome storage but also to a DB layer if configured
  */
 
 import { getDbLayer } from './provider_registry.js';
+import { DateTimeUtils } from './utils/DateTimeUtils.js';
 
 
 
@@ -144,7 +145,7 @@ class State {
     // Auto-set endDate to match startDate if endDate is empty (same-day event default)
     if (this.Booking.startDate && (!this.Booking.endDate || this.Booking.endDate.trim() === '')) {
       this.Booking.endDate = this.Booking.startDate;
-      console.log('State.save: Auto-set endDate to match startDate:', this.Booking.startDate);
+      // console.log('State.save: Auto-set endDate to match startDate:', this.Booking.startDate);
     }
 
     try {
@@ -186,22 +187,26 @@ class State {
    * If Config not found, let the caller assign its own defaults
    */
   async loadConfigFromDB() {
+    /*
     console.log('=== STATE.loadConfigFromDB() called ===');
     console.log('Current Config state:', {
       hasConfig: !!this.Config,
       hasCompanyName: !!(this.Config?.companyName),
       config: this.Config
     });
+    */
 
     // If no Config data found load from DB
     if ( !this.Config || !this.Config.companyName ) {
       // console.log('Config needs to be loaded from DB');
 
       const dbLayer = await getDbLayer();
+      /*
       console.log('DB Layer:', {
         hasDbLayer: !!dbLayer,
         dbLayerType: dbLayer ? dbLayer.constructor.name : 'null'
       });
+      */
 
       if (!dbLayer) {
         console.log("No DB Layer configured - Config will not be loaded from database");
@@ -219,15 +224,36 @@ class State {
         // Save will happen after parser completes and populates Client/Booking data
 
       } else {
-        console.warn("dbLayer.load() returned null - No Config found in DB");
+        console.log("WARNING: leedz_server is not running, or missing user Config.");
         return;
       }
     } else {
-      console.log('Config already loaded, skipping DB load');
+      // console.log('Config already loaded, skipping DB load');
     }
 
     // SUCCESS
     this.status = 'loaded';
+  }
+
+  /**
+   * Calculate duration from startTime/endTime and update Booking.duration
+   * Business logic: duration calculation belongs to state, not UI
+   * @returns {boolean} True if duration was calculated and updated, false otherwise
+   */
+  calculateDuration() {
+    const { startTime, endTime } = this.Booking;
+
+    if (!startTime || !endTime) return false;
+
+    const duration = DateTimeUtils.calculateDuration(startTime, endTime);
+
+    if (duration !== null && duration !== undefined) {
+      this.Booking.duration = duration;
+      // console.log('State: Duration calculated and updated:', duration);
+      return true;
+    }
+
+    return false;
   }
 
 

@@ -25,6 +25,9 @@ export class Thankyou extends DataPage {
 
     // Store special info for LLM prompt
     this.specialInfo = '';
+
+    // Track if client was loaded from database (persistent flag)
+    this.clientFromDB = false;
   }
 
   /**
@@ -42,14 +45,7 @@ export class Thankyou extends DataPage {
       writeBtn.addEventListener('click', () => this.onWrite());
     }
 
-    // Setup settings button handler (reuses invoicer config)
-    const settingsBtn = document.getElementById('settingsBtn');
-    if (settingsBtn && !settingsBtn.dataset.listenerBound) {
-      settingsBtn.dataset.listenerBound = 'true';
-      settingsBtn.addEventListener('click', async () => {
-        await this.openSettings();
-      });
-    }
+    // Note: Settings button handler is in sidebar.js:setupHeaderButtons()
   }
 
   // openSettings() inherited from DataPage base class
@@ -80,6 +76,9 @@ export class Thankyou extends DataPage {
    */
   async renderFromDB(dbData) {
     await this.state.loadConfigFromDB();
+
+    // Set persistent flag - client was found in database
+    this.clientFromDB = true;
 
     Object.assign(this.state.Client, {
       name: dbData.name || '',
@@ -138,6 +137,7 @@ export class Thankyou extends DataPage {
   clear() {
     this.state.clear();
     this.specialInfo = ''; // Clear special info
+    this.clientFromDB = false; // Clear DB flag
     this.updateFromState(this.state);
     log('Cleared');
   }
@@ -224,7 +224,8 @@ export class Thankyou extends DataPage {
     });
     */
 
-    if (this.state.Client._fromDB) {
+    // Use persistent flag OR transient state flag (for backward compatibility)
+    if (this.clientFromDB || this.state.Client._fromDB) {
       table.classList.add('thankyou-table-from-db');
     } else {
       table.classList.remove('thankyou-table-from-db');

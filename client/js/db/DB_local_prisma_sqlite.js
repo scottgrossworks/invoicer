@@ -6,7 +6,7 @@ import Config from './Config.js';
 import { logValidation } from '../logging.js';
 
 
-const CONFIG_JSON = 'invoicer_config.json';
+const CONFIG_JSON = 'leedz_config.json';
 const URL_DEFAULT = 'http://127.0.0.1:3000';
 
 
@@ -51,7 +51,7 @@ cleanFloat(value) {
   async save( state ) {
     try {
 
-      console.log("SAVING!");
+      // console.log("SAVING!");
       state.status = 'local';
 
       // Get clients array
@@ -219,7 +219,7 @@ cleanFloat(value) {
           console.error('Config save failed:', errorText);
           throw new Error(`Config save failed: ${configRes.status} ${errorText}`);
         }
-        console.log('Config saved to database');
+        // console.log('Config saved to database');
       }  // End if (state.Config exists)
 
 
@@ -258,9 +258,14 @@ async load() {
         const storageResult = await chrome.storage.local.get('leedzStartupConfig');
         if (storageResult.leedzStartupConfig) {
           const startupConfig = storageResult.leedzStartupConfig;
-          if (startupConfig.serverUrl && startupConfig.serverPort) {
-            serverUrl = `${startupConfig.serverUrl}:${startupConfig.serverPort}`;
+
+          // Handle both old serverUrl format and new serverHost format
+          if (startupConfig.serverHost && startupConfig.serverPort) {
+            serverUrl = `http://${startupConfig.serverHost}:${startupConfig.serverPort}`;
             console.log('Using startup config from Chrome storage for load():', serverUrl);
+          } else if (startupConfig.serverUrl && startupConfig.serverPort) {
+            serverUrl = `${startupConfig.serverUrl}:${startupConfig.serverPort}`;
+            console.log('Using legacy startup config from Chrome storage for load():', serverUrl);
           }
         }
       } catch (error) {
@@ -283,18 +288,19 @@ async load() {
 
       console.log(`Fetching config from: ${serverUrl}/config`);
       const dbResponse = await fetch(`${serverUrl}/config`);
-      console.log('Config fetch response status:', dbResponse.status, dbResponse.statusText);
+      // console.log('Config fetch response status:', dbResponse.status, dbResponse.statusText);
 
       if (dbResponse.ok) {
         const dbConfig = await dbResponse.json();
-        console.log("=== PDF settings loaded from database ===");
-        console.log('Config data received from server:', {
+        // console.log("=== PDF settings loaded from database ===");
+        /* console.log('Config data received from server:', {
           hasData: !!dbConfig,
           keys: dbConfig ? Object.keys(dbConfig) : [],
           companyName: dbConfig?.companyName,
           companyEmail: dbConfig?.companyEmail,
           fullData: dbConfig
         });
+        */
 
         return dbConfig;
 
@@ -305,10 +311,11 @@ async load() {
       }
 
     } catch (error) {
-      console.error('=== DB Config load ERROR ===');
-      console.error('Error details:', error.message);
-      console.error('Stack:', error.stack);
-      console.log('Database server may not be running - this is normal if server is not configured');
+      // Server not running - silent fail (caller will handle)
+      if (error.message.includes('Failed to fetch')) {
+        return null;
+      }
+      console.error('DB Config load ERROR:', error.message);
       return null;
     }
   }
@@ -321,8 +328,8 @@ async load() {
    */
   async searchClient(email, name) {
     try {
-      console.log('=== DB_LAYER.searchClient() CALLED ===');
-      console.log('Parameters:', { email, name });
+      // console.log('=== DB_LAYER.searchClient() CALLED ===');
+      // console.log('Parameters:', { email, name });
 
       // Build query parameters
       const params = new URLSearchParams();
@@ -335,10 +342,10 @@ async load() {
       }
 
       const url = `${this.baseUrl}/clients?${params.toString()}`;
-      console.log('Fetching:', url);
+      // console.log('Fetching:', url);
 
       const response = await fetch(url);
-      console.log('Response status:', response.status, response.statusText);
+      // console.log('Response status:', response.status, response.statusText);
 
       if (!response.ok) {
         console.error(`searchClient: Server returned ${response.status}`);
@@ -346,10 +353,12 @@ async load() {
       }
 
       const clients = await response.json();
+      /*
       console.log('Clients returned:', {
         count: clients ? clients.length : 0,
         clients: clients
       });
+      */
 
       // Return first matching client or null
       if (clients && clients.length > 0) {
@@ -357,12 +366,15 @@ async load() {
         return clients[0];
       }
 
-      console.log('✗ searchClient: No matching client found');
+      //console.log('✗ searchClient: No matching client found');
       return null;
 
     } catch (error) {
-      console.error('✗✗✗ searchClient ERROR:', error.message);
-      console.error('Stack:', error.stack);
+      // Network error (server not running) - throw to let caller handle
+      if (error.message.includes('Failed to fetch')) {
+        throw new Error('SERVER_NOT_RUNNING');
+      }
+      console.log('ERROR (server not running):', error.message);
       return null;
     }
   }

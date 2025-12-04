@@ -589,10 +589,10 @@ input.invalid {
 }
 
 #writeThankYouBtn {
-  background-color: var(--LEEDZ_DARKGREEN);
+  background-color: blueviolet;
 }
 #writeThankYouBtn:hover:not(:disabled) {
-  background-color: darkgreen;
+  background-color: darkviolet;
 }
 
 #clearResponderBtn {
@@ -602,11 +602,18 @@ input.invalid {
   background-color: blue;
 }
 
+#saveResponderBtn {
+  background-color: var(--LEEDZ_GREEN);
+}
+#saveResponderBtn:hover:not(:disabled) {
+  background-color: green;
+}
+
 #writeResponderBtn {
-  background-color: var(--LEEDZ_DARKGREEN);
+  background-color: blueviolet;
 }
 #writeResponderBtn:hover:not(:disabled) {
-  background-color: darkgreen;
+  background-color: darkviolet;
 }
 
 #clearOutreachBtn {
@@ -617,10 +624,10 @@ input.invalid {
 }
 
 #writeOutreachBtn {
-  background-color: var(--LEEDZ_DARKGREEN);
+  background-color: blueviolet;
 }
 #writeOutreachBtn:hover:not(:disabled) {
-  background-color: darkgreen;
+  background-color: darkviolet;
 }
 
 /* Special Information section for ThankYou page */

@@ -20,6 +20,9 @@ export class Outreach extends Page {
     // Client cycling (like Client Capture but displays one at a time)
     this.clients = [];           // Array of parsed clients from page
     this.currentClientIndex = 0; // Index of currently displayed client
+
+    // Track if client was loaded from database (persistent flag)
+    this.clientFromDB = false;
   }
 
   /**
@@ -37,14 +40,7 @@ export class Outreach extends Page {
       writeBtn.addEventListener('click', () => this.onWrite());
     }
 
-    // Setup settings button handler (reuses invoicer config)
-    const settingsBtn = document.getElementById('settingsBtnOutreach');
-    if (settingsBtn && !settingsBtn.dataset.listenerBound) {
-      settingsBtn.dataset.listenerBound = 'true';
-      settingsBtn.addEventListener('click', async () => {
-        await this.openSettings();
-      });
-    }
+    // Note: Settings button handler is in sidebar.js:setupHeaderButtons()
 
     // Setup reload button handler - CYCLES through clients
     const reloadBtn = document.getElementById('reloadBtnOutreach');
@@ -115,6 +111,7 @@ export class Outreach extends Page {
       window.DB_LAYER.searchClient(currentClient.email, currentClient.name)
         .then(dbClient => {
           this.state.Client._fromDB = !!dbClient;
+          this.clientFromDB = !!dbClient; // Set persistent flag
           this.updateFromState(this.state);
         });
     }
@@ -246,6 +243,7 @@ export class Outreach extends Page {
     this.clients = [];
     this.currentClientIndex = 0;
     this.specialInfo = '';
+    this.clientFromDB = false; // Clear DB flag
     this.updateFromState(this.state);
     log('Cleared');
   }
@@ -301,7 +299,8 @@ export class Outreach extends Page {
     tbody.innerHTML = '';
 
     // Apply green styling if client from DB
-    if (this.state.Client._fromDB) {
+    // Use persistent flag OR transient state flag (for backward compatibility)
+    if (this.clientFromDB || this.state.Client._fromDB) {
       table.classList.add('outreach-table-from-db');
     } else {
       table.classList.remove('outreach-table-from-db');
@@ -471,46 +470,31 @@ export class Outreach extends Page {
       rateText = `My flat rate would be $${flatRate}`;
     }
 
+    // Get outreach example from config
+    const outreachExample = this.state.leedzConfig?.outreachEmail?.responseExample || '';
+
+    // Build signature
     const signatureExample = PageUtils.buildSignatureBlock(businessInfo, 'Scott');
 
-    return `ROLE: Generate professional outreach email introducing a potential client to your ${businessInfo.servicesPerformed} services.
- 
-MIN-MAX-LEN: 3-6 sentences
+    return `Generate a professional outreach email to attract a potential client.
 
-CLIENT INFORMATION:
-- Name: ${clientFirstName}
+CLIENT: ${clientFirstName}
+RATE: ${rateText}
+${specialInfo ? `SPECIAL INSTRUCTIONS: ${specialInfo}` : ''}
 
-SPECIAL NOTES (follows welcome): ${specialInfo}
-Give this text priority and style the rest of the email around it.
-Text you generate should compliment SPECIAL NOTES and enrich it with ADDITIONAL INFO without exceeding MIN-MAX-LEN
+BUSINESS INFO:
+${businessInfo.businessName} - ${businessInfo.servicesPerformed}
+${businessInfo.businessDescription}
+${businessInfo.businessEmail} | ${businessInfo.businessPhone}
+${businessInfo.businessWebsite ? businessInfo.businessWebsite : ''}
+${businessInfo.contactHandle ? businessInfo.contactHandle : ''}
 
-RATE TEXT (use this verbatim): ${rateText}
+EXAMPLE (match this tone, length, and style):
+${outreachExample}
 
-INSTRUCTIONS:
-1. Write a MIN-MAX-LEN email using the tone of ${specialInfo}
-2. Print ${specialInfo} after the greeting
-3. Use RATE TEXT
-4. add ADDITIONAL INFO but do not exceed MIN-MAX-LEN
-5. ADDITIONAL INFO: summarize ${businessInfo.businessDescription}
-6. conclude with signature
-7. ${PageUtils.getEmailFormattingInstructions()}
-8. DO NOT include subject line (will be added automatically)
-9. Return ONLY the email body text
-
-EXAMPLE OUTPUT FORMAT:
-
-Dear ${clientFirstName},
-
-${specialInfo}
-
-${rateText}
-
-[ADDITIONAL INFO]
-
-Let's add you to the calendar,
-
+End the email with this signature block:
 ${signatureExample}
 
-${PageUtils.getConditionalFieldWarning()}`;
+Write the email body only (no subject line). Return plain text.`;
   }
 }

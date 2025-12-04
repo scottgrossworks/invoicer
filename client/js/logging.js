@@ -177,10 +177,21 @@ export function initLogging() {
  * Toast appears in top-right corner and auto-dismisses after 4 seconds
  * Styling is defined in leedz_layout.css (.toast, .toast-success, .toast-error, .toast-info)
  *
+ * IMPORTANT: Only ONE toast visible at a time - previous toasts are cleared
+ *
  * @param {string} message - Message text to display
  * @param {string} type - Toast type: 'success', 'error', or 'info' (default: 'info')
  */
 export function showToast(message, type = 'info') {
+  // Clear any existing toasts first (prevent overlap)
+  const existingToasts = document.querySelectorAll('.toast');
+  existingToasts.forEach(t => {
+    if (t.parentNode) {
+      t.parentNode.removeChild(t);
+    }
+  });
+
+  // Create new toast
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
   toast.textContent = message;

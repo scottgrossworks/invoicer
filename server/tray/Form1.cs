@@ -376,10 +376,10 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
             {
                 File.AppendAllText(_logFilePath, logLine + Environment.NewLine);
             }
-            catch (Exception ex)
+            catch
             {
-                // If log file write fails, show error once (could use a flag to prevent spam)
-                MessageBox.Show($"Failed to write to log: {ex.Message}");
+                // Fail silently if log file is locked (e.g., by VS Code)
+                // Don't interrupt important operations like config save
             }
         }
 
@@ -409,8 +409,7 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
         // Create ConfigForm with restart callback and log callback
         using (ConfigForm configForm = new ConfigForm(CONFIG_FILE, () => {
             DebugWrite("[CONFIG] Stopping server for configuration change...");
-            StopNodeServer();
-            System.Threading.Thread.Sleep(1000);  // Give server 1 second to fully shut down
+            StopNodeServer();  // Already includes 1 second delay for file handle release
             DebugWrite("[CONFIG] Starting server with new configuration...");
             StartNodeServer();
         }, DebugWrite))
@@ -443,6 +442,7 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
     /// 1. Attempts graceful shutdown via HTTP API
     /// 2. Falls back to killing processes by name
     /// 3. Cleans up orphaned node.exe processes
+    /// 4. Waits for file handles to release (prevents log file lock errors)
     /// Updates tray icon tooltip to "stopped" state.
     /// </summary>
     private void StopNodeServer()
@@ -511,6 +511,13 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
 
                 // STEP 4: Clean up orphaned node.exe processes in our working directory
                 KillOrphanedNodeProcesses();
+            }
+
+            // STEP 5: Wait for file handles to release (prevents log file lock errors on restart)
+            if (stopped)
+            {
+                DebugWrite("[TRAY] Waiting for file handles to release...");
+                System.Threading.Thread.Sleep(1000);  // 1 second delay
             }
 
             if (trayIcon != null) trayIcon.Text = "Leedz Server: stopped";

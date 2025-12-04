@@ -86,6 +86,7 @@ class PDF_template {
     HandlebarsInstance.registerHelper('formatAddress', this.formatAddress);
     HandlebarsInstance.registerHelper('formatPhoneForDisplay', this.formatPhoneForDisplay);
     HandlebarsInstance.registerHelper('formatInvoiceDateTimeRange', this.formatInvoiceDateTimeRange.bind(this));
+    HandlebarsInstance.registerHelper('formatDuration', this.formatDuration);
     HandlebarsInstance.registerHelper('ifShouldShowBankInfo', function(Config, options) {
       if (PDF_template.prototype.shouldShowBankInfo(Config)) {
         return options.fn(this);
@@ -244,6 +245,35 @@ class PDF_template {
 
     // Return as-is for other formats
     return phone;
+  }
+
+  /**
+   * Formats duration by appending "hours" if not already present
+   * @param {number|string} duration - Duration value (numeric hours)
+   * @returns {string} Formatted duration (e.g., "4 hours" or "1 hour")
+   */
+  formatDuration(duration) {
+    if (!duration && duration !== 0) return '';
+
+    const durationStr = duration.toString().trim();
+
+    // If already contains "hour" or "hours", return as-is
+    if (/hours?/i.test(durationStr)) {
+      return durationStr;
+    }
+
+    // Parse numeric value
+    const numericValue = parseFloat(durationStr);
+    if (isNaN(numericValue)) {
+      return durationStr; // Return original if not a valid number
+    }
+
+    // Append "hour" or "hours" based on value
+    if (numericValue === 1) {
+      return `${numericValue} hour`;
+    } else {
+      return `${numericValue} hours`;
+    }
   }
 
   /**

@@ -65,7 +65,6 @@ public class ConfigForm : Form
         }
         catch { }
 
-        // 
         this.ClientSize = new Size(900, 984);
         this.MinimumSize = new Size(800, 900);
         this.MaximumSize = new Size(1200, 1200);
@@ -74,7 +73,7 @@ public class ConfigForm : Form
         this.MaximizeBox = true;
         this.MinimizeBox = true;
 
-        // Header panel with blue background
+        // Header panel
         Panel headerPanel = new Panel();
         headerPanel.BackColor = Color.Green;
         headerPanel.Location = new Point(0, 0);
@@ -93,14 +92,13 @@ public class ConfigForm : Form
 
         this.Controls.Add(headerPanel);
 
-        // CRITICAL FIX 2: Reduced top padding from 110 to 100
         TableLayoutPanel mainLayout = new TableLayoutPanel();
         mainLayout.Dock = DockStyle.Fill;
-        mainLayout.Padding = new Padding(30, 100, 30, 20);  // Reduced from 110
+        mainLayout.Padding = new Padding(30, 100, 30, 20);
         mainLayout.ColumnCount = 1;
         mainLayout.RowCount = 2;
-        mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));  // Content grows
-        mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 90F));   // Buttons fixed height
+        mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+        mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 90F));
         
         // Content panel (grows with form)
         Panel contentPanel = new Panel();
@@ -234,31 +232,26 @@ public class ConfigForm : Form
 
         mainLayout.Controls.Add(contentPanel, 0, 0);
 
-        // CRITICAL FIX 3: Button panel matches form background
         Panel buttonPanel = new Panel();
         buttonPanel.Dock = DockStyle.Fill;
-        // No BackColor set - inherits from parent (system default gray)
 
-        int buttonWidth = 150;
-        int buttonHeight = 55;
+        int buttonWidth = 180;  // Increased from 150 (20% larger)
+        int buttonHeight = 66;  // Increased from 55 (20% larger)
         int buttonSpacing = 30;
 
-        // FlowLayoutPanel for buttons
         FlowLayoutPanel buttonFlow = new FlowLayoutPanel();
         buttonFlow.FlowDirection = FlowDirection.RightToLeft;
         buttonFlow.Dock = DockStyle.Fill;
         buttonFlow.Padding = new Padding(30, 20, 30, 20);
-        // CRITICAL FIX 4: No BackColor - transparent, inherits parent
 
-        // Save Button
         Button btnSave = new() {
             Text = "Save",
             ForeColor = Color.White,
             BackColor = Color.Green,
             Width = buttonWidth,
             Height = buttonHeight,
-            // REMOVED: DialogResult = DialogResult.OK - was causing auto-close behavior
-            Font = new Font("Segoe UI", 11, FontStyle.Bold)
+            Font = new Font("Segoe UI", 11, FontStyle.Bold),
+            Padding = new Padding(20, 0, 20, 0)  // Horizontal padding
         };
         btnSave.Click += (s, e) => OnOKClick();
         buttonFlow.Controls.Add(btnSave);
@@ -267,15 +260,19 @@ public class ConfigForm : Form
         Panel spacer = new Panel { Width = buttonSpacing, Height = 1 };
         buttonFlow.Controls.Add(spacer);
 
-        // Cancel Button
-        Button btnCancel = new() {
-            Text = "Cancel",
+        // Close Button (neutral gray)
+        Button btnClose = new() {
+            Text = "Close",
             Width = buttonWidth,
             Height = buttonHeight,
-            DialogResult = DialogResult.Cancel,  // FIXME? WILL CLOSE THE DIALOG by default 11/19/25
-            Font = new Font("Segoe UI", 11, FontStyle.Regular)
+            BackColor = Color.Gray,
+            ForeColor = Color.White,
+            Font = new Font("Segoe UI", 11, FontStyle.Bold),
+            DialogResult = DialogResult.Cancel,
+            Padding = new Padding(20, 0, 20, 0)  // Horizontal padding
         };
-        buttonFlow.Controls.Add(btnCancel);
+        btnClose.Click += (s, e) => this.Close();
+        buttonFlow.Controls.Add(btnClose);
 
         buttonPanel.Controls.Add(buttonFlow);
         mainLayout.Controls.Add(buttonPanel, 0, 1);
@@ -285,10 +282,13 @@ public class ConfigForm : Form
         headerPanel.BringToFront();
 
         this.AcceptButton = btnSave;
-        this.CancelButton = btnCancel;
+        this.CancelButton = btnClose;
     }
 
     private string? originalDbPath = null;
+    private string? originalPort = null;
+    private string? originalLogPath = null;
+    private bool originalDebugMode = false;
 
     private void LoadCurrentConfig()
     {
@@ -312,15 +312,24 @@ public class ConfigForm : Form
                 }
 
                 if (root.TryGetProperty("port", out var port))
+                {
                     txtServerPort.Text = port.GetInt32().ToString();
+                    originalPort = txtServerPort.Text;
+                }
 
                 if (root.TryGetProperty("logging", out var logging))
                 {
                     if (logging.TryGetProperty("file", out var logFile))
+                    {
                         txtLogFilePath.Text = logFile.GetString() ?? "";
+                        originalLogPath = txtLogFilePath.Text;
+                    }
 
                     if (logging.TryGetProperty("level", out var level))
+                    {
                         chkDebugMode.Checked = (level.GetString() == "debug");
+                        originalDebugMode = chkDebugMode.Checked;
+                    }
                 }
 
                 // Set default export path using shared method
@@ -346,9 +355,18 @@ public class ConfigForm : Form
             return;
         }
 
-        // Check if database URL changed
+        // Check if ANY config changed
         string newDbPath = txtDbPath.Text;
+        string newPort = txtServerPort.Text;
+        string newLogPath = txtLogFilePath.Text;
+        bool newDebugMode = chkDebugMode.Checked;
+
         bool dbChanged = (originalDbPath != newDbPath);
+        bool portChanged = (originalPort != newPort);
+        bool logPathChanged = (originalLogPath != newLogPath);
+        bool debugModeChanged = (originalDebugMode != newDebugMode);
+
+        bool anyConfigChanged = dbChanged || portChanged || logPathChanged || debugModeChanged;
 
         if (dbChanged)
         {
@@ -362,28 +380,31 @@ public class ConfigForm : Form
             return;
         }
 
-        // Save succeeded - invoke restart callback if provided
-        if (dbChanged)
+        // Only restart server if configuration actually changed
+        if (anyConfigChanged)
         {
-            logCallback?.Invoke("[CONFIG] Configuration saved. Restarting server with new database...");
-        }
+            logCallback?.Invoke("[CONFIG] Configuration changed. Restarting server...");
 
-        try
-        {
-            onSaveCallback?.Invoke();
-            lblStatus.Text = "Configuration saved. Server restarted successfully.";
-            lblStatus.ForeColor = Color.DarkGreen;
-
-            if (dbChanged)
+            try
             {
-                logCallback?.Invoke("[CONFIG] Server restarted successfully with new database");
+                onSaveCallback?.Invoke();
+                lblStatus.Text = "Configuration saved. Server restarted successfully.";
+                lblStatus.ForeColor = Color.DarkGreen;
+                logCallback?.Invoke("[CONFIG] Server restarted successfully");
+            }
+            catch (Exception ex)
+            {
+                lblStatus.Text = $"Config saved but server restart failed: {ex.Message}";
+                lblStatus.ForeColor = Color.DarkRed;
+                logCallback?.Invoke($"[CONFIG] Server restart failed: {ex.Message}");
             }
         }
-        catch (Exception ex)
+        else
         {
-            lblStatus.Text = $"Config saved but server restart failed: {ex.Message}";
-            lblStatus.ForeColor = Color.DarkRed;
-            logCallback?.Invoke($"[CONFIG] Server restart failed: {ex.Message}");
+            // No changes detected - don't restart
+            lblStatus.Text = "No changes, server not restarted.";
+            lblStatus.ForeColor = Color.DarkGreen;
+            logCallback?.Invoke("[CONFIG] No changes, server not restarted");
         }
     }
 
@@ -416,10 +437,61 @@ public class ConfigForm : Form
     /// <summary>
     /// Event handler for database path changes
     /// Automatically updates export path to match database filename
+    /// Validates that database file exists
     /// </summary>
     private void OnDbPathChanged(object? sender, EventArgs e)
     {
         UpdateExportPath();
+        ValidateDatabasePath();
+    }
+
+    /// <summary>
+    /// Validates that the database path points to an existing file
+    /// Shows red error text if file does not exist
+    /// </summary>
+    private void ValidateDatabasePath()
+    {
+        string dbPath = txtDbPath.Text.Trim();
+
+        if (string.IsNullOrEmpty(dbPath))
+        {
+            lblStatus.Text = "";
+            return;
+        }
+
+        // Parse database URL format (e.g., "file:./data/leedz.sqlite")
+        string actualPath = dbPath;
+        if (dbPath.StartsWith("file:"))
+        {
+            actualPath = dbPath.Substring(5); // Remove "file:" prefix
+        }
+
+        // Resolve relative path
+        if (actualPath.StartsWith("./") || actualPath.StartsWith(".\\"))
+        {
+            actualPath = actualPath.Substring(2);
+        }
+
+        // Get exe directory to resolve relative paths
+        string exeDir = AppDomain.CurrentDomain.BaseDirectory;
+        string serverDir = File.Exists(Path.Combine(exeDir, "leedz-server.exe"))
+            ? exeDir
+            : Path.GetFullPath(Path.Combine(exeDir, "../../"));
+
+        string fullPath = Path.IsPathRooted(actualPath)
+            ? actualPath
+            : Path.Combine(serverDir, actualPath);
+
+        // Check if file exists
+        if (!File.Exists(fullPath))
+        {
+            lblStatus.Text = $"Database file does not exist: {fullPath}";
+            lblStatus.ForeColor = Color.DarkRed;
+        }
+        else
+        {
+            lblStatus.Text = "";
+        }
     }
 
     /// <summary>
@@ -498,18 +570,49 @@ public class ConfigForm : Form
         if (!int.TryParse(txtServerPort.Text, out int port) || port < 1 || port > 65535)
         {
             lblStatus.Text = "Port must be a number between 1 and 65535.";
+            lblStatus.ForeColor = Color.DarkRed;
             return false;
         }
 
         if (string.IsNullOrWhiteSpace(txtDbPath.Text))
         {
             lblStatus.Text = "Database path cannot be empty.";
+            lblStatus.ForeColor = Color.DarkRed;
+            return false;
+        }
+
+        // Validate database file exists
+        string dbPath = txtDbPath.Text.Trim();
+        string actualPath = dbPath;
+        if (dbPath.StartsWith("file:"))
+        {
+            actualPath = dbPath.Substring(5);
+        }
+        if (actualPath.StartsWith("./") || actualPath.StartsWith(".\\"))
+        {
+            actualPath = actualPath.Substring(2);
+        }
+
+        string exeDir = AppDomain.CurrentDomain.BaseDirectory;
+        string serverDir = File.Exists(Path.Combine(exeDir, "leedz-server.exe"))
+            ? exeDir
+            : Path.GetFullPath(Path.Combine(exeDir, "../../"));
+
+        string fullPath = Path.IsPathRooted(actualPath)
+            ? actualPath
+            : Path.Combine(serverDir, actualPath);
+
+        if (!File.Exists(fullPath))
+        {
+            lblStatus.Text = $"Database file does not exist: {fullPath}";
+            lblStatus.ForeColor = Color.DarkRed;
             return false;
         }
 
         if (string.IsNullOrWhiteSpace(txtLogFilePath.Text))
         {
             lblStatus.Text = "Log file path cannot be empty.";
+            lblStatus.ForeColor = Color.DarkRed;
             return false;
         }
 

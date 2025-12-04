@@ -8,7 +8,7 @@ setlocal EnableDelayedExpansion
 :: output:  /dist/
 
 set "DIST_DIR=dist"
-set "ZIP_NAME=leedz_invoicer_extension.zip"
+set "ZIP_NAME=leedz-chrome-ext.zip"
 
 echo.
 echo ==========================================
@@ -71,8 +71,13 @@ if exist "leedz_config.json" copy /Y "leedz_config.json" "%DIST_DIR%\" >nul
 if exist "invoicer_config.json" copy /Y "invoicer_config.json" "%DIST_DIR%\" >nul
 
 :: Docs
-if exist "README.md" copy /Y "README.md" "%DIST_DIR%\" >nul
 if exist "LICENSE" copy /Y "LICENSE" "%DIST_DIR%\" >nul
+
+:: Install Instructions
+if exist "INSTALL_INSTRUCTIONS.txt" copy /Y "INSTALL_INSTRUCTIONS.txt" "%DIST_DIR%\" >nul
+
+:: README.md from parent directory
+if exist "..\README.md" copy /Y "..\README.md" "%DIST_DIR%\" >nul
 
 :: 5. MANIFEST VALIDATION (JSON Syntax + Version Check)
 echo [5/6] Validating build...
@@ -113,7 +118,7 @@ echo   Distribution ZIP:   %CD%\%ZIP_NAME%
 echo.
 echo   NEXT STEPS:
 echo   1. Share %ZIP_NAME% with users
-echo   2. Provide INSTALL_INSTRUCTIONS.txt
+echo   2. INSTALL_INSTRUCTIONS.txt included in ZIP
 echo   3. ZIP installs as unpacked extension
 echo ==========================================
 

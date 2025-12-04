@@ -1,8 +1,8 @@
-# LEEDZ INVOICER
+# The Leedz
 
 ## SYSTEM OVERVIEW
 
-The Leedz Invoicer is a three-tier invoicing and booking management system consisting of:
+The Leedz is a three-tier invoicing and booking management system consisting of:
 1. SQLite database with Prisma ORM
 2. Express.js REST API server 
 3. Chrome extension with LLM integration and PDF generation
@@ -23,7 +23,7 @@ The Leedz Invoicer is a three-tier invoicing and booking management system consi
 - **Configuration**: `server/server_config.json`
 - **Databases**:
   - `server/data/bloomsights.sqlite` (active production database)
-  - `server/prisma/leedz_invoicer.sqlite` (legacy database, maintained for compatibility)
+  - `server/prisma/the_leedz.sqlite` (legacy database, maintained for compatibility)
 
 ### Chrome Extension
 - **Technology**: Vanilla JavaScript ES6 modules, dynamic page loading
@@ -243,7 +243,7 @@ const result = await executeHttpRequest(action);        // Step 4: MCP executes
 ```json
 {
   "mcp": {
-    "name": "leedz-invoicer-mcp",
+    "name": "leedz-mcp",
     "version": "1.0.0", 
     "protocolVersion": "2025-06-18"
   },
@@ -285,7 +285,7 @@ npm run mcp  # Runs dist/mcp_server.js
 ```json
 {
   "mcpServers": {
-    "leedz-invoicer": {
+    "leedz-mcp": {
       "command": "C:\\Program Files\\nodejs\\node.exe",
       "args": ["C:\\path\\to\\server\\mcp\\mcp_server.js"]
     }
@@ -305,7 +305,7 @@ Configure Claude Desktop with the following custom instructions for optimal CRM 
 ROLE: You are a conversational CRM assistant for Scott Gross, a caricature artist in Los Angeles (90034).
 
 TOOLS AVAILABLE:
-- leedz_invoicer: Database access for Clients, Bookings, and Config (business info)
+- leedz_mcp: Database access for Clients, Bookings, and Config (business info)
 - gmail_send: Send emails via Gmail with optional file attachments
 
 RESPONSE STYLE:

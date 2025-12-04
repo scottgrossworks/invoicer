@@ -25,77 +25,28 @@ async function loadLeedzConfig() {
 
     if (!response.ok) {
       throw new Error(`Failed to load leedz_config.json (HTTP ${response.status}).
-
-CONFIG FILE ERROR:
-==================
-Cannot find configuration file at: ${configUrl}
-
-This file is required for the Leedz Invoicer extension to run.
-Please ensure leedz_config.json exists in the extension root directory.
-
-Extension will not initialize without valid configuration.`);
+Cannot find configuration file at: ${configUrl}`);
     }
 
     const config = await response.json();
 
     // Validate that ui.defaultPage exists
     if (!config.ui || !config.ui.defaultPage) {
-      throw new Error(`Invalid leedz_config.json - missing required setting.
-
-CONFIG VALIDATION ERROR:
-========================
-The configuration file exists but is missing the required 'ui.defaultPage' setting.
-
-Expected structure in leedz_config.json:
-{
-  "ui": {
-    "defaultPage": "clients"   // or "gmailer" or "invoicer"
-  },
-  ...
-}
-
-Current config.ui value: ${JSON.stringify(config.ui, null, 2)}
-
-Please add the 'ui.defaultPage' setting to leedz_config.json.
-Valid values: "clients", "gmailer", or "invoicer"
-
-Extension will not initialize without valid configuration.`);
+      throw new Error(`Invalid leedz_config.json - missing required 'ui.defaultPage' setting.`);
     }
 
     // Validate that ui.pages exists and is an array
     if (!config.ui.pages || !Array.isArray(config.ui.pages) || config.ui.pages.length === 0) {
-      throw new Error(`Invalid leedz_config.json - missing or invalid pages configuration.
+      throw new Error(`Invalid leedz_config.json - expecting 'ui.pages' array defining available pages.`);
 
-CONFIG VALIDATION ERROR:
-========================
-The configuration file must include a 'ui.pages' array defining available pages.
-
-Expected structure:
-{
-  "ui": {
-    "defaultPage": "clients",
-    "pages": [
-      {"id": "clients", "label": "Clients", "module": "js/pages/ClientCapture.js", "className": "ClientCapture"},
-      {"id": "invoicer", "label": "Invoicer", "module": "js/pages/Invoicer.js", "className": "Invoicer"}
-    ]
-  }
-}
-
-Extension will not initialize without valid configuration.`);
     }
 
     // Validate that defaultPage exists in pages array
     const validPageIds = config.ui.pages.map(p => p.id);
     if (!validPageIds.includes(config.ui.defaultPage)) {
-      throw new Error(`Invalid leedz_config.json - defaultPage references non-existent page.
-
-CONFIG VALIDATION ERROR:
-========================
-The 'ui.defaultPage' value "${config.ui.defaultPage}" does not match any page id in the pages array.
-
-Available page ids: ${validPageIds.join(', ')}
-
-Please update ui.defaultPage to match one of the configured page ids.`);
+      throw new Error(`Invalid leedz_config.json - 
+'ui.defaultPage' value "${config.ui.defaultPage}" does not match any page id in the pages array.
+Available page ids: ${validPageIds.join(', ')}`);
     }
 
     LEEDZ_CONFIG = config;
@@ -129,6 +80,7 @@ async function initializeApp() {
     // Initialize state with persistence
     STATE = await StateFactory.create();
 
+    /*
     console.log('=== SIDEBAR STATE LOADED ===', {
       hasClient: !!(STATE.Client?.name || STATE.Client?.email),
       clientName: STATE.Client?.name,
@@ -137,7 +89,7 @@ async function initializeApp() {
       bookingTitle: STATE.Booking?.title,
       bookingLocation: STATE.Booking?.location
     });
-
+*/
     // Listen for storage changes from settings page
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName === 'local' && changes.currentBookingState) {
@@ -305,9 +257,15 @@ function hideAllButtons() {
 
 /**
  * Switch to a different page
+ * STATE MACHINE: Only ONE thing visible at a time
+ * - Spinner visible = all pages hidden
+ * - Page visible = spinner hidden, only target page showing
+ *
  * @param {string} pageName - Name of the page to switch to
  */
 async function switchToPage(pageName) {
+
+  /*
   console.log(`=== SWITCHING TO PAGE: ${pageName} ===`);
   console.log('STATE before switch:', {
     hasClient: !!(STATE.Client?.name || STATE.Client?.email),
@@ -316,68 +274,48 @@ async function switchToPage(pageName) {
     hasBooking: !!(STATE.Booking?.title || STATE.Booking?.location),
     bookingTitle: STATE.Booking?.title
   });
+  */
 
-  // STEP 1: IMMEDIATELY hide all buttons before any page switching
+  // STEP 1: IMMEDIATELY hide all buttons
   hideAllButtons();
 
-  // STEP 2: Hide current page and cleanup
+  // STEP 2: Hide ALL pages (clear the stage)
+  Object.values(PAGES).forEach(p => {
+    const pageElement = p.getPageElement();
+    if (pageElement) {
+      pageElement.style.display = 'none';
+    }
+  });
+
+  // STEP 3: Call onHide() on current page if exists
   if (CURRENT_PAGE) {
-    // Call onHide() - lets page cleanup, save state, stop parsers
     await CURRENT_PAGE.onHide();
-
-    // Hide all spinners on current page
-    hideAllSpinners(CURRENT_PAGE.pageId);
-
-    // Hide page element
-    CURRENT_PAGE.getPageElement().style.display = 'none';
   }
 
-  // STEP 3: Validate new page exists
+  // STEP 4: Validate new page exists
   const page = PAGES[pageName];
   if (!page) {
     console.error(`Page not found: ${pageName}`);
     return;
   }
 
-  // STEP 4: Show the new page container (empty initially)
+  // STEP 5: Show ONLY the target page container (empty at this point)
   page.getPageElement().style.display = 'flex';
 
-  // STEP 5: Wait for page to fully load (includes parsing and data loading)
+  // STEP 6: Show spinner (page will manage this in onShow)
+  // STEP 7: Process page data in background (onShow handles workflow)
   await page.onShow();
 
-  // STEP 6: Update UI (app label)
+  // STEP 8: Update UI (app label)
   updateAppLabel(pageName);
 
-  // STEP 7: Show buttons LAST - after all page loading and parsing is complete
+  // STEP 9: Show buttons LAST
   updateActionButtons(page);
 
   CURRENT_PAGE = page;
 
-  // STEP 8: Save current page to chrome storage
+  // STEP 10: Save current page to chrome storage
   saveLastActivePage(pageName);
-}
-
-/**
- * Hide all loading spinners on a specific page
- * @param {string} pageId - ID of the page (e.g., 'clients', 'invoicer')
- */
-function hideAllSpinners(pageId) {
-  // All possible spinner IDs by page
-  const spinnerIds = {
-    'clients': 'loading_spinner_clients',
-    'invoicer': 'loading_spinner',
-    'thankyou': 'loading_spinner_thankyou',
-    'responder': 'loading_spinner_responder',
-    'outreach': 'loading_spinner_outreach'
-  };
-
-  const spinnerId = spinnerIds[pageId];
-  if (spinnerId) {
-    const spinner = document.getElementById(spinnerId);
-    if (spinner) {
-      spinner.style.display = 'none';
-    }
-  }
 }
 
 /**
@@ -456,70 +394,31 @@ function updateActionButtons(page) {
  * Setup header buttons (reload, settings)
  */
 function setupHeaderButtons() {
-  const reloadBtn = document.getElementById('reloadBtn');
-  if (reloadBtn) {
-    reloadBtn.addEventListener('click', async () => {
-      if (CURRENT_PAGE) {
-        // Cycle through cached bookings or reload if exhausted
-        await CURRENT_PAGE.cycleNextBooking();
-      }
-    });
-  }
+  // Consolidate reload button handlers
+  const reloadButtons = ['reloadBtn', 'reloadBtnClients', 'reloadBtnThankYou', 'reloadBtnResponder'];
+  reloadButtons.forEach(btnId => {
+    const btn = document.getElementById(btnId);
+    if (btn) {
+      btn.addEventListener('click', async () => {
+        if (CURRENT_PAGE) {
+          await CURRENT_PAGE.cycleNextBooking();
+        }
+      });
+    }
+  });
 
-  const reloadBtnClients = document.getElementById('reloadBtnClients');
-  if (reloadBtnClients) {
-    reloadBtnClients.addEventListener('click', async () => {
-      if (CURRENT_PAGE) {
-        // Cycle through cached bookings or reload if exhausted
-        await CURRENT_PAGE.cycleNextBooking();
-      }
-    });
-  }
-
-  const reloadBtnThankYou = document.getElementById('reloadBtnThankYou');
-  if (reloadBtnThankYou) {
-    reloadBtnThankYou.addEventListener('click', async () => {
-      if (CURRENT_PAGE) {
-        // Cycle through cached bookings or reload if exhausted
-        await CURRENT_PAGE.cycleNextBooking();
-      }
-    });
-  }
-
-  const reloadBtnResponder = document.getElementById('reloadBtnResponder');
-  if (reloadBtnResponder) {
-    reloadBtnResponder.addEventListener('click', async () => {
-      if (CURRENT_PAGE) {
-        // Cycle through cached bookings or reload if exhausted
-        await CURRENT_PAGE.cycleNextBooking();
-      }
-    });
-  }
-
-  const settingsBtn = document.getElementById('settingsBtn');
-  if (settingsBtn) {
-    settingsBtn.addEventListener('click', async () => {
-      // Settings button functionality depends on current page
-      // Check if page has openSettings method
-      if (CURRENT_PAGE && typeof CURRENT_PAGE.openSettings === 'function') {
-        await CURRENT_PAGE.openSettings();
-      } else {
-        // Generic settings or no-op for other pages
-        console.log('Settings button clicked - no action for this page');
-      }
-    });
-  }
-
-  const settingsBtnThankYou = document.getElementById('settingsBtnThankYou');
-  if (settingsBtnThankYou) {
-    settingsBtnThankYou.addEventListener('click', async () => {
-      if (CURRENT_PAGE && typeof CURRENT_PAGE.openSettings === 'function') {
-        await CURRENT_PAGE.openSettings();
-      } else {
-        console.log('Settings button clicked - no action for this page');
-      }
-    });
-  }
+  // Consolidate settings button handlers - single source of truth for all pages
+  const settingsButtons = ['settingsBtn', 'settingsBtnThankYou', 'settingsBtnResponder', 'settingsBtnOutreach'];
+  settingsButtons.forEach(btnId => {
+    const btn = document.getElementById(btnId);
+    if (btn) {
+      btn.addEventListener('click', async () => {
+        if (CURRENT_PAGE && typeof CURRENT_PAGE.openSettings === 'function') {
+          await CURRENT_PAGE.openSettings();
+        }
+      });
+    }
+  });
 }
 
 // Start app on DOMContentLoaded

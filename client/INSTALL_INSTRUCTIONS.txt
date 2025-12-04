@@ -13,7 +13,7 @@ Email: theleedz.com@gmail.com
 --------------------------------------------------------------------
 STEP 1: DOWNLOAD AND EXTRACT
 --------------------------------------------------------------------
-1. Download the file "leedz_invoicer_extension.zip"
+1. Download the file "leedz-chrome-ext.zip"
 2. Right-click the ZIP file and select "Extract All..."
 3. Choose a permanent location (like your Documents folder)
    IMPORTANT: Don't delete this folder after installation - the

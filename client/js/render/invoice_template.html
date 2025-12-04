@@ -47,14 +47,14 @@
         </thead>
         <tbody>
           <tr>
-            <td class="qty-col">{{bookingData.duration}}</td>
+            <td class="qty-col">{{formatDuration bookingData.duration}}</td>
             <td class="description-col">
               <div class="service-title">{{Config.servicesPerformed}}</div>
               {{#if bookingData.title}}<div class="event-title">{{bookingData.title}}</div>{{/if}}
               {{#if bookingData.description}}<div class="service-description">{{bookingData.description}}</div>{{/if}}
               <br>
               <div class="service-date">{{formatInvoiceDateTimeRange bookingData.startDate bookingData.startTime bookingData.endDate bookingData.endTime}}</div>
-              {{#if bookingData.duration}}<div class="service-hours">{{bookingData.duration}}</div>{{/if}}
+              {{#if bookingData.duration}}<div class="service-hours">{{formatDuration bookingData.duration}}</div>{{/if}}
               <br>
               <div class="service-location">{{bookingData.location}}</div>
               <!-- NOTES HIDDEN: bookingData.notes are private internal notes and should NOT appear on customer-facing invoices -->

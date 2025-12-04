@@ -1,15 +1,15 @@
 /**
  * Provider Registry - Centralized configuration loader and provider factory
- * 
+ *
  * This module serves as the main dependency injection system for the Leedz Invoicer extension.
- * It loads configuration from invoicer_config.json and creates appropriate provider instances
+ * It loads configuration from leedz_config.json and creates appropriate provider instances
  * for database operations, LLM interactions, rendering, and email parsing.
- * 
- * Used by: 
+ *
+ * Used by:
  * - sidebar.js (main application logic)
- * 
+ *
  * Dependencies:
- * - invoicer_config.json (configuration file)
+ * - leedz_config.json (configuration file)
  * - ./db/DB_local_prisma_sqlite.js (database provider)
  * - ./render/PDF_render.js (PDF rendering provider)
  * - Various parser modules (email parsing providers)
@@ -72,10 +72,17 @@ export async function getDbLayer() {
     const storageResult = await chrome.storage.local.get('leedzStartupConfig');
     if (storageResult.leedzStartupConfig) {
       const startupConfig = storageResult.leedzStartupConfig;
-      if (startupConfig.serverUrl && startupConfig.serverPort) {
-        baseUrl = `${startupConfig.serverUrl}:${startupConfig.serverPort}`;
+
+      // Handle both old serverUrl format and new serverHost format
+      if (startupConfig.serverHost && startupConfig.serverPort) {
+        baseUrl = `http://${startupConfig.serverHost}:${startupConfig.serverPort}`;
         provider = startupConfig.dbProvider || 'local_prisma_sqlite';
         console.log('Using startup config from Chrome storage:', baseUrl);
+      } else if (startupConfig.serverUrl && startupConfig.serverPort) {
+        // Legacy support for old serverUrl format
+        baseUrl = `${startupConfig.serverUrl}:${startupConfig.serverPort}`;
+        provider = startupConfig.dbProvider || 'local_prisma_sqlite';
+        console.log('Using legacy startup config from Chrome storage:', baseUrl);
       }
     }
   } catch (error) {

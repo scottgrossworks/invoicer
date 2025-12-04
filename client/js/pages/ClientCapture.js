@@ -6,6 +6,7 @@
 
 import { DataPage } from './DataPage.js';
 import { ValidationUtils } from '../utils/ValidationUtils.js';
+import { PageUtils } from '../utils/Page_Utils.js';
 import { log, logError, showToast } from '../logging.js';
 import Client from '../db/Client.js';
 
@@ -112,13 +113,6 @@ export class ClientCapture extends DataPage {
     this.render();
   }
 
-  /**
-   * Not used - DataPage calls onShowImpl() directly
-   * Kept for compatibility
-   */
-  async onShowImpl() {
-    // DataPage workflow doesn't use this
-  }
 
   /**
    * Update UI from state changes
@@ -412,44 +406,16 @@ export class ClientCapture extends DataPage {
    * State automatically loops through Clients array
    */
   async saveAllClients() {
-    try {
-      // Filter out null entries (deleted) and empty clients
-      const nonEmptyClients = this.clients.filter(clientData => {
-        return clientData !== null &&
-               !(ValidationUtils.isEmpty(clientData.name) &&
-                 ValidationUtils.isEmpty(clientData.email) &&
-                 ValidationUtils.isEmpty(clientData.phone) &&
-                 ValidationUtils.isEmpty(clientData.company) &&
-                 ValidationUtils.isEmpty(clientData.clientNotes));
-      });
+    // Sync current form data to state first
+    this.syncFormToState();
 
-      if (nonEmptyClients.length === 0) {
-        showToast('No clients to save (all frames empty)', 'warning');
-        log('Save skipped - all frames empty');
-        return;
-      }
-
-      // Set state.Clients array
-      this.state.setClients(nonEmptyClients);
-
-      // Clear Booking and Config (not saving those from ClientCapture)
-      this.state.Booking = {};
-      this.state.Config = {};
-
-      // Save all clients in one call - state.save() loops internally
-      await this.state.save();
-
-      // Show success
-      const msg = `Successfully saved ${nonEmptyClients.length} client${nonEmptyClients.length > 1 ? 's' : ''}`;
-      showToast(msg, 'success');
-      log(msg);
-      // Do NOT clear form after save - user may want to edit and re-save
-
-    } catch (error) {
-      console.error('Error saving clients:', error);
-      logError('Save failed:', error);
-      showToast(`Save failed: ${error.message}`, 'error');
-    }
+    // Use shared utility for save logic
+    await PageUtils.saveClientData(this.state, {
+      multiClient: true,
+      showToast,
+      log: (msg) => log(msg)
+    });
+    // Do NOT clear form after save - user may want to edit and re-save
   }
 
   /**

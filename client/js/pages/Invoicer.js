@@ -21,20 +21,17 @@ export class Invoicer extends DataPage {
 
     // PDF render path
     this.PDF_RENDER_JS = 'js/render/PDF_render.js';
+
+    // Track if client was loaded from database (persistent flag)
+    this.clientFromDB = false;
   }
 
   /**
    * Initialize invoicer page (called once on app startup)
+   * Note: Settings button handler is in sidebar.js:setupHeaderButtons()
    */
   async initialize() {
-    // Setup settings button handler (only if not already bound)
-    const settingsBtn = document.getElementById('settingsBtn');
-    if (settingsBtn && !settingsBtn.dataset.listenerBound) {
-      settingsBtn.dataset.listenerBound = 'true';
-      settingsBtn.addEventListener('click', async () => {
-        await this.openSettings();
-      });
-    }
+    // No initialization needed - settings button handled by sidebar.js
   }
 
   /**
@@ -69,6 +66,9 @@ export class Invoicer extends DataPage {
   async renderFromDB(dbData) {
     // Load Config data from DB
     await this.state.loadConfigFromDB();
+
+    // Set persistent flag - client was found in database
+    this.clientFromDB = true;
 
     // Update client from DB
     Object.assign(this.state.Client, {
@@ -393,8 +393,10 @@ export class Invoicer extends DataPage {
     // Apply green table styling if client was loaded from DB
     console.log('=== INVOICER TABLE STYLING ===');
     console.log('_fromDB flag:', this.state.Client._fromDB);
+    console.log('clientFromDB flag:', this.clientFromDB);
 
-    if (this.state.Client._fromDB) {
+    // Use persistent flag OR transient state flag (for backward compatibility)
+    if (this.clientFromDB || this.state.Client._fromDB) {
       console.log('✓ Client from DB - adding green table styling');
       table.classList.add('thankyou-table-from-db');  // Reuse same CSS class
     } else {
@@ -536,17 +538,10 @@ export class Invoicer extends DataPage {
     }
 
     // Auto-set endDate to match startDate if endDate is empty
-    if (fieldName === 'startDate' && rawValue && (!this.state.Booking.endDate || this.state.Booking.endDate.trim() === '')) {
+    if (fieldName === 'startDate' && rawValue) {
       const isoDate = DateTimeUtils.parseDisplayDateToISO(rawValue);
       if (isoDate) {
-        this.state.Booking.endDate = isoDate;
-        console.log('Auto-set endDate to match startDate:', isoDate);
-
-        // Update the endDate input field display
-        const endDateInput = document.querySelector('[data-field="endDate"]');
-        if (endDateInput) {
-          endDateInput.value = DateTimeUtils.formatDateForDisplay(isoDate);
-        }
+        PageUtils.autoCompleteEndDate(isoDate, this.state, '[data-field="endDate"]');
       }
     }
 
@@ -594,16 +589,14 @@ export class Invoicer extends DataPage {
 
   /**
    * Calculate duration from start/end times
+   * State handles calculation, page handles UI updates
    */
   calculateDuration() {
-    const startTime = this.state.Booking.startTime;
-    const endTime = this.state.Booking.endTime;
+    // State calculates and updates its own duration
+    const calculated = this.state.calculateDuration();
 
-    const duration = DateTimeUtils.calculateDuration(startTime, endTime);
-    if (duration !== null) {
-      this.state.Booking.duration = duration;
-
-      // Also recalculate total amount using Calculator
+    if (calculated) {
+      // Page handles UI updates only
       Calculator.calculateAndUpdateTotal(
         this.state.Booking,
         () => this.updateFromState(this.state)

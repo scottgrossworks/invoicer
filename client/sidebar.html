@@ -54,20 +54,16 @@
           </thead>
           <tbody id="startup_tbody">
             <tr>
-              <td>Leedz Server URL</td>
-              <td><input type="text" id="startup-serverUrl" class="table-input" placeholder="http://127.0.0.1" /></td>
+              <td>Server Host</td>
+              <td><input type="text" id="startup-serverHost" class="table-input" placeholder="127.0.0.1" value="127.0.0.1" /></td>
             </tr>
             <tr>
-              <td>Leedz Server Port</td>
-              <td><input type="text" id="startup-serverPort" class="table-input" placeholder="3000" /></td>
+              <td>Server Port</td>
+              <td><input type="text" id="startup-serverPort" class="table-input" placeholder="3000" value="3000" /></td>
             </tr>
             <tr>
-              <td>Database Provider</td>
-              <td><input type="text" id="startup-dbProvider" class="table-input" placeholder="local_prisma_sqlite" /></td>
-            </tr>
-            <tr>
-              <td>Database Path</td>
-              <td><input type="text" id="startup-dbPath" class="table-input" placeholder="../data/leedz_invoicer.sqlite" /></td>
+              <td>Database Name</td>
+              <td><span id="startup-dbName" style="color: #666;">Not connected</span></td>
             </tr>
             <tr>
               <td>MCP Host</td>
@@ -445,6 +441,10 @@
   <div class="button-wrapper" id="responder-buttons" style="display: none;">
     <button id="clearResponderBtn" class="sidebar-button" title="Clear and reset">
       Clear
+    </button>
+
+    <button id="saveResponderBtn" class="sidebar-button" title="Save client and booking to database">
+      Save
     </button>
 
     <button id="writeResponderBtn" class="sidebar-button" title="Generate and send first response">

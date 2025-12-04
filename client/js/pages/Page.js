@@ -151,7 +151,7 @@ export class Page {
   async cycleNextBooking() {
     // If no cache, just reload normally (force full parse, skip DB check)
     if (this.bookingsCache.length === 0) {
-      console.log('No bookings cache, performing full reload');
+      // console.log('No bookings cache, performing full reload');
       return await this.reloadParser({ forceFullParse: true });
     }
 
@@ -165,10 +165,10 @@ export class Page {
       const total = this.bookingsCache.length;
       showToast(`Showing booking ${position} of ${total}`, 'info');
 
-      console.log(`Loaded booking ${position} of ${total} from cache`);
+      // console.log(`Loaded booking ${position} of ${total} from cache`);
     } else {
       // Cache exhausted, clear and re-parse (force full parse, skip DB check)
-      console.log('All cached bookings shown, re-parsing page...');
+      // console.log('All cached bookings shown, re-parsing page...');
       this.clearBookingsCache();
       await this.reloadParser({ forceFullParse: true });
     }
@@ -208,7 +208,7 @@ export class Page {
       // Update UI
       this.updateFromState(this.state);
 
-      console.log('Loaded booking from cache:', booking.title);
+      // console.log('Loaded booking from cache:', booking.title);
     }
   }
 
@@ -218,7 +218,7 @@ export class Page {
   clearBookingsCache() {
     this.bookingsCache = [];
     this.currentBookingIndex = 0;
-    console.log('Bookings cache cleared');
+    // console.log('Bookings cache cleared');
   }
 
   /**
@@ -232,7 +232,7 @@ export class Page {
       this.loadBookingFromCache(0);
 
       if (bookingsArray.length > 1) {
-        console.log(`Stored ${bookingsArray.length} bookings in cache`);
+        // console.log(`Stored ${bookingsArray.length} bookings in cache`);
         showToast(`Found ${bookingsArray.length} bookings for this client`, 'info');
       }
     }
@@ -287,7 +287,7 @@ export class Page {
             let dbClient = null;
             if (!options.forceFullParse) {
               try {
-                log('Extracting identity...');
+                // log('Extracting identity...');
                 const identityResponse = await new Promise(resolve => {
                   chrome.tabs.sendMessage(tabId, {
                     type: 'leedz_extract_identity'
@@ -296,13 +296,13 @@ export class Page {
 
                 if (identityResponse?.ok && identityResponse?.identity) {
                   const identity = identityResponse.identity;
-                  console.log('Identity extracted:', identity);
-
+                  // console.log('Identity extracted:', identity);
+                  
                   // STEP 2: Search DB if we have identity data
                   if (window.DB_LAYER && (identity.email || identity.name)) {
-                    log('Searching database...');
+                    // log('Searching database...');
                     dbClient = await window.DB_LAYER.searchClient(identity.email, identity.name);
-                    console.log('DB search result:', dbClient);
+                    // console.log('DB search result:', dbClient);
                   } else {
                     if (!window.DB_LAYER) {
                       console.log('DB_LAYER not available - skipping DB search');
@@ -316,13 +316,13 @@ export class Page {
                 console.log('Identity extraction not supported by this parser - skipping DB search');
               }
             } else {
-              console.log('Force full parse enabled - skipping DB check');
+              // console.log('Force full parse enabled - skipping DB check');
             }
 
             // STEP 3: If found in DB, use that data and skip full parse
             if (dbClient) {
-              log('Client found in database!');
-              console.log('Using DB client data:', dbClient);
+              // log('Client found in database!');
+              // console.log('Using DB client data:', dbClient);
 
               // Clear state first
               this.state.clear();
@@ -342,21 +342,21 @@ export class Page {
 
               // STEP 3.5: Fetch booking(s) associated with this client
               try {
-                log('Fetching bookings for client...');
+                // log('Fetching bookings for client...');
                 const bookingsUrl = `${window.DB_LAYER.baseUrl}/bookings?clientId=${dbClient.id}`;
-                console.log('Fetching bookings from:', bookingsUrl);
+                // console.log('Fetching bookings from:', bookingsUrl);
 
                 const bookingsResponse = await fetch(bookingsUrl);
                 if (bookingsResponse.ok) {
                   const bookings = await bookingsResponse.json();
-                  console.log('Bookings found:', bookings);
+                  // console.log('Bookings found:', bookings);
 
                   if (bookings && bookings.length > 0) {
                     // NEW: Store ALL bookings in cache and load first one
                     this.populateBookingsCache(bookings);
-                    log(`Cached ${bookings.length} booking(s)`);
+                    //  log(`Cached ${bookings.length} booking(s)`);
                   } else {
-                    console.log('No bookings found for this client');
+                    // console.log('No bookings found for this client');
                     // Still update UI with client data only
                     this.updateFromState(this.state);
                   }
@@ -371,13 +371,13 @@ export class Page {
                 this.updateFromState(this.state);
               }
 
-              log('Loaded from database');
+              // log('Loaded from database');
               matched = true;
               break; // Done - skip full parse
             }
 
             // STEP 4: Not in DB - do full parse (procedural + LLM)
-            log('Client not in database - parsing page...');
+            // log('Client not in database - parsing page...');
 
             // If forceFullParse (reload button), prepare state for fresh booking data
             if (options.forceFullParse) {
@@ -395,7 +395,7 @@ export class Page {
                 this.state.Client.name = preservedName;
                 this.state.Client.email = preservedEmail;
                 this.state.Client._fromDB = preservedFromDB;
-                console.log('Preserved DB client identity for reload:', { name: preservedName, email: preservedEmail });
+                // console.log('Preserved DB client identity for reload:', { name: preservedName, email: preservedEmail });
               }
             }
 
@@ -429,7 +429,6 @@ export class Page {
                   resolve();
                 } else {
                   logError(`Parser ${p.name} failed:`, response?.error || 'Unknown error');
-                  log('Parse failed');
                   resolve(); // Still resolve even on failure
                 }
               });
@@ -446,7 +445,7 @@ export class Page {
 
       if (!matched) {
         // No parser matched - this is normal on non-supported pages
-        log('No parser available for this page');
+        log('Warning: No parser available for this page');
       }
     } catch (error) {
       // Unexpected error in reloadParser itself

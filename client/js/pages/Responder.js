@@ -23,6 +23,9 @@ export class Responder extends DataPage {
 
     // Store special info for LLM prompt (deposit policy, additional fees, etc.)
     this.specialInfo = '';
+
+    // Track if client was loaded from database (persistent flag)
+    this.clientFromDB = false;
   }
 
   /**
@@ -31,23 +34,20 @@ export class Responder extends DataPage {
   async initialize() {
     // Wire up button handlers
     const clearBtn = document.getElementById('clearResponderBtn');
+    const saveBtn = document.getElementById('saveResponderBtn');
     const writeBtn = document.getElementById('writeResponderBtn');
 
     if (clearBtn) {
       clearBtn.addEventListener('click', () => this.clear());
     }
+    if (saveBtn) {
+      saveBtn.addEventListener('click', () => this.saveResponder());
+    }
     if (writeBtn) {
       writeBtn.addEventListener('click', () => this.onWrite());
     }
 
-    // Setup settings button handler (reuses invoicer config)
-    const settingsBtn = document.getElementById('settingsBtn');
-    if (settingsBtn && !settingsBtn.dataset.listenerBound) {
-      settingsBtn.dataset.listenerBound = 'true';
-      settingsBtn.addEventListener('click', async () => {
-        await this.openSettings();
-      });
-    }
+    // Note: Settings button handler is in sidebar.js:setupHeaderButtons()
   }
 
   // openSettings() inherited from DataPage base class
@@ -78,6 +78,9 @@ export class Responder extends DataPage {
    */
   async renderFromDB(dbData) {
     await this.state.loadConfigFromDB();
+
+    // Set persistent flag - client was found in database
+    this.clientFromDB = true;
 
     Object.assign(this.state.Client, {
       name: dbData.name || '',
@@ -115,12 +118,6 @@ export class Responder extends DataPage {
     this.populateResponderTable();
   }
 
-  /**
-   * Not used - DataPage calls hooks directly
-   */
-  async onShowImpl() {
-    // DataPage workflow doesn't use this
-  }
 
   /**
    * Update UI from state changes
@@ -136,6 +133,7 @@ export class Responder extends DataPage {
   clear() {
     this.state.clear();
     this.specialInfo = ''; // Clear special info
+    this.clientFromDB = false; // Clear DB flag
     this.updateFromState(this.state);
     log('Cleared');
   }
@@ -214,8 +212,9 @@ export class Responder extends DataPage {
     // Clear existing rows
     tbody.innerHTML = '';
 
-    // Check if client was found in DB and apply styling accordingly
-    if (this.state.Client._fromDB) {
+    // Check if client was found in DB using persistent flag
+    // Use persistent flag OR transient state flag (for backward compatibility)
+    if (this.clientFromDB || this.state.Client._fromDB) {
       table.classList.add('responder-table-from-db');
     } else {
       table.classList.remove('responder-table-from-db');
@@ -305,6 +304,11 @@ export class Responder extends DataPage {
         }
 
         this.state.Booking[field] = rawValue;
+
+        // Auto-set endDate to match startDate if endDate is empty
+        if (field === 'startDate' && rawValue) {
+          PageUtils.autoCompleteEndDate(rawValue, this.state, '[data-field="endDate"]');
+        }
       });
 
       // Wire up Enter key handler to commit changes
@@ -449,6 +453,21 @@ export class Responder extends DataPage {
   }
 
   /**
+   * Save client and booking data to database
+   * Uses shared utility for consistent save logic
+   */
+  async saveResponder() {
+    // Use shared utility for save logic
+    await PageUtils.saveClientData(this.state, {
+      includeBooking: true,  // Responder saves both Client AND Booking
+      multiClient: false,
+      showToast,
+      log: (msg) => log(msg)
+    });
+    // Do NOT clear form after save - user may want to edit and re-save
+  }
+
+  /**
    * Build LLM prompt for first response email generation
    */
   buildResponderPrompt() {
@@ -471,63 +490,32 @@ export class Responder extends DataPage {
       rateText = `My flat rate is $${flatRate}`;
     }
 
+    // Get response example from config
+    const responseExample = this.state.leedzConfig?.responderEmail?.responseExample || '';
+
     // Build signature example using utility
     const signatureExample = PageUtils.buildSignatureBlock(businessInfo, 'Scott');
 
-    return `ROLE: Generate a professional first contact response email for a potential client inquiry.
+    return `Generate a professional first contact response email.
 
-BUSINESS INFORMATION:
-- Company: ${businessInfo.businessName}
-- Email: ${businessInfo.businessEmail}
-- Phone: ${businessInfo.businessPhone}
-- Website: ${businessInfo.businessWebsite}
-- Handle: ${businessInfo.contactHandle}
-- Services: ${businessInfo.servicesPerformed}
-- Description: ${businessInfo.businessDescription}
+CLIENT: ${clientFirstName}
+EVENT: ${bookingTitle} on ${bookingDate}
+RATE: ${rateText}
+${specialInfo ? `SPECIAL NOTES: ${specialInfo}` : ''}
 
-CLIENT INFORMATION:
-- Name: ${clientFirstName}
+BUSINESS INFO:
+${businessInfo.businessName} - ${businessInfo.servicesPerformed}
+${businessInfo.businessDescription}
+${businessInfo.businessEmail} | ${businessInfo.businessPhone}
+${businessInfo.businessWebsite ? businessInfo.businessWebsite : ''}
+${businessInfo.contactHandle ? businessInfo.contactHandle : ''}
 
-BOOKING INFORMATION:
-- Event Date: ${bookingDate}
-- Service: ${bookingTitle}
-- Hourly Rate: ${hourlyRate}
-- Flat Rate: ${flatRate}
-- Total Amount: ${totalAmount}
+EXAMPLE (match this tone, length, and style):
+${responseExample}
 
-RATE TEXT (use this):
-${rateText}
-
-SPECIAL NOTES (place RIGHT AFTER rate):
-${specialInfo}
-
-INSTRUCTIONS:
-1. Write a professional, warm first contact email
-2. Express enthusiasm about performing service for the event
-3. Include business description naturally
-4. Use RATE TEXT provided above (already formatted)
-5. Place SPECIAL NOTES immediately after rate statement (deposit policy, additional fees)
-6. ${PageUtils.getEmailFormattingInstructions()}
-7. Invite client to book the date
-8. DO NOT include subject line (will use Re: original subject)
-9. Return ONLY the email body text
-
-EXAMPLE OUTPUT FORMAT (showing all fields populated):
-
-Dear ${clientFirstName},
-
-I would be delighted to [perform service] for you on ${bookingDate}.
-
-[Business description]
-
-${rateText}
-
-${specialInfo}
-
-Let's book this date,
-
+End the email with this signature block:
 ${signatureExample}
 
-${PageUtils.getConditionalFieldWarning()}`;
+Write the response email body only (no subject line). Return plain text.`;
   }
 }

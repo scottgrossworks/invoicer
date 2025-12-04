@@ -223,4 +223,109 @@ export class PageUtils {
 - If Phone is empty: skip that line entirely
 Never output empty lines for missing fields.`;
   }
+
+  /**
+   * Auto-complete endDate to match startDate if endDate is empty
+   * Standardizes endDate auto-fill behavior across all pages
+   * @param {string} startDateISO - ISO format date string (already parsed)
+   * @param {object} state - State object with Booking property
+   * @param {string} endDateSelector - CSS selector string for endDate input
+   */
+  static autoCompleteEndDate(startDateISO, state, endDateSelector) {
+    // Auto-set endDate to match startDate if endDate is empty
+    if (!state.Booking.endDate || state.Booking.endDate.trim() === '') {
+      state.Booking.endDate = startDateISO;
+      console.log('Auto-set endDate to match startDate:', startDateISO);
+
+      // Update the endDate input field display
+      const endDateInput = document.querySelector(endDateSelector);
+      if (endDateInput) {
+        endDateInput.value = DateTimeUtils.formatDateForDisplay(startDateISO);
+      }
+    }
+  }
+
+  /**
+   * Save client and booking data to database via state.save()
+   * Shared save logic for ClientCapture and Responder pages
+   *
+   * @param {object} state - State object with Client/Booking/Clients/Config properties
+   * @param {object} options - Configuration options
+   * @param {boolean} options.includeBooking - Whether to save Booking data (default: false)
+   * @param {boolean} options.multiClient - Whether saving multiple clients (default: false)
+   * @param {function} options.showToast - Toast notification function (msg, type)
+   * @param {function} options.log - Logging function
+   * @returns {Promise<{success: boolean, count: number, error?: string}>}
+   */
+  static async saveClientData(state, options = {}) {
+    const {
+      includeBooking = false,
+      multiClient = false,
+      showToast = () => {},
+      log = () => {}
+    } = options;
+
+    try {
+      let clientsToSave = [];
+
+      if (multiClient) {
+        // Multi-client mode (ClientCapture)
+        clientsToSave = state.Clients.filter(clientData => {
+          return clientData !== null &&
+                 !(ValidationUtils.isEmpty(clientData.name) &&
+                   ValidationUtils.isEmpty(clientData.email) &&
+                   ValidationUtils.isEmpty(clientData.phone) &&
+                   ValidationUtils.isEmpty(clientData.company) &&
+                   ValidationUtils.isEmpty(clientData.clientNotes));
+        });
+      } else {
+        // Single client mode (Responder, Invoicer, etc.)
+        const clientData = state.Client;
+
+        // Check if client has any meaningful data
+        const hasData = !(ValidationUtils.isEmpty(clientData.name) &&
+                         ValidationUtils.isEmpty(clientData.email) &&
+                         ValidationUtils.isEmpty(clientData.phone) &&
+                         ValidationUtils.isEmpty(clientData.company) &&
+                         ValidationUtils.isEmpty(clientData.clientNotes));
+
+        if (hasData) {
+          clientsToSave = [clientData];
+        }
+      }
+
+      if (clientsToSave.length === 0) {
+        showToast('No data to save (all fields empty)', 'warning');
+        log('Save skipped - no data');
+        return { success: false, count: 0, error: 'No data to save' };
+      }
+
+      // Set state.Clients array
+      state.setClients(clientsToSave);
+
+      // Clear or preserve Booking based on includeBooking flag
+      if (!includeBooking) {
+        state.Booking = {};
+      }
+
+      // Clear Config (never save from these pages)
+      state.Config = {};
+
+      // Save - state.save() loops through Clients array internally
+      await state.save();
+
+      // Return success
+      const count = clientsToSave.length;
+      const msg = `Successfully saved ${count} client${count > 1 ? 's' : ''}`;
+      showToast(msg, 'success');
+      log(msg);
+
+      return { success: true, count };
+
+    } catch (error) {
+      console.error('Error saving client data:', error);
+      showToast(`Save failed: ${error.message}`, 'error');
+      return { success: false, count: 0, error: error.message };
+    }
+  }
 }

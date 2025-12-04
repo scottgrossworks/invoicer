@@ -50,7 +50,10 @@
       "Bash(call build.bat)",
       "Bash(powershell -Command \"Get-Item ''C:\\Users\\Scott\\Desktop\\WKG\\INVOICER\\server\\tray\\bin\\Release\\net8.0-windows\\TheLeedz.exe'' | Select-Object FullName, LastWriteTime\")",
       "Bash(powershell -Command \"Get-Item ''C:\\Users\\Scott\\Desktop\\WKG\\INVOICER\\server\\tray\\dist\\TheLeedz.exe'' | Select-Object FullName, LastWriteTime\")",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(del test_date_fix.js test_utc_midnight_bug.js)",
+      "Bash(del nul)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

@@ -135,10 +135,29 @@ for %%A in (%ARCHITECTURES%) do (
         goto :ERROR
     )
 
-    :: Copy server config
-    copy /Y "server_config.json" "!PKG_DIR!\server_config.json" >nul
+    :: Copy server config (only if it doesn't exist - preserve user settings)
+    if not exist "!PKG_DIR!\server_config.json" (
+        copy /Y "server_config.json" "!PKG_DIR!\server_config.json" >nul
+        if errorlevel 1 (
+            echo [ERROR] Failed to copy server_config.json for %%A
+            goto :ERROR
+        )
+        echo       Created server_config.json
+    ) else (
+        echo       Preserved existing server_config.json
+    )
+
+    :: Copy install instructions
+    copy /Y "INSTALL_INSTRUCTIONS.txt" "!PKG_DIR!\INSTALL_INSTRUCTIONS.txt" >nul
     if errorlevel 1 (
-        echo [ERROR] Failed to copy server_config.json for %%A
+        echo [ERROR] Failed to copy INSTALL_INSTRUCTIONS.txt for %%A
+        goto :ERROR
+    )
+
+    :: Copy README.md from parent directory
+    copy /Y "..\README.md" "!PKG_DIR!\README.md" >nul
+    if errorlevel 1 (
+        echo [ERROR] Failed to copy README.md for %%A
         goto :ERROR
     )
 
@@ -178,20 +197,18 @@ for %%A in (%ARCHITECTURES%) do (
     set "PKG_DIR=%DIST_DIR%\leedz-server-win-%%A"
 
     :: Create launch_leedz.bat
-    (
-        echo @echo off
-        echo :: Leedz Server Launcher
-        echo :: Starts TheLeedz application and backend server
-        echo.
-        echo echo Starting Leedz...
-        echo.
-        echo :: Start TheLeedz UI in background
-        echo start "" "TheLeedz.exe"
-        echo.
-        echo :: Start backend server in current window
-        echo echo Server starting on port 3000...
-        echo leedz-server.exe
-    ) > "!PKG_DIR!\launch_leedz.bat"
+    echo @echo off > "!PKG_DIR!\launch_leedz.bat"
+    echo :: Leedz Server Launcher >> "!PKG_DIR!\launch_leedz.bat"
+    echo :: Starts TheLeedz application and backend server >> "!PKG_DIR!\launch_leedz.bat"
+    echo. >> "!PKG_DIR!\launch_leedz.bat"
+    echo echo Starting Leedz... >> "!PKG_DIR!\launch_leedz.bat"
+    echo. >> "!PKG_DIR!\launch_leedz.bat"
+    echo :: Start TheLeedz UI in background >> "!PKG_DIR!\launch_leedz.bat"
+    echo start "" "TheLeedz.exe" >> "!PKG_DIR!\launch_leedz.bat"
+    echo. >> "!PKG_DIR!\launch_leedz.bat"
+    echo :: Start backend server in current window >> "!PKG_DIR!\launch_leedz.bat"
+    echo echo Server starting on port 3000... >> "!PKG_DIR!\launch_leedz.bat"
+    echo leedz-server.exe >> "!PKG_DIR!\launch_leedz.bat"
 
     echo     - Created launch_leedz.bat for win-%%A
 )
@@ -249,6 +266,8 @@ echo     - prisma/schema.prisma
 echo     - server_config.json
 echo     - img/icon.ico
 echo     - launch_leedz.bat
+echo     - INSTALL_INSTRUCTIONS.txt
+echo     - README.md
 echo.
 echo   Distribution Files:
 for %%A in (%ARCHITECTURES%) do (
@@ -259,7 +278,7 @@ for %%A in (%ARCHITECTURES%) do (
 echo.
 echo   Next Steps:
 echo     1. Upload ZIP files to theleedz.com
-echo     2. Provide INSTALL_INSTRUCTIONS.txt to users
+echo     2. INSTALL_INSTRUCTIONS.txt included in each package
 echo.
 echo   Quick Test:
 echo     cd %DIST_DIR%\leedz-server-win-x64

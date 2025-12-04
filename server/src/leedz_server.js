@@ -570,15 +570,31 @@ app.post("/config", asyncRoute(async (req, res) => {
 /**
  * GET /config
  * Retrieves the latest configuration from database
+ * Includes database name extracted from databaseUrl
  */
 app.get("/config", asyncRoute(async (req, res) => {
   const config = await db.getLatestConfig();
-  
+
   if (!config) {
     return res.status(404).json({ error: "No configuration found" });
   }
 
-  res.status(200).json(config);
+  // Extract database name from databaseUrl (e.g., "file:./leedz.sqlite" -> "leedz.sqlite")
+  let databaseName = 'unknown';
+  if (db.databaseUrl) {
+    const match = db.databaseUrl.match(/[^/\\]+\.sqlite$/);
+    if (match) {
+      databaseName = match[0];
+    }
+  }
+
+  // Add database name to config response
+  const response = {
+    ...config,
+    databaseName: databaseName
+  };
+
+  res.status(200).json(response);
 }, "GET /config"));
 
 /**

@@ -18,22 +18,34 @@ class PDF_settings extends Settings {
   }
 
   /**
-   * Open PDF settings in a new Chrome tab
+   * Open PDF settings in a new Chrome tab (or focus existing tab)
+   * Prevents duplicate settings tabs by checking if one is already open
    * @returns {Promise<void>}
    */
   async open() {
     try {
-        
+
       // Create the settings page URL
       const settingsUrl = chrome.runtime.getURL( PDF_SETTINGS_HTML );
-      
-      // Open in new tab
-      chrome.tabs.create({ 
-        url: settingsUrl,
-        active: true 
-      });
-      
-      console.log('PDF settings opened in new tab:', settingsUrl);
+
+      // Check if settings tab is already open
+      const tabs = await chrome.tabs.query({});
+      const existingTab = tabs.find(tab => tab.url === settingsUrl);
+
+      if (existingTab) {
+        // Settings tab already exists - focus it instead of creating new one
+        await chrome.tabs.update(existingTab.id, { active: true });
+        await chrome.windows.update(existingTab.windowId, { focused: true });
+        console.log('Focused existing PDF settings tab:', existingTab.id);
+      } else {
+        // No existing settings tab - create new one
+        chrome.tabs.create({
+          url: settingsUrl,
+          active: true
+        });
+        console.log('PDF settings opened in new tab:', settingsUrl);
+      }
+
     } catch (error) {
       console.error('Failed to open PDF settings:', error);
     }
@@ -47,6 +59,9 @@ class PDF_settings extends Settings {
 
     try {
       await this.STATE.load();
+
+      // CRITICAL: Also load Config from database
+      await this.STATE.loadConfigFromDB();
 
     } catch (error) {
       if (this.STATE.status != 'local') {  // load did not find settings in Chrome storage
