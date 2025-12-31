@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Leedz Invoicer</title>
 
-  <link rel="stylesheet" href="css/globals.css" />
-  <link rel="stylesheet" href="css/leedz_layout.css" />
+  <link rel="stylesheet" href="css/globals.css?v=20251229-1900" />
+  <link rel="stylesheet" href="css/leedz_layout.css?v=20251229-1900" />
  
   <!-- Load the main sidebar script -->
   <script type="module" src="js/sidebar.js"></script>
@@ -116,7 +116,7 @@
     <div id="page-invoicer" class="page-content">
 
       <div class="section-header">
-        <label for="display_win">Booking to Invoice</label>
+        <label for="display_win">Book</label>
         <div class="header-buttons">
           <button id="reloadBtn" class="reload-button" title="Reload the parser">
             <span>
@@ -152,12 +152,114 @@
 
 
     <!-- ========================================== -->
+    <!-- SHARE PAGE (Share Lead/Booking via Email)  -->
+    <!-- ========================================== -->
+    <div id="page-share" class="page-content">
+
+      <div class="section-header">
+        <label for="display_win_share">Share Leed</label>
+        <div class="header-buttons">
+          <button id="reloadBtnShare" class="reload-button" title="Reload the parser">
+            <span>
+              <img src="icons/arrows_white.png" class="button-icon" alt="reload parser"/>
+            </span>
+          </button>
+          <button id="settingsBtnShare" class="settings-button" title="Open settings">
+            <span>
+              <img src="icons/settings.png" class="button-icon" alt="settings"/>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div id="display_win_share" class="display-win">
+        <div id="loading_spinner_share" class="loading-spinner" style="display: none;">
+          <img src="icons/wait_spinner.gif" alt="Loading..." />
+          <span>Processing...</span>
+        </div>
+
+        <!-- Broadcast Section (Toggle between broadcast mode and email list mode) -->
+        <div id="broadcast-section-share" class="broadcast-section">
+          <input type="checkbox" id="broadcastCheckbox" class="broadcast-checkbox" />
+          <label for="broadcastCheckbox" class="broadcast-label">Broadcast</label>
+        </div>
+
+        <!-- Email Section (Collapsible) -->
+        <details id="email-section-share" class="share-accordion">
+          <summary class="accordion-header">Email</summary>
+          <div class="accordion-content">
+            <div class="email-select-all">
+              <input type="checkbox" id="selectAllEmails" />
+              <label for="selectAllEmails">Select All</label>
+            </div>
+            <div id="emailList" class="email-list">
+              <!-- Email items will be added dynamically -->
+            </div>
+            <button id="addEmailBtn" class="add-email-btn" title="Add email address">+</button>
+          </div>
+        </details>
+
+        <!-- Booking Section (Collapsible) -->
+        <details id="booking-section-share" class="share-accordion">
+          <summary class="accordion-header">Booking</summary>
+          <div class="accordion-content">
+            <table id="share_booking_table" class="booking-table">
+              <thead>
+                <tr>
+                  <th>Field</th>
+                  <th>Value</th>
+                </tr>
+              </thead>
+              <tbody id="share_booking_tbody">
+                <!-- Dynamic rows will be inserted here -->
+              </tbody>
+            </table>
+          </div>
+        </details>
+
+        <!-- Special Information Section (Collapsible) -->
+        <details id="special-info-section-share" class="share-accordion">
+          <summary class="accordion-header">Special Information</summary>
+          <div class="accordion-content">
+            <textarea
+              id="specialInfoTextarea-share"
+              class="special-info-textarea"
+              placeholder="Add personal notes, recollections, or special details to include in the shared email..."
+            ></textarea>
+          </div>
+        </details>
+
+        <!-- Price Section (Collapsible with checkbox) -->
+        <div id="price-section-share" class="price-section">
+          <div class="price-header">
+            <input type="checkbox" id="priceCheckbox" class="price-checkbox" />
+            <span class="price-label">Price</span>
+            <span class="price-info-icon" title="Enable to request payment via Square">ⓘ</span>
+          </div>
+          <div id="priceContent" class="price-content">
+            <div class="price-input-group">
+              <label>USD $</label>
+              <input type="text" id="priceAmount" class="price-input" placeholder="0.00" />
+            </div>
+            <button id="squareAuthBtn" class="square-auth-btn">
+              <img src="icons/sq_logo.png" alt="Square" class="square-logo" />
+              Get Paid with Square
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div><!-- END page-share -->
+
+
+    <!-- ========================================== -->
     <!-- GMAILER PAGE (Gmail sending configuration) -->
     <!-- ========================================== -->
     <div id="page-gmailer" class="page-content">
 
       <div class="section-header">
-        <label>Authorize Gmail and Calendar</label>
+        <label>Authorize Gmail</label>
       </div>
 
       <!-- Brief explanation of what this does -->
@@ -200,7 +302,7 @@
     <div id="page-clients" class="page-content">
 
       <div class="section-header">
-        <label for="display_win_clients">Client Capture</label>
+        <label for="display_win_clients">Capture</label>
         <div class="header-buttons">
           <button id="reloadBtnClients" class="reload-button" title="Reload the parser">
             <span>
@@ -238,7 +340,7 @@
     <div id="page-thankyou" class="page-content">
 
       <div class="section-header">
-        <label for="display_win_thankyou">Thank You Note</label>
+        <label for="display_win_thankyou">Thank You</label>
         <div class="header-buttons">
           <button id="reloadBtnThankYou" class="reload-button" title="Reload the parser">
             <span>
@@ -292,7 +394,7 @@
     <div id="page-responder" class="page-content">
 
       <div class="section-header">
-        <label for="display_win_responder">First Responder</label>
+        <label for="display_win_responder">Respond</label>
         <div class="header-buttons">
           <button id="reloadBtnResponder" class="reload-button" title="Reload the parser">
             <span>
@@ -346,7 +448,7 @@
     <div id="page-outreach" class="page-content">
 
       <div class="section-header">
-        <label for="display_win_outreach">Outreach Generator</label>
+        <label for="display_win_outreach">Outreach</label>
         <div class="header-buttons">
           <button id="reloadBtnOutreach" class="reload-button" title="Reload the parser">
             <span>
@@ -421,6 +523,14 @@
 
     <button id="pdfBtn" class="sidebar-button" title="Render PDF">
       PDF
+    </button>
+  </div>
+
+  <!-- SHARE BUTTONS - Fixed position outside scrolling area, above footer -->
+  <!-- Only visible when share page is active -->
+  <div class="button-wrapper" id="share-buttons" style="display: none;">
+    <button id="shareBtn" class="sidebar-button" title="Share lead via email">
+      Share
     </button>
   </div>
 

@@ -54,8 +54,22 @@ export class Responder extends DataPage {
 
   /**
    * DataPage hook: Run full parse (LLM extraction)
+   * Responder is Gmail-only - validate URL before parsing
    */
   async fullParse() {
+    // Validate this is a Gmail page
+    const { url } = await new Promise(resolve => {
+      chrome.runtime.sendMessage({ type: 'leedz_get_tab_url' }, resolve);
+    });
+
+    if (!url || !url.includes('mail.google.com')) {
+      console.log('Responder page only works on Gmail - current URL:', url);
+      return {
+        success: false,
+        error: 'Responder page requires a Gmail email to be open'
+      };
+    }
+
     // Use inherited reloadParser() with forceFullParse to skip prelim/DB (already done in DataPage.onShow)
     await this.reloadParser({ forceFullParse: true });
     return { success: true, data: this.state.toObject() };
@@ -346,27 +360,6 @@ export class Responder extends DataPage {
     super.populateSpecialInfoSection('specialInfoTextarea-responder');
   }
 
-  /**
-   * Override reloadParser to ONLY work on Gmail pages
-   * Responder is specifically for extracting client/booking data from Gmail emails
-   */
-  async reloadParser() {
-    // Get current URL
-    const { url } = await new Promise(resolve => {
-      chrome.runtime.sendMessage({ type: 'leedz_get_tab_url' }, resolve);
-    });
-
-    // Validate this is a Gmail page
-    if (!url || !url.includes('mail.google.com')) {
-      console.log('Responder page only works on Gmail - current URL:', url);
-      showToast('Responder page requires a Gmail email to be open', 'warning');
-      this.hideLoadingSpinner();
-      return;
-    }
-
-    // Call parent implementation
-    await super.reloadParser();
-  }
 
   /**
    * Generate and send first response email

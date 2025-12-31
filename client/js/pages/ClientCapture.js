@@ -391,10 +391,10 @@ export class ClientCapture extends DataPage {
 
     console.log(`Sending ${reorderedClients.length} clients to Outreach (clicked client at index 0)`);
 
-    // Navigate to Outreach page
+    // Navigate to Responder page
     if (window.switchToPage) {
-      await window.switchToPage('outreach');
-      log(`Navigated to Outreach with ${reorderedClients.length} client(s)`);
+      await window.switchToPage('responder');
+      log(`Navigated to Responder with ${reorderedClients.length} client(s)`);
     } else {
       showToast('Navigation error - please try again', 'error');
       console.error('window.switchToPage not available');

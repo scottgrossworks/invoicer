@@ -159,7 +159,7 @@ html, body {
   min-height: 0;      /* Prevent flexbox overflow issues */
   padding: 10px;
   height: auto;
-  max-height: 75vh;
+  max-height: 80vh;
   width: 98%;
   margin: 0 auto;
   box-sizing: border-box;
@@ -169,10 +169,8 @@ html, body {
 .leedz-form-section label {
   display: block;
   margin-top: 10px;
-  font-size: 13px;
-  font-weight: 500;
-  color: darkgreen;
-  font-weight:600;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 
@@ -185,7 +183,7 @@ html, body {
 
 .leedz-form-section input,
 .leedz-form-section textarea {
-  width: 100%;
+  /* width: 100%; */
   padding: 8px;
    /*padding-right: 32px; Space for the arrows */
   font-size: 16px;
@@ -250,12 +248,13 @@ html, body {
 }
 
 .booking-table .field-name {
+  padding: 10px 0 0 10px;
   align-content: baseline;
   font-size:small;
   font-weight: bold;
   width: 25%;
   color: #333;
-  vertical-align: bottom;
+
 }
 
 .booking-table .field-value {
@@ -488,15 +487,18 @@ input.invalid {
   display: flex;
   justify-content: space-between;  /* This will space them evenly */
   align-items: center;
-  padding: 20px 12px 5px 12px;
+  padding: 5px 12px 5px 12px;
   background-color: white; /* Ensure buttons have solid background */
   /* border-top: 1px solid gainsboro; Subtle separator from scrolling content */
-  flex-shrink: 0; /* Prevent buttons from shrinking */
+  /* flex-shrink: 0;  Prevent buttons from shrinking */
 }
 
 .sidebar-button {
-  flex: 1;
-  margin: 0 12px;
+
+  margin: 0 auto;
+  
+  width:70%;
+
   display: flex;
   align-items: center;
   justify-content: center;  /* All buttons should center their content */
@@ -1021,6 +1023,7 @@ input.invalid {
 
 /* Enable Gmail button - styled to match MCP page theme */
 #enable-gmail-btn {
+  width:80% !important;
   background-color: darkblue; /* Match MCP app-label color */
   color: white;               /* White text */
   font-weight: 600;
@@ -1196,5 +1199,444 @@ input.invalid {
   background-color: white;
   border: 1px solid #007cba;
   outline: none;
+}
+
+/* ================================================== */
+/* SHARE PAGE STYLES                                  */
+/* ================================================== */
+
+/* Share page accordion sections */
+.share-accordion {
+  margin: 10px 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.share-accordion summary {
+  cursor: pointer;
+  padding: 12px;
+  background-color: #f5f5f5;
+  font-weight: 600;
+  user-select: none;
+  list-style: none;
+}
+
+.share-accordion summary::-webkit-details-marker {
+  display: none;
+}
+
+.share-accordion summary::before {
+  content: '▶ ';
+  display: inline-block;
+  margin-right: 8px;
+  transition: transform 0.2s;
+}
+
+.share-accordion[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.share-accordion summary:hover {
+  background-color: #e8e8e8;
+}
+
+.accordion-content {
+  padding: 12px;
+}
+
+/* Email section styles */
+.email-select-all {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 8px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+}
+
+.email-select-all input[type="checkbox"] {
+  width: 18px !important;
+  height: 18px !important;
+  cursor: pointer;
+}
+
+.email-select-all label {
+  cursor: pointer;
+  margin: 0;
+  font-weight: 500;
+}
+
+.email-list {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  background-color: white;
+}
+
+.email-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  transition: background-color 0.2s;
+}
+
+.email-item:last-child {
+  border-bottom: none;
+}
+
+.email-item:hover {
+  background-color: #f5f5f5;
+}
+
+.email-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-right: 10px;
+  cursor: pointer;
+  appearance: none;
+  border: 2px solid var(--email-color, #ddd);
+  border-radius: 50%;
+  position: relative;
+}
+
+.email-item input[type="checkbox"]:checked {
+  border-color: var(--email-color, var(--LEEDZ_GREEN));
+  background-color: var(--email-color, lightblue);
+}
+
+.email-item input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: white;
+}
+
+.email-item label {
+  flex: 1;
+  cursor: pointer;
+  margin: 0;
+  font-size: 14px;
+}
+
+.email-delete-btn {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0 8px;
+  transition: color 0.2s;
+}
+
+.email-delete-btn:hover {
+  color: #ff0000;
+}
+
+.email-item input[type="checkbox"]:checked ~ .email-delete-btn {
+  color: #ff0000;
+}
+
+.add-email-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin: 0 0 0 4px;
+  background-color: cornflowerblue;
+  color: white;
+  border: none;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.add-email-btn:hover {
+  background-color: royalblue;
+}
+
+.add-email-btn:active {
+  transform: scale(0.9);
+}
+
+/* Price section styles */
+.price-section {
+  margin: 20px 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.price-header {
+  width:95%;
+  padding: 12px;
+  background-color: #f5f5f5;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.price-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px !important;
+  height: 18px !important;
+  border: 2px solid #666;
+  border-radius: 3px;
+  cursor: pointer;
+  vertical-align: middle;
+  margin: 0;
+  padding: 0;
+  display: inline-block;
+  position: relative;
+  background-color: white;
+  transition: all 0.2s ease;
+}
+
+.price-checkbox:checked {
+  background-color: #333;
+  border-color: #333;
+}
+
+.price-checkbox:checked::after {
+  content: '✕';
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  line-height: 1;
+}
+
+.price-label {
+  font-weight: 600;
+  cursor: pointer;
+  color: #333;
+  vertical-align: middle;
+  margin:auto 8px;
+  display: inline-block;
+  transition: color 0.2s;
+}
+
+.price-info-icon {
+  font-size: 18px;
+  color: #999;
+  cursor: help;
+  margin-left: auto;
+  vertical-align: middle;
+  display: inline-block;
+  transition: color 0.2s;
+}
+
+.price-content {
+  padding: 16px;
+  display: none;
+}
+
+.price-section.active .price-content {
+  display: block;
+}
+
+/* Active state WITHOUT authentication - keep header gray */
+.price-section.active {
+  /* No background color change - stays white */
+}
+
+.price-section.active .price-header {
+  /* Keep gray background */
+  background-color: #f5f5f5;
+}
+
+.price-section.active .price-label {
+  /* Keep dark text */
+  color: #333;
+}
+
+.price-section.active .price-info-icon {
+  /* Keep gray icon */
+  color: #999;
+}
+
+/* Active AND Authenticated state - GREEN styling */
+.price-section.active.authenticated {
+  background-color: honeydew;
+  border-color: var(--LEEDZ_GREEN);
+}
+
+.price-section.active.authenticated .price-header {
+  background-color: var(--LEEDZ_GREEN);
+  color: white;
+}
+
+.price-section.active.authenticated .price-label {
+  color: white;
+}
+
+.price-section.active.authenticated .price-info-icon {
+  color: white;
+}
+
+.price-section.active.authenticated .price-checkbox:checked {
+  background-color: white;
+  border-color: white;
+}
+
+.price-section.active.authenticated .price-checkbox:checked::after {
+  color: var(--LEEDZ_GREEN);
+}
+
+.price-input-group {
+  display: flex;
+  margin: 0 25%;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.price-input-group label {
+  font-weight: 600;
+  margin: 0;
+}
+
+.price-input {
+  flex: 1;
+  max-width:100px;
+  padding: 8px;
+  font-size: 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.price-input:disabled {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.square-auth-btn {
+  width: 70%;
+  margin: 0 15%;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.square-auth-btn.unauthenticated {
+  background-color: cornflowerblue;
+  color: white;
+}
+
+.square-auth-btn.unauthenticated:hover {
+  background-color: blue;
+}
+
+.square-logo {
+  height: 20px;
+  width: auto;
+}
+
+.square-auth-btn.authenticated {
+  background-color: darkgreen;
+  color: white;
+}
+
+.square-auth-btn.authenticated:hover {
+  background-color: green;
+}
+
+/* Booking field highlighting when Price is enabled */
+.booking-field-highlighted {
+  background-color: lightblue !important;
+}
+
+/* Share button */
+#shareBtn {
+  width:70%;
+  background-color: royalblue;
+}
+
+#shareBtn:hover:not(:disabled) {
+  background-color: blue;
+}
+
+/* Broadcast section styles */
+.broadcast-section {
+  display:flex;
+  color:black;
+  margin: 10px 0;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #f5f5f5;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.broadcast-section:hover {
+  background-color: #e8e8e8;
+}
+
+/* Active/checked state - blue background with white text */
+.broadcast-section.active {
+  background-color: cornflowerblue;
+  border-color: cornflowerblue;
+}
+
+.broadcast-section.active .broadcast-label {
+  color: white!important;
+  font-weight: 600;
+}
+
+.broadcast-checkbox {
+  width: 18px !important;
+  height: 18px !important;
+  cursor: pointer;
+  vertical-align: middle;
+  margin: 0;
+}
+
+.broadcast-label {
+  font-weight: 600;
+  color:black;
+  vertical-align: middle;
+  cursor: pointer;
+  padding:4px 10px;
+  transition: color 0.2s;
+}
+
+/* Email section disabled state (when broadcast is active) */
+.share-accordion.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  background-color: #f0f0f0;
+}
+
+.share-accordion.disabled summary {
+  color: #999;
+  cursor: not-allowed;
+  background-color: #f0f0f0;
 }
 

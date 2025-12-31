@@ -56,9 +56,8 @@
               <div class="service-date">{{formatInvoiceDateTimeRange bookingData.startDate bookingData.startTime bookingData.endDate bookingData.endTime}}</div>
               {{#if bookingData.duration}}<div class="service-hours">{{formatDuration bookingData.duration}}</div>{{/if}}
               <br>
-              <div class="service-location">{{bookingData.location}}</div>
-              <!-- NOTES HIDDEN: bookingData.notes are private internal notes and should NOT appear on customer-facing invoices -->
-              <!-- {{#if bookingData.notes}}<br><div class="service-notes">{{bookingData.notes}}</div>{{/if}} -->
+              {{#if bookingData.location}}<div class="service-location">{{bookingData.location}}</div>{{/if}}
+              {{#if bookingData.notes}}<br><div class="service-notes">{{bookingData.notes}}</div>{{/if}}
             </td>
             <td class="unit-col">{{formatDecimalCurrency bookingData.hourlyRate}}</td>
             <td class="total-col">{{formatDecimalCurrency bookingData.totalAmount}}</td>

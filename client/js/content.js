@@ -24,11 +24,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 
 
-console.log('LeedzEx content.js loaded');
-
-
-
-
 
 
 

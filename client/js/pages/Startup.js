@@ -160,7 +160,7 @@ export class Startup extends Page {
     } catch (error) {
       dbNameElement.textContent = 'Server not found';
       dbNameElement.style.color = 'red';
-      console.error('Failed to fetch database name:', error);
+      console.log('ERROR: could not find DB');
     }
   }
 

@@ -247,12 +247,14 @@ function hideAllButtons() {
   const thankyouButtons = document.getElementById('thankyou-buttons');
   const responderButtons = document.getElementById('responder-buttons');
   const outreachButtons = document.getElementById('outreach-buttons');
+  const shareButtons = document.getElementById('share-buttons');
 
   if (startupButtons) startupButtons.style.display = 'none';
   if (invoicerButtons) invoicerButtons.style.display = 'none';
   if (thankyouButtons) thankyouButtons.style.display = 'none';
   if (responderButtons) responderButtons.style.display = 'none';
   if (outreachButtons) outreachButtons.style.display = 'none';
+  if (shareButtons) shareButtons.style.display = 'none';
 }
 
 /**
@@ -342,6 +344,7 @@ function updateActionButtons(page) {
   const thankyouButtons = document.getElementById('thankyou-buttons');
   const responderButtons = document.getElementById('responder-buttons');
   const outreachButtons = document.getElementById('outreach-buttons');
+  const shareButtons = document.getElementById('share-buttons');
 
   // Hide all button wrappers by default
   if (startupButtons) startupButtons.style.display = 'none';
@@ -349,6 +352,7 @@ function updateActionButtons(page) {
   if (thankyouButtons) thankyouButtons.style.display = 'none';
   if (responderButtons) responderButtons.style.display = 'none';
   if (outreachButtons) outreachButtons.style.display = 'none';
+  if (shareButtons) shareButtons.style.display = 'none';
 
   // Show the appropriate button wrapper based on page name
   if (page.pageName === 'startup' && startupButtons) {
@@ -361,6 +365,8 @@ function updateActionButtons(page) {
     responderButtons.style.display = 'flex';
   } else if (page.pageName === 'outreach' && outreachButtons) {
     outreachButtons.style.display = 'flex';
+  } else if (page.pageName === 'share' && shareButtons) {
+    shareButtons.style.display = 'flex';
   }
 
   // Legacy dynamic button handling (only for pages that provide button config)

@@ -1,5 +1,5 @@
 /**
- * Invoicer - Page class for booking/invoice management
+ * Invoicer (now called Booker 1/2025) - Page class for booking/invoice management
  * Extends DataPage for universal workflow
  */
 
@@ -15,7 +15,7 @@ import Booking from '../db/Booking.js';
 export class Invoicer extends DataPage {
 
   constructor(state) {
-    super('invoicer', state);
+    super('booker', state);
     this.clientFields = Client.getFieldNames();
     this.bookingFields = Booking.getFieldNames();
 
