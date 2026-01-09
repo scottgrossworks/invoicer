@@ -25,6 +25,14 @@ class Config {
         this.includeTerms = data.includeTerms !== undefined ? data.includeTerms : true;
         this.terms = data.terms || '';
         this.template = data.template || 'modern';  // IGNORE
+
+        this.friends = data.friends || '';
+        this.sq_access = data.sq_access || null;
+        this.sq_refresh = data.sq_refresh || null;
+        this.sq_expiration = data.sq_expiration || null;
+        this.sq_merchant = data.sq_merchant || null;
+        this.sq_location = data.sq_location || null;
+        this.sq_state = data.sq_state || null;
     }
 
   // Validation methods
@@ -178,7 +186,14 @@ static getFieldNames() {
         contactHandle: this.contactHandle || '',
         includeTerms: this.includeTerms !== undefined ? this.includeTerms : true,
         terms: this.terms || '',
-        template: this.template || 'modern'
+        template: this.template || 'modern',
+        friends: this.friends || '',
+        sq_access: this.sq_access || undefined,
+        sq_refresh: this.sq_refresh || undefined,
+        sq_expiration: this.sq_expiration || undefined,
+        sq_merchant: this.sq_merchant || undefined,
+        sq_location: this.sq_location || undefined,
+        sq_state: this.sq_state || undefined
     };
   }
 
@@ -199,7 +214,14 @@ static getFieldNames() {
       contactHandle: this.contactHandle,
       includeTerms: this.includeTerms,
       terms: this.terms,
-      template: this.template
+      template: this.template,
+      friends: this.friends,
+      sq_access: this.sq_access,
+      sq_refresh: this.sq_refresh,
+      sq_expiration: this.sq_expiration,
+      sq_merchant: this.sq_merchant,
+      sq_location: this.sq_location,
+      sq_state: this.sq_state
     };
   }
 
@@ -223,7 +245,14 @@ Config.prototype.toJSON = function() {
     contactHandle: this.contactHandle,
     includeTerms: this.includeTerms,
     terms: this.terms,
-    template: this.template
+    template: this.template,
+    friends: this.friends,
+    sq_access: this.sq_access,
+    sq_refresh: this.sq_refresh,
+    sq_expiration: this.sq_expiration,
+    sq_merchant: this.sq_merchant,
+    sq_location: this.sq_location,
+    sq_state: this.sq_state
   };
 };
 

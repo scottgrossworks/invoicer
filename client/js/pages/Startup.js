@@ -1,51 +1,172 @@
 /**
- * Startup - Configuration page for server/database connection settings
+ * Startup - Configuration page with Gmail authorization
+ * SIMPLIFIED - Gmail auth moved to utils/GmailAuth.js
  */
 
 import { Page } from './Page.js';
-import { log, logError, showToast } from '../logging.js';
+import { showToast } from '../logging.js';
 
 export class Startup extends Page {
 
-  constructor(state) {
-    super('startup', state);
+  constructor(state, leedzConfig = null) {
+    super('startup', state, leedzConfig);
+    this.awsApiGatewayUrl = (leedzConfig || this.leedzConfig)?.aws?.apiGatewayUrl || null;
   }
 
-  /**
-   * Initialize startup page (called once on app startup)
-   */
   async initialize() {
-    this.setupButtons();
+    // Wire up Startup buttons
+    document.getElementById('startupClearBtn')?.addEventListener('click', () => this.clear());
+    document.getElementById('startupSaveBtn')?.addEventListener('click', () => this.save());
+    document.getElementById('reloadBtnStartup')?.addEventListener('click', () => this.reload());
+
+    // Gmail buttons removed - no longer in Startup page
+  }
+
+  onShowImpl() {
+    // NOTHING HERE - page already rendered with HTML defaults
+    // All async tasks delayed to not block rendering
+
+    // Delay background tasks by 100ms to let page render first
+    setTimeout(() => {
+      this.loadSavedConfig();
+      this.checkServerStatus();
+      this.fetchJWTToken();
+    }, 100);
   }
 
   /**
-   * Startup page never auto-parses
+   * Load saved config from state into form
    */
-  isStartupPage() {
-    return true;
+  loadSavedConfig() {
+    const config = this.state.Config || {};
+
+    if (config.serverHost) document.getElementById('startup-serverHost').value = config.serverHost;
+    if (config.serverPort) document.getElementById('startup-serverPort').value = config.serverPort;
+    if (config.mcpHost) document.getElementById('startup-mcpHost').value = config.mcpHost;
+    if (config.mcpPort) document.getElementById('startup-mcpPort').value = config.mcpPort;
+    if (config.llmApiKey) document.getElementById('startup-llmApiKey').value = config.llmApiKey;
+    if (config.llmProvider) document.getElementById('startup-llmProvider').value = config.llmProvider;
+    if (config.llmBaseUrl) document.getElementById('startup-llmBaseUrl').value = config.llmBaseUrl;
+    if (config.llmAnthropicVersion) document.getElementById('startup-llmAnthropicVersion').value = config.llmAnthropicVersion;
+    if (config.llmMaxTokens) document.getElementById('startup-llmMaxTokens').value = config.llmMaxTokens;
   }
 
   /**
-   * Called when startup page becomes visible
+   * Check leedz_server status
    */
-  async onShowImpl() {
-    // Load config from database and populate form
-    await this.loadConfigFromState();
+  async checkServerStatus() {
+    const host = document.getElementById('startup-serverHost')?.value || 'localhost';
+    const port = document.getElementById('startup-serverPort')?.value || '3000';
+    const dbNameEl = document.getElementById('startup-dbName');
+
+    if (!dbNameEl) return;
+
+    try {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch(`http://${host}:${port}/config`, { signal: controller.signal });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const config = await response.json();
+
+      dbNameEl.textContent = config.databaseName || 'Unknown';
+      dbNameEl.style.color = 'green';
+    } catch (error) {
+      dbNameEl.textContent = 'Not connected';
+      dbNameEl.style.color = 'red';
+      console.log('Leedz server not available:', error.message);
+    }
   }
 
   /**
-   * Update UI from state changes
+   * Reload/retry server connection
    */
-  updateFromState(state) {
-    this.state = state;
-    this.loadConfigFromState();
+  async reload() {
+    console.log('Retrying server connection...');
+
+    const host = document.getElementById('startup-serverHost')?.value || 'localhost';
+    const port = document.getElementById('startup-serverPort')?.value || '3000';
+    const dbNameEl = document.getElementById('startup-dbName');
+
+    if (!dbNameEl) return;
+
+    try {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch(`http://${host}:${port}/config`, { signal: controller.signal });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const config = await response.json();
+
+      dbNameEl.textContent = config.databaseName || 'Unknown';
+      dbNameEl.style.color = 'green';
+
+      // Show success toast when server is found
+      showToast('Leedz Server Connected', 'success');
+    } catch (error) {
+      dbNameEl.textContent = 'Not connected';
+      dbNameEl.style.color = 'red';
+      console.log('Leedz server not available:', error.message);
+    }
+  }
+
+  // MCP and Gmail functions removed - not needed in Startup page
+
+  /**
+   * Fetch JWT token for LEEDZ marketplace
+   */
+  async fetchJWTToken() {
+    try {
+      // Check if token already valid (7+ days remaining)
+      const stored = await chrome.storage.local.get(['leedzJWT', 'leedzJWTExpiry']);
+      const now = Date.now();
+      const sevenDays = 7 * 24 * 60 * 60 * 1000;
+
+      if (stored.leedzJWT && stored.leedzJWTExpiry > (now + sevenDays)) {
+        console.log('JWT token valid until:', new Date(stored.leedzJWTExpiry));
+        return;
+      }
+
+      // Get user email from Chrome identity
+      const userInfo = await new Promise((resolve, reject) => {
+        chrome.identity.getProfileUserInfo({ accountStatus: 'ANY' }, (info) => {
+          chrome.runtime.lastError ? reject(chrome.runtime.lastError) : resolve(info);
+        });
+      });
+
+      if (!userInfo.email || !this.awsApiGatewayUrl) return;
+
+      // Fetch new token from AWS
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch(`${this.awsApiGatewayUrl}/getToken?email=${encodeURIComponent(userInfo.email)}`, {
+        signal: controller.signal
+      });
+
+      const { token, expires } = await response.json();
+
+      // Store token
+      await chrome.storage.local.set({
+        leedzJWT: token,
+        leedzJWTExpiry: expires * 1000,
+        leedzUserEmail: userInfo.email
+      });
+
+      console.log('JWT token obtained, expires:', new Date(expires * 1000));
+    } catch (error) {
+      console.log('JWT token fetch failed (non-critical):', error.message);
+    }
   }
 
   /**
-   * Clear/reset startup config to defaults
+   * Clear form to defaults
    */
   clear() {
-    // Reset to default values
     document.getElementById('startup-serverHost').value = '127.0.0.1';
     document.getElementById('startup-serverPort').value = '3000';
     document.getElementById('startup-mcpHost').value = '127.0.0.1';
@@ -60,181 +181,48 @@ export class Startup extends Page {
   }
 
   /**
-   * No action buttons for startup (uses custom buttons in button-wrapper)
+   * Save configuration
    */
-  getActionButtons() {
-    return null;
-  }
+  async save() {
+    const config = {
+      serverHost: document.getElementById('startup-serverHost').value.trim(),
+      serverPort: document.getElementById('startup-serverPort').value.trim(),
+      mcpHost: document.getElementById('startup-mcpHost').value.trim(),
+      mcpPort: document.getElementById('startup-mcpPort').value.trim(),
+      llmApiKey: document.getElementById('startup-llmApiKey').value.trim(),
+      llmProvider: document.getElementById('startup-llmProvider').value.trim(),
+      llmBaseUrl: document.getElementById('startup-llmBaseUrl').value.trim(),
+      llmAnthropicVersion: document.getElementById('startup-llmAnthropicVersion').value.trim(),
+      llmMaxTokens: parseInt(document.getElementById('startup-llmMaxTokens').value) || 1024,
+      dbProvider: 'local_prisma_sqlite'
+    };
 
-  /**
-   * Wire up startup page button event handlers
-   */
-  setupButtons() {
-    const clearBtn = document.getElementById('startupClearBtn');
-    const saveBtn = document.getElementById('startupSaveBtn');
+    // Save to Chrome storage
+    await chrome.storage.local.set({ leedzStartupConfig: config });
 
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => this.clear());
-    }
+    // Merge with existing Config (preserve PDF settings)
+    Object.assign(this.state.Config, config);
 
-    if (saveBtn) {
-      saveBtn.addEventListener('click', () => this.saveConfig());
-    }
-  }
-
-  /**
-   * Load config from state and populate form fields
-   */
-  async loadConfigFromState() {
+    // Save to database
     try {
-      // Load state from database
-      await this.state.load();
-
-      // Get config values from state (with defaults)
-      const config = this.state.Config || {};
-
-      // Migrate old serverUrl format to serverHost (strip http:// or https://)
-      let serverHost = config.serverHost;
-      if (!serverHost && config.serverUrl) {
-        serverHost = config.serverUrl.replace(/^https?:\/\//, '');
-      }
-      serverHost = serverHost || '127.0.0.1';
-
-      const serverPort = config.serverPort || '3000';
-      const mcpHost = config.mcpHost || '127.0.0.1';
-      const mcpPort = config.mcpPort || '3001';
-      const llmApiKey = config.llmApiKey || '';
-      const llmProvider = config.llmProvider || 'claude-opus-4-1-20250805';
-      const llmBaseUrl = config.llmBaseUrl || 'https://api.anthropic.com';
-      const llmAnthropicVersion = config.llmAnthropicVersion || '2023-06-01';
-      const llmMaxTokens = config.llmMaxTokens || 1024;
-
-      // Populate form fields
-      document.getElementById('startup-serverHost').value = serverHost;
-      document.getElementById('startup-serverPort').value = serverPort;
-      document.getElementById('startup-mcpHost').value = mcpHost;
-      document.getElementById('startup-mcpPort').value = mcpPort;
-      document.getElementById('startup-llmApiKey').value = llmApiKey;
-      document.getElementById('startup-llmProvider').value = llmProvider;
-      document.getElementById('startup-llmBaseUrl').value = llmBaseUrl;
-      document.getElementById('startup-llmAnthropicVersion').value = llmAnthropicVersion;
-      document.getElementById('startup-llmMaxTokens').value = llmMaxTokens;
-
-      console.log('Loaded startup config from database');
-
-      // Fetch database name from server
-      await this.fetchDatabaseName(serverHost, serverPort);
-
-    } catch (error) {
-      console.warn('Could not load config from database, using defaults:', error);
-      this.clear(); // Use defaults
-    }
-  }
-
-  /**
-   * Fetch database name from server
-   */
-  async fetchDatabaseName(serverHost, serverPort) {
-    const dbNameElement = document.getElementById('startup-dbName');
-
-    try {
-      const serverUrl = `http://${serverHost}:${serverPort}`;
-      const response = await fetch(`${serverUrl}/config`);
-
-      if (!response.ok) {
-        dbNameElement.textContent = 'No database configured';
-        dbNameElement.style.color = 'red';
-        return;
-      }
-
-      const config = await response.json();
-
-      if (config && config.databaseName) {
-        dbNameElement.textContent = config.databaseName;
-        dbNameElement.style.color = 'green';
-      } else {
-        dbNameElement.textContent = 'Unknown';
-        dbNameElement.style.color = 'orange';
-      }
-
-    } catch (error) {
-      dbNameElement.textContent = 'Server not found';
-      dbNameElement.style.color = 'red';
-      console.log('ERROR: could not find DB');
-    }
-  }
-
-  /**
-   * Save config to state, Chrome storage, and database
-   */
-  async saveConfig() {
-    try {
-      // Get values from form
-      const serverHost = document.getElementById('startup-serverHost').value.trim();
-      const serverPort = document.getElementById('startup-serverPort').value.trim();
-      const mcpHost = document.getElementById('startup-mcpHost').value.trim();
-      const mcpPort = document.getElementById('startup-mcpPort').value.trim();
-      const llmApiKey = document.getElementById('startup-llmApiKey').value.trim();
-      const llmProvider = document.getElementById('startup-llmProvider').value.trim();
-      const llmBaseUrl = document.getElementById('startup-llmBaseUrl').value.trim();
-      const llmAnthropicVersion = document.getElementById('startup-llmAnthropicVersion').value.trim();
-      const llmMaxTokens = parseInt(document.getElementById('startup-llmMaxTokens').value.trim()) || 1024;
-
-      // Validate required fields
-      if (!serverHost || !serverPort) {
-        showToast('Server Host and Port are required', 'error');
-        return;
-      }
-
-      // CRITICAL: Load existing Config from database first to avoid overwriting PDF settings
-      await this.state.loadConfigFromDB();
-
-      // Update ONLY the Startup-related fields (preserve existing PDF settings)
-      if (!this.state.Config) {
-        this.state.Config = {};
-      }
-
-      this.state.Config.serverHost = serverHost;
-      this.state.Config.serverPort = serverPort;
-      this.state.Config.dbProvider = 'local_prisma_sqlite';
-      this.state.Config.mcpHost = mcpHost || '127.0.0.1';
-      this.state.Config.mcpPort = mcpPort || '3001';
-      this.state.Config.llmApiKey = llmApiKey || null;
-      this.state.Config.llmProvider = llmProvider || 'claude-opus-4-1-20250805';
-      this.state.Config.llmBaseUrl = llmBaseUrl || 'https://api.anthropic.com';
-      this.state.Config.llmAnthropicVersion = llmAnthropicVersion || '2023-06-01';
-      this.state.Config.llmMaxTokens = llmMaxTokens;
-
-      // Save to Chrome storage (only startup settings)
-      await chrome.storage.local.set({
-        leedzStartupConfig: {
-          serverHost, serverPort, dbProvider: 'local_prisma_sqlite', mcpHost, mcpPort,
-          llmApiKey, llmProvider, llmBaseUrl, llmAnthropicVersion, llmMaxTokens
-        }
-      });
-
-      // Save to database (merged Config with both Startup + PDF settings)
       await this.state.save();
-
-      // CRITICAL: Reinitialize DB_LAYER to point to new database
-      const { getDbLayer } = await import('../provider_registry.js');
-      window.DB_LAYER = await getDbLayer();
-      console.log('DB_LAYER reinitialized to:', window.DB_LAYER.baseUrl);
-
-      // CRITICAL: Clear Config cache so Invoicer will reload from NEW database
-      this.state.Config = {};
-      console.log('Config cache cleared - will reload from new database on next use');
-
-      // Fetch and display database name
-      await this.fetchDatabaseName(serverHost, serverPort);
-
-      console.log('Startup config saved');
-      showToast('Configuration saved successfully', 'success');
-
     } catch (error) {
-      console.error('Failed to save startup config:', error);
-      showToast('Failed to save configuration', 'error');
-      logError('Config save failed:', error);
+      console.log('Failed to save config to database:', error.message);
+      // Continue - config is saved to Chrome storage, DB save is optional
     }
+
+    // Reinitialize DB_LAYER
+    const { getDbLayer } = await import('../provider_registry.js');
+    window.DB_LAYER = await getDbLayer();
+    this.state.Config = {}; // Clear cache
+
+    // Check server status
+    this.checkServerStatus();
+
+    showToast('Configuration saved', 'success');
   }
+
+  isStartupPage() { return true; }
+  updateFromState(state) { this.state = state; this.loadSavedConfig(); }
+  getActionButtons() { return null; }
 }

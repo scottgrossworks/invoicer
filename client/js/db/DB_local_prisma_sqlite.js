@@ -16,6 +16,25 @@ export class DB_Local_PrismaSqlite extends DB_Layer {
     this.baseUrl = baseUrl;
   }
 
+  /**
+   * Get Authorization headers with JWT token from Chrome storage
+   * @returns {Promise<Object>} Headers object with Authorization if token exists
+   */
+  async getAuthHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+
+    try {
+      const stored = await chrome.storage.local.get('leedzJWT');
+      if (stored.leedzJWT) {
+        headers['Authorization'] = `Bearer ${stored.leedzJWT}`;
+      }
+    } catch (error) {
+      console.warn('Failed to get JWT token from storage:', error);
+    }
+
+    return headers;
+  }
+
 
 
 
@@ -89,7 +108,7 @@ cleanFloat(value) {
 
         const clientRes = await fetch(`${this.baseUrl}/clients`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: await this.getAuthHeaders(),
           body: JSON.stringify(clientPayload)
         });
 
@@ -141,7 +160,7 @@ cleanFloat(value) {
 
           let bookingRes = await fetch(`${this.baseUrl}/bookings`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: await this.getAuthHeaders(),
             body: JSON.stringify(bookingPayload)
           });
 
@@ -210,7 +229,7 @@ cleanFloat(value) {
 
         let configRes = await fetch(`${this.baseUrl}/config`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: await this.getAuthHeaders(),
           body: JSON.stringify(configPayload)
         });
 
@@ -231,8 +250,10 @@ cleanFloat(value) {
 
       // Check if it's a network error (server not running)
       if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-        console.error('Database server not running - save operation failed');
-        throw new Error('Database server not running. Please start the server and try again.');
+        console.log('Database server not running - save operation failed');
+        const err = new Error('Database server not running. Please start the server and try again.');
+        err.name = 'DatabaseConnectionError';
+        throw err;
       } else {
         // Re-throw other errors
         throw error;

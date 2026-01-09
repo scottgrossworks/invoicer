@@ -65,6 +65,40 @@ Available page ids: ${validPageIds.join(', ')}`);
  */
 async function initializeApp() {
   try {
+    // STEP 1: Show Startup page container IMMEDIATELY
+    const startupContainer = document.getElementById('page-startup');
+    if (startupContainer) {
+      startupContainer.style.display = 'flex';
+    }
+
+    // STEP 2: Update app-label IMMEDIATELY
+    const appLabel = document.querySelector('.app-label');
+    if (appLabel) {
+      appLabel.textContent = 'startup';
+      appLabel.className = 'app-label startup';
+    }
+
+    // STEP 3: Create minimal startup page to call onShow() immediately
+    // This allows the UI to populate while background initialization runs
+    const { Startup } = await import(chrome.runtime.getURL('js/pages/Startup.js'));
+    const tempStartupPage = new Startup({}, LEEDZ_CONFIG || { aws: { apiGatewayUrl: 'https://jjz8op6uy4.execute-api.us-west-2.amazonaws.com/Leedz_Stage_1' } });
+    tempStartupPage.initialize();
+    tempStartupPage.onShow();
+
+    // STEP 4: Initialize everything in background (non-blocking)
+    initializeAppBackground();
+
+  } catch (error) {
+    console.error('Failed to initialize app:', error);
+    log('Initialization failed');
+  }
+}
+
+/**
+ * Background initialization - runs after page shows
+ */
+async function initializeAppBackground() {
+  try {
     // Load configuration FIRST - abort if missing or invalid
     await loadLeedzConfig();
 
@@ -77,19 +111,9 @@ async function initializeApp() {
       window.DB_LAYER = null;
     }
 
-    // Initialize state with persistence
-    STATE = await StateFactory.create();
+    // Initialize state with persistence (pass LEEDZ_CONFIG for Square settings)
+    STATE = await StateFactory.create(LEEDZ_CONFIG);
 
-    /*
-    console.log('=== SIDEBAR STATE LOADED ===', {
-      hasClient: !!(STATE.Client?.name || STATE.Client?.email),
-      clientName: STATE.Client?.name,
-      clientEmail: STATE.Client?.email,
-      hasBooking: !!(STATE.Booking?.title || STATE.Booking?.location),
-      bookingTitle: STATE.Booking?.title,
-      bookingLocation: STATE.Booking?.location
-    });
-*/
     // Listen for storage changes from settings page
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName === 'local' && changes.currentBookingState) {
@@ -120,9 +144,8 @@ async function initializeApp() {
           continue;
         }
 
-        // Instantiate page
-        PAGES[pageConfig.id] = new PageClass(STATE);
-        // console.log(`Loaded page: ${pageConfig.id} (${pageConfig.label})`);
+        // Instantiate page (pass LEEDZ_CONFIG for pages that need it, e.g., Startup)
+        PAGES[pageConfig.id] = new PageClass(STATE, LEEDZ_CONFIG);
 
       } catch (error) {
         console.error(`Failed to load page ${pageConfig.id}:`, error);
@@ -141,18 +164,20 @@ async function initializeApp() {
     setupPageSwitching();
     setupHeaderButtons();
 
-    // Initialize to last active page or default page from config
-    const lastPage = await getLastActivePage();
-    await switchToPage(lastPage || LEEDZ_CONFIG.ui.defaultPage);
+    // Set CURRENT_PAGE to startup page
+    CURRENT_PAGE = PAGES['startup'];
 
     // Expose switchToPage globally so pages can navigate
     window.switchToPage = switchToPage;
 
+    // Trigger Startup page onShow() now that everything is initialized
+    if (CURRENT_PAGE) {
+      CURRENT_PAGE.onShow();
+    }
+
   } catch (error) {
-    console.error('Failed to initialize app:', error);
+    console.error('Failed to initialize app background:', error);
     log('Initialization failed');
-    // Re-throw to prevent extension from running with invalid config
-    throw error;
   }
 }
 
@@ -196,11 +221,11 @@ function setupPageSwitching() {
   });
 
   menu.querySelectorAll('.menu-item').forEach(item => {
-    item.addEventListener('click', async (e) => {
+    item.addEventListener('click', (e) => {
       e.stopPropagation(); // Prevent event bubbling
       const pageName = item.dataset.page;
       menu.style.display = 'none'; // Hide menu immediately before page switch
-      await switchToPage(pageName);
+      switchToPage(pageName);
     });
   });
 
@@ -265,7 +290,7 @@ function hideAllButtons() {
  *
  * @param {string} pageName - Name of the page to switch to
  */
-async function switchToPage(pageName) {
+function switchToPage(pageName) {
 
   /*
   console.log(`=== SWITCHING TO PAGE: ${pageName} ===`);
@@ -289,9 +314,9 @@ async function switchToPage(pageName) {
     }
   });
 
-  // STEP 3: Call onHide() on current page if exists
+  // STEP 3: Call onHide() on current page if exists (non-blocking)
   if (CURRENT_PAGE) {
-    await CURRENT_PAGE.onHide();
+    CURRENT_PAGE.onHide();
   }
 
   // STEP 4: Validate new page exists
@@ -301,18 +326,18 @@ async function switchToPage(pageName) {
     return;
   }
 
-  // STEP 5: Show ONLY the target page container (empty at this point)
+  // STEP 5: Show ONLY the target page container
   page.getPageElement().style.display = 'flex';
 
-  // STEP 6: Show spinner (page will manage this in onShow)
-  // STEP 7: Process page data in background (onShow handles workflow)
-  await page.onShow();
-
-  // STEP 8: Update UI (app label)
+  // STEP 6: Update UI (app label) IMMEDIATELY
   updateAppLabel(pageName);
 
-  // STEP 9: Show buttons LAST
+  // STEP 7: Show buttons IMMEDIATELY
   updateActionButtons(page);
+
+  // STEP 8: Call page onShow() in background (non-blocking)
+  // DataPage needs await for workflow, Startup doesn't block
+  page.onShow();
 
   CURRENT_PAGE = page;
 
@@ -401,7 +426,7 @@ function updateActionButtons(page) {
  */
 function setupHeaderButtons() {
   // Consolidate reload button handlers
-  const reloadButtons = ['reloadBtn', 'reloadBtnClients', 'reloadBtnThankYou', 'reloadBtnResponder'];
+  const reloadButtons = ['reloadBtn', 'reloadBtnClients', 'reloadBtnThankYou', 'reloadBtnResponder', 'reloadBtnShare'];
   reloadButtons.forEach(btnId => {
     const btn = document.getElementById(btnId);
     if (btn) {
@@ -414,7 +439,7 @@ function setupHeaderButtons() {
   });
 
   // Consolidate settings button handlers - single source of truth for all pages
-  const settingsButtons = ['settingsBtn', 'settingsBtnThankYou', 'settingsBtnResponder', 'settingsBtnOutreach'];
+  const settingsButtons = ['settingsBtn', 'settingsBtnThankYou', 'settingsBtnResponder', 'settingsBtnOutreach', 'settingsBtnShare'];
   settingsButtons.forEach(btnId => {
     const btn = document.getElementById(btnId);
     if (btn) {

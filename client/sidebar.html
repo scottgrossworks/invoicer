@@ -42,6 +42,13 @@
 
       <div class="section-header">
         <label>Startup Settings</label>
+        <div class="header-buttons">
+          <button id="reloadBtnStartup" class="reload-button" title="Retry server connection">
+            <span>
+              <img src="icons/arrows_white.png" class="button-icon" alt="retry connection"/>
+            </span>
+          </button>
+        </div>
       </div>
 
       <div id="display_win_startup" class="display-win">
@@ -55,7 +62,7 @@
           <tbody id="startup_tbody">
             <tr>
               <td>Server Host</td>
-              <td><input type="text" id="startup-serverHost" class="table-input" placeholder="127.0.0.1" value="127.0.0.1" /></td>
+              <td><input type="text" id="startup-serverHost" class="table-input" placeholder="localhost" value="localhost" /></td>
             </tr>
             <tr>
               <td>Server Port</td>
@@ -105,6 +112,33 @@
               </tr>
             </tbody>
           </table>
+        </details>
+
+        <!-- Authorize Gmail Collapsible Section -->
+        <details id="authorize-gmail-details" style="margin-top: 20px;">
+          <summary style="cursor: pointer; font-weight: bold; padding: 8px; background-color: #f0f0f0; border-radius: 4px;">
+            Authorize Gmail
+          </summary>
+          <div class="mcp-explanation" style="margin-top: 10px; padding: 10px; font-size: 0.9em;">
+            Click the button below to authorize the MCP server to send emails using your account for one hour.
+          </div>
+          <div class="mcp-controls" style="margin-top: 10px;">
+            <label for="mcp-host">MCP Server Host:</label>
+            <input type="text" id="mcp-host" placeholder="127.0.0.1" value="127.0.0.1"/>
+
+            <label for="mcp-port">MCP Server Port:</label>
+            <input type="text" id="mcp-port" placeholder="3001" value="3001"/>
+
+            <div id="mcp-status" style="margin-top: 10px;">Initializing...</div>
+
+            <button id="enable-gmail-btn" class="sidebar-button" style="margin-top:20px;" disabled>
+              Enable Gmail Sending (1 hour)
+            </button>
+
+            <button id="refresh-gmail-btn" class="sidebar-button" style="margin-top:10px;" disabled>
+              Refresh
+            </button>
+          </div>
         </details>
       </div>
 
@@ -178,20 +212,19 @@
           <span>Processing...</span>
         </div>
 
-        <!-- Broadcast Section (Toggle between broadcast mode and email list mode) -->
-        <div id="broadcast-section-share" class="broadcast-section">
-          <input type="checkbox" id="broadcastCheckbox" class="broadcast-checkbox" />
-          <label for="broadcastCheckbox" class="broadcast-label">Broadcast</label>
-        </div>
-
         <!-- Email Section (Collapsible) -->
-        <details id="email-section-share" class="share-accordion">
+        <details id="email-section-share" class="share-accordion" open>
           <summary class="accordion-header">Email</summary>
           <div class="accordion-content">
-            <div class="email-select-all">
-              <input type="checkbox" id="selectAllEmails" />
-              <label for="selectAllEmails">Select All</label>
+            <!-- Header row with Select All + Broadcast button -->
+            <div class="email-header-row">
+              <div class="email-select-all">
+                <input type="checkbox" id="selectAllEmails" />
+                <label for="selectAllEmails">Select All</label>
+              </div>
+              <button id="broadcastBtn" class="broadcast-btn">Broadcast</button>
             </div>
+
             <div id="emailList" class="email-list">
               <!-- Email items will be added dynamically -->
             </div>
@@ -203,6 +236,13 @@
         <details id="booking-section-share" class="share-accordion">
           <summary class="accordion-header">Booking</summary>
           <div class="accordion-content">
+            <!-- Trade selector -->
+            <div class="trade-selector-container" style="margin-bottom: 15px; padding: 10px; background-color: #f5f5f5; border-radius: 4px; display: flex; align-items: center; gap: 10px;">
+              <label for="tradeSelect" style="font-weight: bold; white-space: nowrap;">Trade:</label>
+              <select id="tradeSelect" class="trade-select" style="flex: 0 0 60%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+                <option value="">Loading trades...</option>
+              </select>
+            </div>
             <table id="share_booking_table" class="booking-table">
               <thead>
                 <tr>
@@ -255,45 +295,40 @@
 
     <!-- ========================================== -->
     <!-- GMAILER PAGE (Gmail sending configuration) -->
+    <!-- COMMENTED OUT - Functionality moved to Startup page Authorize accordion -->
     <!-- ========================================== -->
+    <!--
     <div id="page-gmailer" class="page-content">
 
       <div class="section-header">
         <label>Authorize Gmail</label>
       </div>
 
-      <!-- Brief explanation of what this does -->
       <div class="mcp-explanation">
         Click the button below to authorize the MCP server to send emails using your account for one hour.
       </div>
 
-      <!-- MCP server connection controls -->
       <div class="mcp-controls">
-        <!-- MCP server host input (defaults to localhost) -->
         <label for="mcp-host">MCP Server Host:</label>
         <input type="text" id="mcp-host" placeholder="127.0.0.1" value="127.0.0.1"/>
 
-        <!-- MCP server port input (defaults to 3001) -->
         <label for="mcp-port">MCP Server Port:</label>
         <input type="text" id="mcp-port" placeholder="3001" value="3001"/>
 
-        <!-- Status display area for connection/auth status messages -->
         <div id="mcp-status">Initializing...</div>
 
-        <!-- Button to trigger Gmail OAuth and send token to MCP server -->
-        <!-- Token expires after 1 hour - user must re-enable -->
-        <!-- Initially disabled until server health check passes -->
         <button id="enable-gmail-btn" class="sidebar-button" style="margin-top:20px;" disabled>
           Enable Gmail Sending (1 hour)
         </button>
 
-        <!-- Refresh button to renew OAuth token without disabling -->
         <button id="refresh-gmail-btn" class="sidebar-button" style="margin-top:10px;" disabled>
           Refresh
         </button>
       </div>
 
-    </div><!-- END page-gmailer -->
+    </div>
+    -->
+    <!-- END page-gmailer -->
 
 
     <!-- ========================================== -->
@@ -575,7 +610,7 @@
   </div>
 
     <footer class="leedz-footer" id="footer">
-      <img src="icons/grass.png" alt="grass" class="leedz-grass" id="grass-toggle"/>
+      <img src="icons/grass.png" alt="grass" class="leedz-grass"/>
     
       <!-- <div id="debug-output" class="debug-output"></div> -->
 

@@ -365,7 +365,6 @@ html, body {
 }
 
 .leedz-grass {
-  z-index:0;
   position: absolute;
   top: -60px;
   left: 0;
@@ -483,8 +482,9 @@ input.invalid {
 
 /* Button wrapper - fixed position outside scrolling area, above footer */
 .button-wrapper {
-  margin-top: 0px;
+  margin: 0 5vw;
   display: flex;
+  gap:5vw;
   justify-content: space-between;  /* This will space them evenly */
   align-items: center;
   padding: 5px 12px 5px 12px;
@@ -1241,19 +1241,20 @@ input.invalid {
 }
 
 .accordion-content {
-  padding: 12px;
+  padding: 10px;
 }
 
 /* Email section styles */
 .email-select-all {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
   padding: 8px;
+  gap:6px;
   background-color: #f9f9f9;
   border-radius: 4px;
 }
+
+
 
 .email-select-all input[type="checkbox"] {
   width: 18px !important;
@@ -1582,61 +1583,42 @@ input.invalid {
   background-color: blue;
 }
 
-/* Broadcast section styles */
-.broadcast-section {
-  display:flex;
-  color:black;
-  margin: 10px 0;
-  padding: 12px;
-  border: 1px solid #ddd;
+/* Email header row (Select All + Broadcast button) */
+.email-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding:8px;
+  border-bottom: 1px solid #ddd;
+}
+
+
+
+/* Broadcast button - inactive state */
+.broadcast-btn {
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid black;
   border-radius: 4px;
-  background-color: #f5f5f5;
+  background-color: var(--LEEDZ_GRAY);
+  color: black;
   cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
+  transition: all 0.2s;
 }
 
-.broadcast-section:hover {
-  background-color: #e8e8e8;
+.broadcast-btn:hover {
+  background-color: #d0d5da;
 }
 
-/* Active/checked state - blue background with white text */
-.broadcast-section.active {
-  background-color: cornflowerblue;
-  border-color: cornflowerblue;
+/* Broadcast button - active state (dodgerblue background, white text) */
+.broadcast-btn.active {
+  background-color: dodgerblue;
+  color: white;
+  border-color: dodgerblue;
 }
 
-.broadcast-section.active .broadcast-label {
-  color: white!important;
-  font-weight: 600;
-}
-
-.broadcast-checkbox {
-  width: 18px !important;
-  height: 18px !important;
-  cursor: pointer;
-  vertical-align: middle;
-  margin: 0;
-}
-
-.broadcast-label {
-  font-weight: 600;
-  color:black;
-  vertical-align: middle;
-  cursor: pointer;
-  padding:4px 10px;
-  transition: color 0.2s;
-}
-
-/* Email section disabled state (when broadcast is active) */
-.share-accordion.disabled {
-  opacity: 0.5;
-  pointer-events: none;
-  background-color: #f0f0f0;
-}
-
-.share-accordion.disabled summary {
-  color: #999;
-  cursor: not-allowed;
-  background-color: #f0f0f0;
+.broadcast-btn.active:hover {
+  background-color: #1e90ff;
 }
 

@@ -19,6 +19,11 @@ class Booking {
       this.status = data.status; // IGNORE
       this.source = data.source;
       this.notes = data.notes;
+      this.shared = data.shared !== undefined ? data.shared : false;
+      this.sharedTo = data.sharedTo || null;
+      this.sharedAt = data.sharedAt || null;
+      this.leedPrice = data.leedPrice || null;
+      this.squarePaymentUrl = data.squarePaymentUrl || null;
       this.createdAt = data.createdAt; // IGNORE
       this.updatedAt = data.updatedAt; // IGNORE
     } else {
@@ -39,6 +44,11 @@ class Booking {
       this.status = data.status || 'new';
       this.source = data.source || null;
       this.notes = data.notes || null;
+      this.shared = data.shared !== undefined ? data.shared : false;
+      this.sharedTo = data.sharedTo || null;
+      this.sharedAt = data.sharedAt || null;
+      this.leedPrice = data.leedPrice || null;
+      this.squarePaymentUrl = data.squarePaymentUrl || null;
       this.createdAt = new Date();
       this.updatedAt = new Date();
     }
@@ -92,7 +102,8 @@ class Booking {
 
 
   /**
-   * Return just the fields which user can modify
+   * Return just the fields which user can modify / share
+   * exclude system fields like id, timestamps, status and SQUARE
    * @returns field names[]
    */
   static getFieldNames() {
@@ -108,7 +119,7 @@ class Booking {
       'hourlyRate',
       'flatRate',
       'totalAmount',
-      'notes'
+      'notes',
     ];
 
     return fields;
@@ -154,7 +165,11 @@ class Booking {
       status: this.status || undefined,
       source: this.source || undefined,
       notes: this.notes || undefined,
-
+      shared: this.shared !== undefined ? this.shared : false,
+      sharedTo: this.sharedTo || undefined,
+      sharedAt: this.sharedAt || undefined,
+      leedPrice: this.leedPrice || undefined,
+      squarePaymentUrl: this.squarePaymentUrl || undefined
     };
   }
 
@@ -177,7 +192,11 @@ class Booking {
       totalAmount: this.totalAmount,
       status: this.status,
       source: this.source,
-  
+      shared: this.shared,
+      sharedTo: this.sharedTo,
+      sharedAt: this.sharedAt,
+      leedPrice: this.leedPrice,
+      squarePaymentUrl: this.squarePaymentUrl,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt
     };
@@ -200,7 +219,11 @@ class Booking {
     if (data.status !== undefined) this.status = data.status;
     if (data.source !== undefined) this.source = data.source;
     if (data.notes !== undefined) this.notes = data.notes;
-    if (data.notes !== undefined) this.notes = data.notes;
+    if (data.shared !== undefined) this.shared = data.shared;
+    if (data.sharedTo !== undefined) this.sharedTo = data.sharedTo;
+    if (data.sharedAt !== undefined) this.sharedAt = data.sharedAt;
+    if (data.leedPrice !== undefined) this.leedPrice = data.leedPrice;
+    if (data.squarePaymentUrl !== undefined) this.squarePaymentUrl = data.squarePaymentUrl;
     this.updatedAt = new Date();
   }
 }
@@ -226,7 +249,11 @@ Booking.prototype.toJSON = function() {
     status: this.status,
     source: this.source,
     notes: this.notes,
-    notes: this.notes,
+    shared: this.shared,
+    sharedTo: this.sharedTo,
+    sharedAt: this.sharedAt,
+    leedPrice: this.leedPrice,
+    squarePaymentUrl: this.squarePaymentUrl,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt
   };

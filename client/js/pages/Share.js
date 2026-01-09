@@ -33,6 +33,11 @@ export class Share extends DataPage {
     // Store special info for email
     this.specialInfo = '';
 
+    // Selected trade name
+    this.selectedTrade = '';
+
+    // Trades list cache
+    this.tradesList = [];
 
     // Track if client was loaded from database (persistent flag)
     this.clientFromDB = false;
@@ -48,6 +53,9 @@ export class Share extends DataPage {
   async initialize() {
     // console.log('[DEBUG] Share.js VERSION: 2025-12-29-18:00 - Price section state management implemented');
 
+    // Start loading trades in background (independent of LLM parse)
+    this.loadTradesAsync();
+
     // Wire up email list handlers
     const addEmailBtn = document.getElementById('addEmailBtn');
     const selectAllCheckbox = document.getElementById('selectAllEmails');
@@ -58,6 +66,15 @@ export class Share extends DataPage {
 
     if (selectAllCheckbox) {
       selectAllCheckbox.addEventListener('change', (e) => this.toggleSelectAll(e.target.checked));
+    }
+
+    // Wire up trade selector
+    const tradeSelect = document.getElementById('tradeSelect');
+    if (tradeSelect) {
+      tradeSelect.addEventListener('change', (e) => {
+        this.selectedTrade = e.target.value;
+        console.log('Selected trade:', this.selectedTrade);
+      });
     }
 
     // Wire up Price checkbox
@@ -90,21 +107,10 @@ export class Share extends DataPage {
       shareBtn.addEventListener('click', () => this.onShare());
     }
 
-    // Wire up Broadcast checkbox
-    const broadcastCheckbox = document.getElementById('broadcastCheckbox');
-    const broadcastSection = document.getElementById('broadcast-section-share');
-
-    if (broadcastCheckbox && broadcastSection) {
-      // Toggle broadcast mode on checkbox change
-      broadcastCheckbox.addEventListener('change', (e) => this.toggleBroadcast(e.target.checked));
-
-      // Also toggle on section click (anywhere in the section)
-      broadcastSection.addEventListener('click', (e) => {
-        if (e.target !== broadcastCheckbox) {
-          broadcastCheckbox.checked = !broadcastCheckbox.checked;
-          this.toggleBroadcast(broadcastCheckbox.checked);
-        }
-      });
+    // Wire up Broadcast button
+    const broadcastBtn = document.getElementById('broadcastBtn');
+    if (broadcastBtn) {
+      broadcastBtn.addEventListener('click', () => this.onBroadcast());
     }
 
     // Initialize default Price section state (unauthenticated, disabled)
@@ -122,6 +128,7 @@ export class Share extends DataPage {
 
   /**
    * DataPage hook: Render data from STATE cache
+   * CRITICAL: Expand booking accordion when data arrives
    */
   async renderFromState(stateData) {
     await this.state.loadConfigFromDB();
@@ -131,10 +138,17 @@ export class Share extends DataPage {
     }
     this.populateBookingTable();
     this.populateSpecialInfoSection();
+
+    // CRITICAL: Expand Booking accordion when data arrives
+    const bookingAccordion = document.getElementById('booking-section-share');
+    if (bookingAccordion) {
+      bookingAccordion.open = true;
+    }
   }
 
   /**
    * DataPage hook: Render data from database (with green styling)
+   * CRITICAL: Expand booking accordion when data arrives, apply green styling
    */
   async renderFromDB(dbData) {
     await this.state.loadConfigFromDB();
@@ -159,12 +173,20 @@ export class Share extends DataPage {
       });
     }
 
+    // CRITICAL: Apply green styling - client from DB
     this.populateBookingTable(true);
     this.populateSpecialInfoSection();
+
+    // CRITICAL: Expand Booking accordion when data arrives
+    const bookingAccordion = document.getElementById('booking-section-share');
+    if (bookingAccordion) {
+      bookingAccordion.open = true;
+    }
   }
 
   /**
    * DataPage hook: Render data from fresh parse
+   * CRITICAL: Expand booking accordion when data arrives
    */
   async renderFromParse(parseResult) {
     await this.state.loadConfigFromDB();
@@ -178,6 +200,12 @@ export class Share extends DataPage {
 
     this.populateBookingTable();
     this.populateSpecialInfoSection();
+
+    // CRITICAL: Expand Booking accordion when data arrives
+    const bookingAccordion = document.getElementById('booking-section-share');
+    if (bookingAccordion) {
+      bookingAccordion.open = true;
+    }
   }
 
   /**
@@ -189,6 +217,69 @@ export class Share extends DataPage {
   }
 
   /**
+   * Load trades from AWS API in background (independent async thread)
+   */
+  async loadTradesAsync() {
+    const API_GATEWAY = "https://jjz8op6uy4.execute-api.us-west-2.amazonaws.com/Leedz_Stage_1/";
+
+    try {
+      const response = await fetch(`${API_GATEWAY}getTrades`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const trades = await response.json();
+      this.tradesList = trades;
+
+      // Populate trade pulldown
+      this.populateTradeSelect();
+
+      console.log('Trades loaded:', trades.length);
+    } catch (error) {
+      console.error('Failed to load trades:', error);
+      showToast('Failed to load trades', 'error');
+
+      // Update select with error message
+      const tradeSelect = document.getElementById('tradeSelect');
+      if (tradeSelect) {
+        tradeSelect.innerHTML = '<option value="">Error loading trades</option>';
+      }
+    }
+  }
+
+  /**
+   * Populate trade select pulldown with loaded trades
+   */
+  populateTradeSelect() {
+    const tradeSelect = document.getElementById('tradeSelect');
+    if (!tradeSelect) return;
+
+    // Clear existing options
+    tradeSelect.innerHTML = '';
+
+    // Add default option
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = 'Select a trade...';
+    tradeSelect.appendChild(defaultOption);
+
+    // Sort trades by name (sk field)
+    const sortedTrades = [...this.tradesList].sort((a, b) =>
+      a.sk.localeCompare(b.sk)
+    );
+
+    // Add trade options
+    sortedTrades.forEach(trade => {
+      const option = document.createElement('option');
+      option.value = trade.sk;
+      option.textContent = trade.sk;
+      tradeSelect.appendChild(option);
+    });
+
+    console.log('Trade select populated with', sortedTrades.length, 'trades');
+  }
+
+  /**
    * Clear/reset share page to initial state
    */
   clear() {
@@ -197,16 +288,25 @@ export class Share extends DataPage {
     this.priceEnabled = false;
     this.squareAuthenticated = false;
     this.specialInfo = '';
+    this.selectedTrade = '';
     this.clientFromDB = false;
     this.renderEmailList();
     this.updateFromState(this.state);
+
+    // Reset trade selector to default
+    const tradeSelect = document.getElementById('tradeSelect');
+    if (tradeSelect) {
+      tradeSelect.selectedIndex = 0;
+    }
+
     log('Cleared');
   }
 
   /**
    * Populate booking table with all client and booking fields
+   * @param {boolean} fromDB - CRITICAL: If true, apply green styling (client from database)
    */
-  populateBookingTable() {
+  populateBookingTable(fromDB = false) {
     const tbody = document.getElementById('share_booking_tbody');
     const table = document.getElementById('share_booking_table');
     if (!tbody || !table) return;
@@ -214,8 +314,8 @@ export class Share extends DataPage {
     // Clear existing rows
     tbody.innerHTML = '';
 
-    // Apply green styling if client from DB
-    if (this.clientFromDB || this.state.Client._fromDB) {
+    // CRITICAL: Apply green styling if client from DB (check parameter OR flags)
+    if (fromDB || this.clientFromDB || this.state.Client._fromDB) {
       table.classList.add('share-table-from-db');
     } else {
       table.classList.remove('share-table-from-db');
@@ -327,58 +427,168 @@ export class Share extends DataPage {
   }
 
   /**
-   * Toggle broadcast mode
-   * When enabled: Email section is disabled
-   * When disabled: Email section is enabled
-   * MOCK implementation - just updates UI state
+   * Build share list parameter for addLeed API
+   * @param {boolean} isBroadcast - True if broadcast mode
+   * @param {Array} selectedEmails - Array of selected email objects {address, selected, color}
+   * @returns {string} Share list parameter: "" (private), "email1,email2" (private list), "*" (broadcast), "*,email1,email2" (broadcast + exclude private)
    */
-  toggleBroadcast(enabled) {
-    this.broadcastMode = enabled;
-
-    const broadcastSection = document.getElementById('broadcast-section-share');
-    const emailSection = document.getElementById('email-section-share');
-    const broadcastCheckbox = document.getElementById('broadcastCheckbox');
-
-    if (!broadcastSection || !emailSection) return;
-
-    if (enabled) {
-      // BROADCAST ENABLED - disable email section
-      broadcastSection.classList.add('active');
-      emailSection.classList.add('disabled');
-
-      // Close email section if open
-      emailSection.removeAttribute('open');
-
-      // MOCK: Log broadcast mode activation
-      console.log('[MOCK] Broadcast mode ENABLED - email section disabled');
-
-      // TODO: Connect to broadcast API when ready
-      // return this.mockBroadcastAPI();
-
+  buildShareList(isBroadcast, selectedEmails) {
+    if (isBroadcast) {
+      if (selectedEmails && selectedEmails.length > 0) {
+        // Broadcast + exclude private emails
+        const emailAddresses = selectedEmails.map(e => e.address).join(',');
+        return `*,${emailAddresses}`;
+      } else {
+        // Broadcast only
+        return '*';
+      }
     } else {
-      // BROADCAST DISABLED - enable email section
-      broadcastSection.classList.remove('active');
-      emailSection.classList.remove('disabled');
-
-      // MOCK: Log broadcast mode deactivation
-      console.log('[MOCK] Broadcast mode DISABLED - email section enabled');
-    }
-
-    // Update checkbox state to match (in case triggered by section click)
-    if (broadcastCheckbox) {
-      broadcastCheckbox.checked = enabled;
+      if (selectedEmails && selectedEmails.length > 0) {
+        // Private list only
+        return selectedEmails.map(e => e.address).join(',');
+      } else {
+        // No sharing
+        return '';
+      }
     }
   }
 
   /**
-   * MOCK: Broadcast API call
-   * Placeholder for future API integration
+   * Build addLeed API payload from current state
+   * @param {string} shareList - Share list parameter (sh)
+   * @returns {Object} Payload ready for addLeed API
+   * @throws {Error} If validation fails
    */
-  mockBroadcastAPI() {
-    console.log('[MOCK] Broadcasting lead to all users in system...');
-    // TODO: Implement actual broadcast API call
-    // return fetch('/api/broadcast/lead', { ... });
-    return Promise.resolve(true);
+  buildAddLeedPayload(shareList) {
+    const errors = [];
+
+    // TRADE NAME (tn) - REQUIRED
+    if (!this.selectedTrade) {
+      errors.push('Trade must be selected');
+    }
+
+    // TITLE (ti) - REQUIRED
+    const title = this.state.Booking.title || this.state.Client.name || '';
+    if (!title.trim()) {
+      errors.push('Title or Client Name is required');
+    }
+
+    // LOCATION (lc) - REQUIRED with zip code validation
+    const location = this.state.Booking.location || '';
+    if (!location.trim()) {
+      errors.push('Location is required');
+    } else if (!DateTimeUtils.validateZipInAddress(location)) {
+      errors.push('Location must end with 5-digit zip code');
+    }
+
+    // ZIP (zp) - Extract from location
+    let zipCode = '';
+    try {
+      zipCode = DateTimeUtils.extractZipFromAddress(location);
+    } catch (err) {
+      errors.push(err.message);
+    }
+
+    // START TIME (st) - REQUIRED, convert to epoch milliseconds
+    let startEpoch = 0;
+    try {
+      if (!this.state.Booking.startDate || !this.state.Booking.startTime) {
+        errors.push('Start Date and Start Time are required');
+      } else {
+        startEpoch = DateTimeUtils.dateTimeToEpoch(
+          this.state.Booking.startDate,
+          this.state.Booking.startTime
+        );
+      }
+    } catch (err) {
+      errors.push(`Start Time error: ${err.message}`);
+    }
+
+    // END TIME (et) - OPTIONAL, convert to epoch milliseconds
+    let endEpoch = 0;
+    if (this.state.Booking.endDate && this.state.Booking.endTime) {
+      try {
+        endEpoch = DateTimeUtils.dateTimeToEpoch(
+          this.state.Booking.endDate,
+          this.state.Booking.endTime
+        );
+      } catch (err) {
+        errors.push(`End Time error: ${err.message}`);
+      }
+    }
+
+    // DETAILS (dt) - OPTIONAL
+    const details = this.specialInfo || this.state.Booking.notes || '';
+
+    // REQUIREMENTS (rq) - OPTIONAL
+    const requirements = this.state.Booking.requirements || '';
+
+    // PHONE (ph) - OPTIONAL, validate if provided
+    let phone = '';
+    if (this.state.Client.phone) {
+      try {
+        phone = DateTimeUtils.validatePhone(this.state.Client.phone);
+      } catch (err) {
+        errors.push(`Phone error: ${err.message}`);
+      }
+    }
+
+    // EMAIL (em) - OPTIONAL
+    const email = this.state.Client.email || '';
+
+    // PRICE (pr) - REQUIRED, validate and convert to cents
+    let priceCents = 0;
+    if (this.priceEnabled) {
+      const priceInput = document.getElementById('priceAmount');
+      const priceValue = priceInput?.value || '0';
+      try {
+        const priceDollars = DateTimeUtils.validatePrice(priceValue);
+        priceCents = priceDollars * 100; // Convert dollars to cents
+      } catch (err) {
+        errors.push(`Price error: ${err.message}`);
+      }
+    }
+
+    // If errors, throw
+    if (errors.length > 0) {
+      throw new Error(errors.join('; '));
+    }
+
+    // Build query string parameters (addLeed expects query params, not JSON body)
+    return {
+      tn: this.selectedTrade,
+      ti: title.trim(),
+      lc: location.trim(),
+      zp: zipCode,
+      st: startEpoch.toString(),
+      et: endEpoch.toString(),
+      dt: details.trim(),
+      rq: requirements.trim(),
+      ph: phone,
+      em: email.trim(),
+      pr: priceCents.toString(),
+      sh: shareList
+    };
+  }
+
+  /**
+   * Retrieve JWT token from chrome.storage.local
+   * @returns {Promise<string>} JWT token
+   * @throws {Error} If token not found or expired
+   */
+  async getJWTToken() {
+    const stored = await chrome.storage.local.get(['leedzJWT', 'leedzJWTExpiry']);
+
+    if (!stored.leedzJWT) {
+      throw new Error('No JWT token found. Please visit Startup page to authenticate.');
+    }
+
+    const now = Date.now();
+    if (stored.leedzJWTExpiry < now) {
+      throw new Error('JWT token expired. Please visit Startup page to re-authenticate.');
+    }
+
+    return stored.leedzJWT;
   }
 
   /**
@@ -623,76 +833,139 @@ export class Share extends DataPage {
   }
 
   /**
-   * Share lead/booking via email or broadcast
-   * MOCK implementation - logs data without actually sending
+   * Share lead/booking via email to selected recipients
+   * Calls AWS addLeed API with private email list
    */
   async onShare() {
     try {
-      // Validate based on mode
-      if (this.broadcastMode) {
-        // BROADCAST MODE - no email validation needed
-        console.log('[MOCK] Broadcasting to all users');
-
-        // Validate we have booking data
-        if (!this.state.Client.name && !this.state.Booking.title) {
-          showToast('No booking data to share', 'error');
-          return;
-        }
-
-        // Build broadcast payload
-        const broadcastData = {
-          mode: 'broadcast',
-          client: this.state.Client,
-          booking: this.state.Booking,
-          specialInfo: this.specialInfo,
-          priceEnabled: this.priceEnabled,
-          priceAmount: document.getElementById('priceAmount')?.value || null
-        };
-
-        // MOCK: Log broadcast data instead of sending
-        console.log('[MOCK] Broadcasting lead to all users:', broadcastData);
-
-        // TODO: Call broadcast API
-        // await this.mockBroadcastAPI();
-
-        showToast('Lead broadcasted to all users', 'success');
-        log('Lead broadcasted successfully');
-        return;
-      }
-
-      // EMAIL MODE - validate email selection
+      // Validate email selection
       const selectedEmails = this.emailList.filter(e => e.selected);
       if (selectedEmails.length === 0) {
         showToast('Please select at least one email recipient', 'error');
         return;
       }
 
-      // Validate we have booking data
-      if (!this.state.Client.name && !this.state.Booking.title) {
-        showToast('No booking data to share', 'error');
-        return;
+      // Build share list (private email list)
+      const shareList = this.buildShareList(false, selectedEmails);
+
+      // Build addLeed payload
+      const payload = this.buildAddLeedPayload(shareList);
+
+      // Get JWT token
+      const token = await this.getJWTToken();
+
+      // Get AWS API Gateway URL from config
+      const awsApiGatewayUrl = this.state.Config?.aws?.apiGatewayUrl;
+      if (!awsApiGatewayUrl) {
+        throw new Error('AWS API Gateway URL not configured. Please visit Startup page.');
       }
 
-      // Build email payload
-      const emailData = {
-        mode: 'email',
-        recipients: selectedEmails.map(e => e.address),
-        client: this.state.Client,
-        booking: this.state.Booking,
-        specialInfo: this.specialInfo,
-        priceEnabled: this.priceEnabled,
-        priceAmount: document.getElementById('priceAmount')?.value || null
-      };
+      // Build query string
+      const queryString = new URLSearchParams(payload).toString();
+      const url = `${awsApiGatewayUrl}/addLeed?${queryString}`;
 
-      // MOCK: Log email data instead of sending
-      console.log('[MOCK] Sharing lead via email:', emailData);
+      // Show loading
+      showToast('Sharing lead...', 'info');
 
+      // Call addLeed API
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      // Check response format: {cd: 1, id, ti, tn, pr} or {cd: 0, er}
+      if (result.cd === 0) {
+        throw new Error(result.er || 'Unknown error from addLeed API');
+      }
+
+      if (result.cd !== 1) {
+        throw new Error('Invalid response from addLeed API');
+      }
+
+      // SUCCESS
       showToast(`Lead shared with ${selectedEmails.length} recipient(s)`, 'success');
-      log('Lead shared successfully');
+      log(`Lead shared successfully: ${result.ti} (${result.tn})`);
 
     } catch (error) {
       logError('Share failed:', error);
-      showToast('Failed to share lead', 'error');
+      showToast(`Share failed: ${error.message}`, 'error');
+    }
+  }
+
+  /**
+   * Broadcast lead to all users in the system
+   * Calls AWS addLeed API with broadcast mode
+   */
+  async onBroadcast() {
+    try {
+      // Get selected emails (for exclusion list if any)
+      const selectedEmails = this.emailList.filter(e => e.selected);
+
+      // Build share list (broadcast mode)
+      const shareList = this.buildShareList(true, selectedEmails);
+
+      // Build addLeed payload
+      const payload = this.buildAddLeedPayload(shareList);
+
+      // Get JWT token
+      const token = await this.getJWTToken();
+
+      // Get AWS API Gateway URL from config
+      const awsApiGatewayUrl = this.state.Config?.aws?.apiGatewayUrl;
+      if (!awsApiGatewayUrl) {
+        throw new Error('AWS API Gateway URL not configured. Please visit Startup page.');
+      }
+
+      // Build query string
+      const queryString = new URLSearchParams(payload).toString();
+      const url = `${awsApiGatewayUrl}/addLeed?${queryString}`;
+
+      // Show loading
+      showToast('Broadcasting lead...', 'info');
+
+      // Call addLeed API
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      // Check response format: {cd: 1, id, ti, tn, pr} or {cd: 0, er}
+      if (result.cd === 0) {
+        throw new Error(result.er || 'Unknown error from addLeed API');
+      }
+
+      if (result.cd !== 1) {
+        throw new Error('Invalid response from addLeed API');
+      }
+
+      // SUCCESS
+      const excludeMsg = selectedEmails.length > 0
+        ? ` (excluding ${selectedEmails.length} email(s))`
+        : '';
+      showToast(`Lead broadcasted to all users${excludeMsg}`, 'success');
+      log(`Lead broadcasted successfully: ${result.ti} (${result.tn})`);
+
+    } catch (error) {
+      logError('Broadcast failed:', error);
+      showToast(`Broadcast failed: ${error.message}`, 'error');
     }
   }
 }

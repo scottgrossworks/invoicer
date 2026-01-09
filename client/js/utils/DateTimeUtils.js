@@ -277,4 +277,125 @@ export class DateTimeUtils {
 
     return result;
   }
+
+  /**
+   * Convert date and time to epoch milliseconds (UTC)
+   * @param {string} dateValue - ISO date string or display format (e.g., "2025-01-15" or "January 15, 2025")
+   * @param {string} timeValue - Time in 24-hour or 12-hour format (e.g., "19:00" or "7:00 PM")
+   * @returns {number} Epoch milliseconds since 1970-01-01 00:00:00 UTC
+   */
+  static dateTimeToEpoch(dateValue, timeValue) {
+    if (!dateValue || !timeValue) {
+      throw new Error('Both date and time are required for epoch conversion');
+    }
+
+    // Normalize date to ISO format
+    const isoDate = this.parseDisplayDateToISO(dateValue);
+
+    // Normalize time to 24-hour format
+    const time24 = this.convertTo24Hour(timeValue);
+
+    // Parse time components
+    const [hours, minutes] = time24.split(':').map(Number);
+
+    // Create Date object from ISO date
+    const date = new Date(isoDate);
+
+    // Set time components (hours and minutes)
+    date.setHours(hours, minutes, 0, 0);
+
+    // Return epoch milliseconds
+    return date.getTime();
+  }
+
+  /**
+   * Check if address ends with 5-digit zip code
+   * Ported from inline-edit.js checkForZip()
+   * @param {string} address - Address string to validate
+   * @returns {boolean} True if address ends with 5-digit zip code
+   */
+  static validateZipInAddress(address) {
+    if (!address || address.length < 5) {
+      return false;
+    }
+
+    const lastFiveChars = address.slice(-5);
+    for (let i = 0; i < lastFiveChars.length; i++) {
+      const c = lastFiveChars.charAt(i);
+      if (c < '0' || c > '9') {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Extract 5-digit zip code from end of address
+   * @param {string} address - Address string ending with zip code
+   * @returns {string} 5-digit zip code
+   * @throws {Error} If address doesn't end with valid zip code
+   */
+  static extractZipFromAddress(address) {
+    if (!this.validateZipInAddress(address)) {
+      throw new Error('Address must end with 5-digit zip code');
+    }
+    return address.slice(-5);
+  }
+
+  /**
+   * Validate and clean phone number
+   * Ported from inline-edit.js checkPhone()
+   * @param {string} phoneStr - Phone number string (e.g., "(212) 555-1212" or "2125551212")
+   * @returns {string} Cleaned 10-digit phone number
+   * @throws {Error} If phone number is invalid
+   */
+  static validatePhone(phoneStr) {
+    if (!phoneStr) {
+      throw new Error('Phone number is required');
+    }
+
+    // Remove spaces, parentheses, dashes, and dots
+    const cleaned = phoneStr.replace(/[\s().-]/g, '');
+
+    // Check if cleaned string is 10 digits
+    if (!/^\d{10}$/.test(cleaned)) {
+      throw new Error('Phone number must be 10 digits');
+    }
+
+    return cleaned;
+  }
+
+  /**
+   * Validate price value (integer dollars between 0 and 200)
+   * Ported from inline-edit.js price validation
+   * @param {string|number} priceValue - Price value to validate
+   * @returns {number} Validated price as integer
+   * @throws {Error} If price is invalid
+   */
+  static validatePrice(priceValue) {
+    if (priceValue === null || priceValue === undefined || priceValue === '') {
+      return 0; // Allow 0 for free leedz
+    }
+
+    // Convert to string and remove leading $
+    let priceStr = String(priceValue).trim();
+    if (priceStr.charAt(0) === '$') {
+      priceStr = priceStr.substring(1);
+    }
+
+    // Must be whole number
+    if (!/^[0-9]+$/.test(priceStr)) {
+      throw new Error('Price must be a whole number (no decimals)');
+    }
+
+    const price = parseInt(priceStr, 10);
+
+    // Max price 200
+    if (price > 200) {
+      throw new Error('Maximum leed price: $200');
+    }
+
+    return price;
+  }
 }

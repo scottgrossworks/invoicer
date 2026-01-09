@@ -19,13 +19,15 @@ export class Page {
    * Constructor
    * @param {string} pageName - Name of the page (e.g., 'invoicer', 'clients')
    * @param {object} state - Reference to global state object
+   * @param {object} leedzConfig - Optional reference to leedz_config.json (for pages that need it)
    */
-  constructor(pageName, state) {
+  constructor(pageName, state, leedzConfig = null) {
     if (new.target === Page) {
       throw new TypeError('Cannot construct Page instances directly - must extend Page');
     }
     this.pageName = pageName;
     this.state = state;
+    this.leedzConfig = leedzConfig;
 
     // Bookings cache for cycling through multiple bookings from DB
     this.bookingsCache = [];
@@ -44,10 +46,12 @@ export class Page {
    * Template method: Called when page becomes visible
    * Default implementation - just calls onShowImpl()
    * DataPage subclasses override with full workflow
-   * Startup page uses this default
+   * Startup page uses this default (synchronous, non-blocking)
    */
   async onShow() {
-    await this.onShowImpl();
+    // Do NOT await onShowImpl() - let it return immediately
+    // This allows Startup page to render instantly
+    this.onShowImpl();
   }
 
   /**

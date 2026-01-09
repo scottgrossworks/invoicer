@@ -17,6 +17,7 @@ class State {
     this.Clients = [];  // Array is primary storage for clients
     this.Booking = {};
     this.Config = {};
+    this.Square = {};  // Square OAuth configuration from leedz_config.json
     this.storageKey = 'currentBookingState';
     this.status = 'new';
 
@@ -224,7 +225,12 @@ class State {
         // Save will happen after parser completes and populates Client/Booking data
 
       } else {
-        console.log("WARNING: leedz_server is not running, or missing user Config.");
+        // Only warn if we don't have Config.friends already loaded from local storage
+        if (!this.Config.friends || this.Config.friends.length === 0) {
+          console.log("WARNING: leedz_server is not running, or missing user Config.");
+        } else {
+          console.log("Server not available - using locally cached Config");
+        }
         return;
       }
     } else {
@@ -305,9 +311,17 @@ class State {
  * State Factory - creates new state instances
  */
 export class StateFactory {
-  static async create() {
+  static async create(leedzConfig = null) {
     const state = new State( false );  // Don't auto-load in constructor
     await state.load();  // Wait for load to complete
+
+    // Load Square config from leedz_config.json if provided
+    if (leedzConfig?.square) {
+      state.Square = {
+        url: leedzConfig.square.url || 'https://connect.squareup.com',
+        appId: leedzConfig.square.appId || ''
+      };
+    }
 
     /*
     console.log('StateFactory.create() - State loaded:', {

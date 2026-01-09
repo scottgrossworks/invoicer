@@ -16,8 +16,8 @@ import { log, logError, showToast } from '../logging.js';
 
 export class DataPage extends Page {
 
-  constructor(pageName, state) {
-    super(pageName, state);
+  constructor(pageName, state, leedzConfig = null) {
+    super(pageName, state, leedzConfig);
     if (new.target === DataPage) {
       throw new TypeError('Cannot construct DataPage instances directly - must extend DataPage');
     }
@@ -289,9 +289,9 @@ export class DataPage extends Page {
 
       return null;
     } catch (error) {
-      // Server not running - show clean toast and continue
+      // Server not running - fail silently and continue
       if (error.message === 'SERVER_NOT_RUNNING') {
-        showToast('Database server not running', 'warning');
+        console.log('Database not available for client lookup');
         return null;
       }
       console.error('DB search error:', error);

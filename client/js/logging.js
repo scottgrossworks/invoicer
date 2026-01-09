@@ -172,17 +172,42 @@ export function initLogging() {
 // TOAST NOTIFICATIONS
 // ==============================================================================
 
+// Track recently shown toasts to prevent duplicates
+const recentToasts = new Map(); // key: message+type, value: timestamp
+const TOAST_DEDUPE_WINDOW = 5000; // Don't show same toast within 5 seconds
+
 /**
  * Display temporary toast notification to user
  * Toast appears in top-right corner and auto-dismisses after 4 seconds
  * Styling is defined in leedz_layout.css (.toast, .toast-success, .toast-error, .toast-info)
  *
  * IMPORTANT: Only ONE toast visible at a time - previous toasts are cleared
+ * DEDUPLICATION: Same message won't show again within 5 seconds
  *
  * @param {string} message - Message text to display
  * @param {string} type - Toast type: 'success', 'error', or 'info' (default: 'info')
  */
 export function showToast(message, type = 'info') {
+  // Check if this exact toast was shown recently
+  const toastKey = `${message}:${type}`;
+  const now = Date.now();
+  const lastShown = recentToasts.get(toastKey);
+
+  if (lastShown && (now - lastShown) < TOAST_DEDUPE_WINDOW) {
+    // Skip - same toast shown too recently
+    return;
+  }
+
+  // Track this toast
+  recentToasts.set(toastKey, now);
+
+  // Clean up old entries from recentToasts map
+  for (const [key, timestamp] of recentToasts.entries()) {
+    if (now - timestamp > TOAST_DEDUPE_WINDOW) {
+      recentToasts.delete(key);
+    }
+  }
+
   // Clear any existing toasts first (prevent overlap)
   const existingToasts = document.querySelectorAll('.toast');
   existingToasts.forEach(t => {

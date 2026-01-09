@@ -598,6 +598,334 @@ app.get("/config", asyncRoute(async (req, res) => {
 }, "GET /config"));
 
 /**
+ * SQUARE OAUTH ENDPOINTS
+ */
+
+/**
+ * GET /square/callback
+ * Handles Square OAuth redirect callback
+ * Square redirects here with authorization code after user approves
+ *
+ * Query params: code, state
+ * Response: HTML success page that closes the popup window
+ */
+app.get("/square/callback", asyncRoute(async (req, res) => {
+  const { code, state } = req.query;
+
+  log(`[Square OAuth] Callback received (state: ${state})`);
+
+  if (!code) {
+    const errorHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head><title>Square Auth Failed</title></head>
+      <body>
+        <h1>Authorization Failed</h1>
+        <p>No authorization code received from Square.</p>
+        <button onclick="window.close()">Close Window</button>
+      </body>
+      </html>
+    `;
+    return res.status(400).send(errorHtml);
+  }
+
+  // Get Square config
+  if (!config.square || !config.square.appId || !config.square.appSecret) {
+    log("ERROR: Square configuration missing in server_config.json");
+    const errorHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head><title>Square Auth Failed</title></head>
+      <body>
+        <h1>Configuration Error</h1>
+        <p>Square is not configured on the server.</p>
+        <button onclick="window.close()">Close Window</button>
+      </body>
+      </html>
+    `;
+    return res.status(500).send(errorHtml);
+  }
+
+  const { url: squareUrl, appId, appSecret } = config.square;
+
+  try {
+    // Exchange code for tokens
+    log(`[Square OAuth] Exchanging code for tokens`);
+
+    const tokenUrl = `${squareUrl}/oauth2/token`;
+    const tokenResponse = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Square-Version': '2024-12-18'
+      },
+      body: JSON.stringify({
+        client_id: appId,
+        client_secret: appSecret,
+        code: code,
+        grant_type: 'authorization_code',
+        redirect_uri: `http://localhost:${config.port}/square/callback`
+      })
+    });
+
+    if (!tokenResponse.ok) {
+      const errorData = await tokenResponse.json();
+      log(`ERROR: Token exchange failed: ${JSON.stringify(errorData)}`);
+      throw new Error(errorData.message || 'Token exchange failed');
+    }
+
+    const tokenData = await tokenResponse.json();
+
+    // Calculate expiration timestamp
+    const expiresAt = Date.now() + (tokenData.expires_in * 1000);
+
+    // Fetch location ID
+    let locationId = null;
+    try {
+      const locationsUrl = `${squareUrl}/v2/locations/main`;
+      const locationsResponse = await fetch(locationsUrl, {
+        headers: {
+          'Authorization': `Bearer ${tokenData.access_token}`,
+          'Square-Version': '2024-12-18'
+        }
+      });
+
+      if (locationsResponse.ok) {
+        const locationsData = await locationsResponse.json();
+        locationId = locationsData.location?.id || null;
+        log(`[Square OAuth] Location ID retrieved: ${locationId}`);
+      }
+    } catch (locationError) {
+      log(`WARNING: Failed to retrieve location ID: ${locationError.message}`);
+    }
+
+    // Save tokens to database
+    const configData = await db.getConfig();
+    if (configData) {
+      configData.sq_access = tokenData.access_token;
+      configData.sq_refresh = tokenData.refresh_token;
+      configData.sq_expiration = BigInt(expiresAt);
+      configData.sq_merchant = tokenData.merchant_id;
+      configData.sq_location = locationId;
+      configData.sq_state = 'authorized';
+
+      await db.updateConfig(configData);
+      log(`[Square OAuth] Tokens saved to database for merchant: ${tokenData.merchant_id}`);
+    }
+
+    // Return success HTML that closes the window
+    const successHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Square Authorization Successful</title>
+        <style>
+          body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+          h1 { color: #28a745; }
+        </style>
+      </head>
+      <body>
+        <h1>✓ Authorization Successful!</h1>
+        <p>You can now close this window and return to the extension.</p>
+        <script>
+          setTimeout(() => window.close(), 2000);
+        </script>
+      </body>
+      </html>
+    `;
+
+    res.status(200).send(successHtml);
+
+  } catch (error) {
+    log(`ERROR: Square OAuth callback failed: ${error.message}`);
+    const errorHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head><title>Square Auth Failed</title></head>
+      <body>
+        <h1>Authorization Failed</h1>
+        <p>${error.message}</p>
+        <button onclick="window.close()">Close Window</button>
+      </body>
+      </html>
+    `;
+    res.status(500).send(errorHtml);
+  }
+}, "GET /square/callback"));
+
+/**
+ * POST /api/square/token-exchange
+ * Exchanges Square authorization code for access tokens
+ *
+ * Request body: { code: string, state: string }
+ * Response 200: { access_token, refresh_token, expires_at, merchant_id, location_id }
+ * Response 400: { error: string }
+ */
+app.post("/api/square/token-exchange", asyncRoute(async (req, res) => {
+  const { code, state } = req.body;
+
+  // Validate input
+  if (!code || !state) {
+    return res.status(400).json({ error: "Missing code or state" });
+  }
+
+  // Get Square config from server_config.json
+  if (!config.square || !config.square.appId || !config.square.appSecret) {
+    log("ERROR: Square configuration missing in server_config.json");
+    return res.status(400).json({ error: "Square not configured on server" });
+  }
+
+  const { url: squareUrl, appId, appSecret } = config.square;
+
+  try {
+    log(`[Square OAuth] Exchanging code for tokens (state: ${state})`);
+
+    // Build request to Square OAuth token endpoint
+    const tokenUrl = `${squareUrl}/oauth2/token`;
+    const requestBody = {
+      client_id: appId,
+      client_secret: appSecret,
+      code: code,
+      grant_type: 'authorization_code'
+    };
+
+    // Exchange code for tokens with Square
+    const response = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Square-Version': '2024-12-18'
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      log(`ERROR: Square token exchange failed: ${JSON.stringify(errorData)}`);
+      return res.status(400).json({
+        error: errorData.message || 'Square token exchange failed'
+      });
+    }
+
+    const tokenData = await response.json();
+
+    // Calculate expiration timestamp (Square returns expires_at as ISO string)
+    const expiresAt = tokenData.expires_at
+      ? new Date(tokenData.expires_at).getTime()
+      : Date.now() + (30 * 24 * 60 * 60 * 1000); // Default 30 days
+
+    // Get location ID using the access token
+    // This requires a separate API call to Square Locations API
+    let locationId = null;
+    try {
+      const locationsUrl = `${squareUrl}/v2/locations/main`;
+      const locationsResponse = await fetch(locationsUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${tokenData.access_token}`,
+          'Square-Version': '2024-12-18',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (locationsResponse.ok) {
+        const locationsData = await locationsResponse.json();
+        if (locationsData.location && locationsData.location.id) {
+          locationId = locationsData.location.id;
+          log(`[Square OAuth] Location ID retrieved: ${locationId}`);
+        }
+      } else {
+        // Non-fatal error - continue without location ID
+        log(`WARNING: Failed to retrieve location ID: ${locationsResponse.statusText}`);
+      }
+    } catch (locationError) {
+      // Non-fatal error - continue without location ID
+      log(`WARNING: Failed to retrieve location ID: ${locationError.message}`);
+    }
+
+    // Return tokens to client
+    const result = {
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token,
+      expires_at: expiresAt,
+      merchant_id: tokenData.merchant_id,
+      location_id: locationId,
+      token_type: tokenData.token_type
+    };
+
+    log(`[Square OAuth] Token exchange successful for merchant: ${result.merchant_id}`);
+    res.status(200).json(result);
+
+  } catch (error) {
+    log(`ERROR: Square token exchange failed: ${error.message}`);
+    res.status(400).json({ error: error.message });
+  }
+}, "POST /api/square/token-exchange"));
+
+/**
+ * POST /api/square/revoke
+ * Revokes Square OAuth tokens for a merchant
+ *
+ * Request body: { merchant_id: string }
+ * Response 200: { success: true }
+ * Response 400: { error: string }
+ */
+app.post("/api/square/revoke", asyncRoute(async (req, res) => {
+  const { merchant_id } = req.body;
+
+  // Validate input
+  if (!merchant_id) {
+    return res.status(400).json({ error: "Missing merchant_id" });
+  }
+
+  // Get Square config from server_config.json
+  if (!config.square || !config.square.appId || !config.square.appSecret) {
+    log("ERROR: Square configuration missing in server_config.json");
+    return res.status(400).json({ error: "Square not configured on server" });
+  }
+
+  const { url: squareUrl, appId, appSecret } = config.square;
+
+  try {
+    log(`[Square OAuth] Revoking tokens for merchant: ${merchant_id}`);
+
+    // Build request to Square OAuth revoke endpoint
+    const revokeUrl = `${squareUrl}/oauth2/revoke`;
+    const requestBody = {
+      client_id: appId,
+      merchant_id: merchant_id
+    };
+
+    // Revoke tokens with Square
+    // Square requires "Client <secret>" format for authorization header
+    const response = await fetch(revokeUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Square-Version': '2024-12-18',
+        'Authorization': `Client ${appSecret}`
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      log(`ERROR: Square token revocation failed: ${JSON.stringify(errorData)}`);
+      return res.status(400).json({
+        error: errorData.message || 'Square token revocation failed'
+      });
+    }
+
+    log(`[Square OAuth] Tokens revoked successfully for merchant: ${merchant_id}`);
+    res.status(200).json({ success: true });
+
+  } catch (error) {
+    log(`ERROR: Square token revocation failed: ${error.message}`);
+    res.status(400).json({ error: error.message });
+  }
+}, "POST /api/square/revoke"));
+
+/**
  * DUMP ENDPOINTS FOR DATA EXPORT
  */
 
@@ -822,8 +1150,8 @@ module.exports.dumpConfig = dumpConfig;
     ]);
     log(`[STARTUP] Database connected successfully to: ${config.database.url}`);
 
-    const server = app.listen(port, () => {
-      log(`! Local API running on http://localhost:${port}`);
+    const server = app.listen(port, '127.0.0.1', () => {
+      log(`! Local API running on http://127.0.0.1:${port}`);
     });
 
     server.on("error", (err) => {

@@ -101,3 +101,9 @@ Do what has been asked; nothing more, nothing less.
 NEVER create files unless they're absolutely necessary for achieving your goal.
 ALWAYS prefer editing an existing file to creating a new one.
 NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+
+# CRITICAL WORKSPACE RULES
+NEVER NEVER NEVER use worktrees or sandboxes.
+ALWAYS work directly in C:\Users\Scott\Desktop\WKG\INVOICER
+NEVER reference C:\Users\Scott\.claude-worktrees paths.
+ALL edits must be to C:\Users\Scott\Desktop\WKG\INVOICER files ONLY.

@@ -35,11 +35,16 @@ model Booking {
   hourlyRate  Float?
   flatRate    Float?
   totalAmount Float?
-  status      String    @default("new")
-  source      String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  client      Client     @relation(fields: [clientId], references: [id])
+  status           String    @default("new")
+  source           String?
+  shared           Boolean   @default(false)
+  sharedTo         String?
+  sharedAt         BigInt?
+  leedPrice        Int?
+  squarePaymentUrl String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  client           Client     @relation(fields: [clientId], references: [id])
 }
 
 model Config {
@@ -71,6 +76,13 @@ model Config {
   llmAnthropicVersion  String?  @default("2023-06-01")
   llmMaxTokens         Int?     @default(1024)
   businessDescription  String?
+  friends              String?
+  sq_access            String?
+  sq_refresh           String?
+  sq_expiration        BigInt?
+  sq_merchant          String?
+  sq_location          String?
+  sq_state             String?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 }

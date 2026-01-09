@@ -20,10 +20,17 @@ class Config {
       this.terms = data.terms;
 
       this.template = data.template;
+      this.friends = data.friends;
+      this.sq_access = data.sq_access;
+      this.sq_refresh = data.sq_refresh;
+      this.sq_expiration = data.sq_expiration;
+      this.sq_merchant = data.sq_merchant;
+      this.sq_location = data.sq_location;
+      this.sq_state = data.sq_state;
       this.createdAt = data.createdAt;
       this.updatedAt = data.updatedAt;
-    
-    
+
+
     } else {
       // New config with defaults
       this.id = '';
@@ -46,6 +53,13 @@ class Config {
       this.terms = data.terms || '';
 
       this.template = data.template || 'modern';
+      this.friends = data.friends || '';
+      this.sq_access = data.sq_access || null;
+      this.sq_refresh = data.sq_refresh || null;
+      this.sq_expiration = data.sq_expiration || null;
+      this.sq_merchant = data.sq_merchant || null;
+      this.sq_location = data.sq_location || null;
+      this.sq_state = data.sq_state || null;
       this.createdAt = new Date();
       this.updatedAt = new Date();
     }
@@ -153,6 +167,13 @@ class Config {
     if (data.terms !== undefined) this.terms = data.terms;
 
     if (data.template !== undefined) this.template = data.template;
+    if (data.friends !== undefined) this.friends = data.friends;
+    if (data.sq_access !== undefined) this.sq_access = data.sq_access;
+    if (data.sq_refresh !== undefined) this.sq_refresh = data.sq_refresh;
+    if (data.sq_expiration !== undefined) this.sq_expiration = data.sq_expiration;
+    if (data.sq_merchant !== undefined) this.sq_merchant = data.sq_merchant;
+    if (data.sq_location !== undefined) this.sq_location = data.sq_location;
+    if (data.sq_state !== undefined) this.sq_state = data.sq_state;
     this.updatedAt = new Date();
   }
 
@@ -175,11 +196,82 @@ class Config {
       contactHandle: this.contactHandle,
       includeTerms: this.includeTerms,
       terms: this.terms,
-      template: this.template
+      template: this.template,
+      friends: this.friends,
+      sq_access: this.sq_access,
+      sq_refresh: this.sq_refresh,
+      sq_expiration: this.sq_expiration,
+      sq_merchant: this.sq_merchant,
+      sq_location: this.sq_location,
+      sq_state: this.sq_state
     };
   }
 
+  /**
+   * Square OAuth Helper Methods
+   */
 
+  /**
+   * Store Square OAuth tokens in config
+   * @param {Object} tokens - { access_token, refresh_token, expires_at, merchant_id }
+   */
+  setSquareTokens(tokens) {
+    this.sq_access = tokens.access_token;
+    this.sq_refresh = tokens.refresh_token;
+    this.sq_expiration = BigInt(tokens.expires_at);
+    this.sq_merchant = tokens.merchant_id;
+    this.sq_location = tokens.location_id || null;
+    this.sq_state = 'authorized';
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * Clear Square OAuth tokens from config
+   */
+  clearSquareTokens() {
+    this.sq_access = null;
+    this.sq_refresh = null;
+    this.sq_expiration = null;
+    this.sq_merchant = null;
+    this.sq_location = null;
+    this.sq_state = null;
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * Check if Square is authorized and token not expired
+   * @returns {boolean}
+   */
+  isSquareAuthorized() {
+    if (!this.sq_access || !this.sq_expiration) {
+      return false;
+    }
+
+    // Check if token is expired (with 5 minute buffer)
+    const bufferMs = 5 * 60 * 1000;
+    const now = Date.now();
+    const expiration = typeof this.sq_expiration === 'bigint'
+      ? Number(this.sq_expiration)
+      : this.sq_expiration;
+
+    return now < (expiration - bufferMs);
+  }
+
+  /**
+   * Get Square tokens for API calls
+   * @returns {Object|null} - { access_token, merchant_id } or null if not authorized
+   */
+  getSquareTokens() {
+    if (!this.isSquareAuthorized()) {
+      return null;
+    }
+
+    return {
+      access_token: this.sq_access,
+      merchant_id: this.sq_merchant,
+      location_id: this.sq_location
+    };
+  }
 
 
 }
@@ -209,6 +301,13 @@ Config.prototype.toJSON = function() {
     terms: this.terms,
 
     template: this.template,
+    friends: this.friends,
+    sq_access: this.sq_access,
+    sq_refresh: this.sq_refresh,
+    sq_expiration: this.sq_expiration,
+    sq_merchant: this.sq_merchant,
+    sq_location: this.sq_location,
+    sq_state: this.sq_state,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt
   };
