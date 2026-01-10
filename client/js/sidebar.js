@@ -170,10 +170,8 @@ async function initializeAppBackground() {
     // Expose switchToPage globally so pages can navigate
     window.switchToPage = switchToPage;
 
-    // Trigger Startup page onShow() now that everything is initialized
-    if (CURRENT_PAGE) {
-      CURRENT_PAGE.onShow();
-    }
+    // DO NOT call onShow() again - tempStartupPage already called it on line 86
+    // Calling it twice causes duplicate JWT token fetches
 
   } catch (error) {
     console.error('Failed to initialize app background:', error);

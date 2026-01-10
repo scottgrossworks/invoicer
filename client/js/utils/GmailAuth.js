@@ -24,7 +24,7 @@ async function getGmailToken(interactive = false) {
  * Build RFC 2822 MIME email message
  * @param {string} to - Recipient email
  * @param {string} subject - Email subject
- * @param {string} body - Email body (plain text)
+ * @param {string} body - Email body (HTML)
  * @returns {string} MIME formatted email message
  */
 function buildMimeMessage(to, subject, body) {
@@ -33,7 +33,7 @@ function buildMimeMessage(to, subject, body) {
   lines.push(`To: ${to}`);
   lines.push(`Subject: ${subject}`);
   lines.push('MIME-Version: 1.0');
-  lines.push('Content-Type: text/plain; charset=utf-8');
+  lines.push('Content-Type: text/html; charset=utf-8');
   lines.push('');
   lines.push(body);
 
@@ -44,7 +44,7 @@ function buildMimeMessage(to, subject, body) {
  * Send email via Gmail API
  * @param {string} to - Recipient email address
  * @param {string} subject - Email subject line
- * @param {string} body - Email body (plain text)
+ * @param {string} body - Email body (HTML)
  * @returns {Promise<string>} Gmail message ID
  * @throws {Error} If auth fails or send fails
  */

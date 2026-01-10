@@ -1625,7 +1625,7 @@ input.invalid {
 .trade-indicator {
   width: 16px;
   height: 16px;
-  background-color: #2d5016;
+  background-color: var(--LEEDZ_DARKGREEN);
   border-radius: 50%;
 }
 
