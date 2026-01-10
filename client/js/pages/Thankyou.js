@@ -116,12 +116,7 @@ export class Thankyou extends DataPage {
     this.populateThankYouTable();
   }
 
-  /**
-   * Not used - DataPage calls hooks directly
-   */
-  async onShowImpl() {
-    // DataPage workflow doesn't use this
-  }
+
 
   /**
    * Update UI from state changes

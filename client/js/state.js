@@ -188,26 +188,13 @@ class State {
    * If Config not found, let the caller assign its own defaults
    */
   async loadConfigFromDB() {
-    /*
-    console.log('=== STATE.loadConfigFromDB() called ===');
-    console.log('Current Config state:', {
-      hasConfig: !!this.Config,
-      hasCompanyName: !!(this.Config?.companyName),
-      config: this.Config
-    });
-    */
+
 
     // If no Config data found load from DB
     if ( !this.Config || !this.Config.companyName ) {
       // console.log('Config needs to be loaded from DB');
 
       const dbLayer = await getDbLayer();
-      /*
-      console.log('DB Layer:', {
-        hasDbLayer: !!dbLayer,
-        dbLayerType: dbLayer ? dbLayer.constructor.name : 'null'
-      });
-      */
 
       if (!dbLayer) {
         console.log("No DB Layer configured - Config will not be loaded from database");
@@ -220,9 +207,6 @@ class State {
       if (dbConfig) {
         Object.assign(this.Config, dbConfig);
         console.log("Config loaded from database successfully");
-        // console.log("Config now contains:", this.Config);
-        // CONFIG LOADED - DO NOT SAVE YET
-        // Save will happen after parser completes and populates Client/Booking data
 
       } else {
         // Only warn if we don't have Config.friends already loaded from local storage
@@ -320,6 +304,15 @@ export class StateFactory {
       state.Square = {
         url: leedzConfig.square.url || 'https://connect.squareup.com',
         appId: leedzConfig.square.appId || ''
+      };
+    }
+
+    // Load AWS config from leedz_config.json if provided
+    // CRITICAL: This is needed for Share page to call AWS addLeed API
+    if (leedzConfig?.aws) {
+      if (!state.Config) state.Config = {};
+      state.Config.aws = {
+        apiGatewayUrl: leedzConfig.aws.apiGatewayUrl || ''
       };
     }
 

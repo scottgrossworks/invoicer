@@ -9,6 +9,8 @@ import { DataPage } from './DataPage.js';
 import { DateTimeUtils } from '../utils/DateTimeUtils.js';
 import Booking from '../db/Booking.js';
 import Client from '../db/Client.js';
+import { generateShareEmailBody } from '../utils/ShareUtils.js';
+import { sendGmailMessage } from '../utils/GmailAuth.js';
 import { log, logError, showToast } from '../logging.js';
 
 export class Share extends DataPage {
@@ -426,32 +428,8 @@ export class Share extends DataPage {
     }
   }
 
-  /**
-   * Build share list parameter for addLeed API
-   * @param {boolean} isBroadcast - True if broadcast mode
-   * @param {Array} selectedEmails - Array of selected email objects {address, selected, color}
-   * @returns {string} Share list parameter: "" (private), "email1,email2" (private list), "*" (broadcast), "*,email1,email2" (broadcast + exclude private)
-   */
-  buildShareList(isBroadcast, selectedEmails) {
-    if (isBroadcast) {
-      if (selectedEmails && selectedEmails.length > 0) {
-        // Broadcast + exclude private emails
-        const emailAddresses = selectedEmails.map(e => e.address).join(',');
-        return `*,${emailAddresses}`;
-      } else {
-        // Broadcast only
-        return '*';
-      }
-    } else {
-      if (selectedEmails && selectedEmails.length > 0) {
-        // Private list only
-        return selectedEmails.map(e => e.address).join(',');
-      } else {
-        // No sharing
-        return '';
-      }
-    }
-  }
+
+  
 
   /**
    * Build addLeed API payload from current state
@@ -612,20 +590,20 @@ export class Share extends DataPage {
       return;
     }
 
-    // Add to list
+    // CRITICAL: Add to list with AUTO-SELECTED = TRUE
+    // When user manually adds email, it MUST be selected by default
+    // This has been a persistent bug - DO NOT change selected to false
     this.emailList.push({
       address: email.trim(),
-      selected: false,
+      selected: true,  // AUTO-SELECT newly added emails
       color: this.emailColors[this.nextColorIndex % this.emailColors.length]
     });
 
     this.nextColorIndex++;
 
-    // Re-render email list
+    // Re-render email list (will update "Select All" checkbox state automatically)
     this.renderEmailList();
 
-    // MOCK: Save to database
-    console.log('[MOCK] Saving email list to database:', this.emailList);
   }
 
   /**
@@ -832,37 +810,37 @@ export class Share extends DataPage {
     this.updatePriceInputState();
   }
 
+
   /**
-   * Share lead/booking via email to selected recipients
-   * Calls AWS addLeed API with private email list
+   * Calls addLeed on server 
+   * just for bookeeping and should be independent of sending the emails
+   * Will throw Exception
    */
-  async onShare() {
-    try {
-      // Validate email selection
-      const selectedEmails = this.emailList.filter(e => e.selected);
-      if (selectedEmails.length === 0) {
-        showToast('Please select at least one email recipient', 'error');
-        return;
-      }
-
-      // Build share list (private email list)
-      const shareList = this.buildShareList(false, selectedEmails);
-
-      // Build addLeed payload
+  async sendToServer(shareList) {
+    // Build addLeed payload
       const payload = this.buildAddLeedPayload(shareList);
 
       // Get JWT token
       const token = await this.getJWTToken();
 
-      // Get AWS API Gateway URL from config
+      // Get AWS API Gateway URL from config (loaded from leedz_config.json)
       const awsApiGatewayUrl = this.state.Config?.aws?.apiGatewayUrl;
       if (!awsApiGatewayUrl) {
-        throw new Error('AWS API Gateway URL not configured. Please visit Startup page.');
+        throw new Error('AWS API Gateway URL not found in leedz_config.json. Check client/leedz_config.json aws.apiGatewayUrl');
       }
 
       // Build query string
       const queryString = new URLSearchParams(payload).toString();
       const url = `${awsApiGatewayUrl}/addLeed?${queryString}`;
+
+      // DIAGNOSTIC LOGGING
+      /*
+      console.log('=== AWS addLeed API Call ===');
+      console.log('URL:', url);
+      console.log('Payload:', payload);
+      console.log('JWT Token (first 20 chars):', token.substring(0, 20) + '...');
+      console.log('FULL JWT TOKEN FOR TESTING:', token);
+      */
 
       // Show loading
       showToast('Sharing lead...', 'info');
@@ -876,8 +854,13 @@ export class Share extends DataPage {
         }
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorBody = await response.text();
+        console.error('Error response body:', errorBody);
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorBody}`);
       }
 
       const result = await response.json();
@@ -890,6 +873,134 @@ export class Share extends DataPage {
       if (result.cd !== 1) {
         throw new Error('Invalid response from addLeed API');
       }
+
+      return result;  
+    }
+
+
+  /**
+   * Send Gmail messages to selected recipients
+    **
+  * Send email via Gmail API
+  * @param {string} to - Recipient email address
+  * @param {string} subject - Email subject line
+  * @param {string} body - Email body (HTML)
+  * @returns {Promise<string>} Gmail message ID
+  * @throws {Error} If auth fails or send fails
+  */
+  async sendGmailMessages(selectedEmails) {
+
+    const emailSubject = `New Leed: ${this.state.Booking.title || this.state.Client.name || 'No Title'}`;
+
+    try {
+      // Load full config from leedz_config.json to get shareEmail templates
+      const response = await fetch(chrome.runtime.getURL('leedz_config.json'));
+      const fullConfig = await response.json();
+
+      if (!fullConfig.shareEmail) {
+        throw new Error('shareEmail configuration not found in leedz_config.json');
+      }
+
+      // Get Config from state (null if leedz_server not connected)
+      const config = this.state.Config || null;
+
+      // Iterate through selected emails and send each one
+      for (const emailObj of selectedEmails) {
+        try {
+          // Generate email body for this recipient
+          const emailBody = generateShareEmailBody(
+            this.state.Client,
+            this.state.Booking,
+            this.specialInfo,
+            this.priceEnabled,
+            fullConfig.shareEmail,
+            emailObj.address,
+            config
+          );
+
+          const messageId = await sendGmailMessage(emailObj.address, emailSubject, emailBody);
+          log(`Email sent to ${emailObj.address}, message ID: ${messageId}`);
+        } catch (emailError) {
+          logError(`Failed to send email to ${emailObj.address}:`, emailError);
+          showToast(`Failed to send to ${emailObj.address}`, 'error');
+          // Continue with other emails despite individual failures
+        }
+      }
+
+      showToast(`Emails sent to ${selectedEmails.length} recipient(s)`, 'success');
+
+    } catch (error) {
+      logError('Gmail send failed:', error);
+      showToast(`Gmail send failed: ${error.message}`, 'error');
+      // DO NOT rethrow error; to abort share process
+    }
+  }
+
+
+
+
+  /**
+   * Broadcast lead to all users in the system
+   */
+  async onBroadcast() {
+
+    this.broadcastMode = true; // Set broadcast mode
+  }
+
+
+
+  /**
+   * Share lead/booking via email to selected recipients
+   * Calls AWS addLeed API 
+   * CASE 1: Private Share via Gmail API
+   * Share List Format**: sh = "email1,email2,email3" (comma-delimited list, no asterisk)
+   *
+   * CASE 2: Broadcast with Exclusions
+   * Share List Format**: sh = "*,email1,email2,email3" (asterisk + comma + exclusion list)
+   *
+   * CASE 3: Full Broadcast
+   * Share List Format**: sh = "*" (asterisk only, no exclusions)
+   */
+  async onShare() {
+    try {
+      // Validate email selection
+      const selectedEmails = this.emailList.filter(e => e.selected);
+      if (selectedEmails.length === 0) {
+        showToast('Please select at least one email recipient', 'error');
+        return;
+      }
+      // selectedEmails is non-empty
+
+      await this.sendGmailMessages(selectedEmails);
+
+      // create a share list and
+      // append share list to Config.friends
+      let shareList = '';
+      try {
+
+        shareList = selectedEmails.map(e => e.address).join(',');
+
+        // Load Config data from s
+        await this.state.loadConfigFromDB();
+        // Append to existing friends list
+        this.state.Config.friends = `${this.state.Config.friends},${shareList}`;
+        await this.state.save();
+      
+      } catch (err) {
+        console.warn('Failed to load Config. Is leedz server connected?');
+      }
+   
+
+
+      // If in broadcast mode, prepend *, to shareList
+      if (this.broadcastMode) {
+        shareList = `*,${shareList}`;
+      }
+
+
+      // calls addLeed()
+      // just for bookeeping and should be independent of sending the emails
+      let result = await this.sendToServer( shareList );
 
       // SUCCESS
       showToast(`Lead shared with ${selectedEmails.length} recipient(s)`, 'success');
@@ -901,71 +1012,5 @@ export class Share extends DataPage {
     }
   }
 
-  /**
-   * Broadcast lead to all users in the system
-   * Calls AWS addLeed API with broadcast mode
-   */
-  async onBroadcast() {
-    try {
-      // Get selected emails (for exclusion list if any)
-      const selectedEmails = this.emailList.filter(e => e.selected);
 
-      // Build share list (broadcast mode)
-      const shareList = this.buildShareList(true, selectedEmails);
-
-      // Build addLeed payload
-      const payload = this.buildAddLeedPayload(shareList);
-
-      // Get JWT token
-      const token = await this.getJWTToken();
-
-      // Get AWS API Gateway URL from config
-      const awsApiGatewayUrl = this.state.Config?.aws?.apiGatewayUrl;
-      if (!awsApiGatewayUrl) {
-        throw new Error('AWS API Gateway URL not configured. Please visit Startup page.');
-      }
-
-      // Build query string
-      const queryString = new URLSearchParams(payload).toString();
-      const url = `${awsApiGatewayUrl}/addLeed?${queryString}`;
-
-      // Show loading
-      showToast('Broadcasting lead...', 'info');
-
-      // Call addLeed API
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-
-      // Check response format: {cd: 1, id, ti, tn, pr} or {cd: 0, er}
-      if (result.cd === 0) {
-        throw new Error(result.er || 'Unknown error from addLeed API');
-      }
-
-      if (result.cd !== 1) {
-        throw new Error('Invalid response from addLeed API');
-      }
-
-      // SUCCESS
-      const excludeMsg = selectedEmails.length > 0
-        ? ` (excluding ${selectedEmails.length} email(s))`
-        : '';
-      showToast(`Lead broadcasted to all users${excludeMsg}`, 'success');
-      log(`Lead broadcasted successfully: ${result.ti} (${result.tn})`);
-
-    } catch (error) {
-      logError('Broadcast failed:', error);
-      showToast(`Broadcast failed: ${error.message}`, 'error');
-    }
-  }
 }

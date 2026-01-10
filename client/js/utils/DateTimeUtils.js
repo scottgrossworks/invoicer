@@ -398,4 +398,50 @@ export class DateTimeUtils {
 
     return price;
   }
+
+  /**
+   * Format booking start date and time for email display
+   * Converts to 12-hour AM/PM format using local timezone
+   * @param {string} startDate - ISO date string (e.g., "2025-01-15")
+   * @param {string} startTime - Time in 24-hour format (e.g., "19:00")
+   * @returns {string} Formatted date and time (e.g., "January 15, 2025 at 7:00 PM")
+   */
+  static formatBookingStartDateTime(startDate, startTime) {
+    if (!startDate || !startTime) {
+      return '';
+    }
+
+    const formattedDate = this.formatDateForDisplay(startDate);
+    const formattedTime = this.convertTo12Hour(startTime);
+
+    return `${formattedDate} at ${formattedTime}`;
+  }
+
+  /**
+   * Extract 5-digit zip code from location string
+   * Uses last 5 characters of trimmed location
+   * @param {string} location - Full location string
+   * @returns {string} 5-digit zip code
+   * @throws {Error} If zip code cannot be determined
+   */
+  static extractZipCodeOnly(location) {
+    if (!location || typeof location !== 'string') {
+      throw new Error('Location is required to extract zip code');
+    }
+
+    const trimmed = location.trim();
+    if (trimmed.length < 5) {
+      throw new Error('Location too short to contain zip code');
+    }
+
+    // Extract last 5 characters
+    const last5 = trimmed.slice(-5);
+
+    // Validate all 5 characters are digits
+    if (!/^\d{5}$/.test(last5)) {
+      throw new Error(`Cannot extract valid 5-digit zip code from location: ${location}`);
+    }
+
+    return last5;
+  }
 }

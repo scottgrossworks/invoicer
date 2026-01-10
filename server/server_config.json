@@ -10,8 +10,8 @@
   },
   "square": {
     "url": "https://connect.squareup.com",
-    "appId": "REPLACE_WITH_YOUR_SQUARE_APP_ID",
-    "appSecret": "REPLACE_WITH_YOUR_SQUARE_APP_SECRET",
+    "appId": "sq0idp-fGPn-QZvqEnvGeWHA9sHMw",
+    "appSecret": "sq0csp-_F2Y0nCLsYp0mNO2j6tdUc5tR73ecpnq8OilN4X4uvI",
     "environment": "production"
   }
 }
