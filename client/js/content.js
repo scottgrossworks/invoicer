@@ -305,7 +305,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
     return true; // keep port open for async reply
   }
 
-  // Full parse with both client and booking data (for Invoicer page)
+  // Full parse with both client and booking data (for Booker page)
   if (msg.type === 'leedz_parse_page') {
     (async () => {
       try {

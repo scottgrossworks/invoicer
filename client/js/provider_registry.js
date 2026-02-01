@@ -1,7 +1,7 @@
 /**
  * Provider Registry - Centralized configuration loader and provider factory
  *
- * This module serves as the main dependency injection system for the Leedz Invoicer extension.
+ * This module serves as the main dependency injection system for the Leedz Booker extension.
  * It loads configuration from leedz_config.json and creates appropriate provider instances
  * for database operations, LLM interactions, rendering, and email parsing.
  *

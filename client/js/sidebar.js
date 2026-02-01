@@ -266,14 +266,14 @@ function saveLastActivePage(pageName) {
  */
 function hideAllButtons() {
   const startupButtons = document.getElementById('startup-buttons');
-  const invoicerButtons = document.getElementById('invoicer-buttons');
+  const bookerButtons = document.getElementById('booker-buttons');
   const thankyouButtons = document.getElementById('thankyou-buttons');
   const responderButtons = document.getElementById('responder-buttons');
   const outreachButtons = document.getElementById('outreach-buttons');
   const shareButtons = document.getElementById('share-buttons');
 
   if (startupButtons) startupButtons.style.display = 'none';
-  if (invoicerButtons) invoicerButtons.style.display = 'none';
+  if (bookerButtons) bookerButtons.style.display = 'none';
   if (thankyouButtons) thankyouButtons.style.display = 'none';
   if (responderButtons) responderButtons.style.display = 'none';
   if (outreachButtons) outreachButtons.style.display = 'none';
@@ -363,7 +363,7 @@ function updateAppLabel(pageName) {
 function updateActionButtons(page) {
   // Get all button wrappers
   const startupButtons = document.getElementById('startup-buttons');
-  const invoicerButtons = document.getElementById('invoicer-buttons');
+  const bookerButtons = document.getElementById('booker-buttons');
   const thankyouButtons = document.getElementById('thankyou-buttons');
   const responderButtons = document.getElementById('responder-buttons');
   const outreachButtons = document.getElementById('outreach-buttons');
@@ -371,7 +371,7 @@ function updateActionButtons(page) {
 
   // Hide all button wrappers by default
   if (startupButtons) startupButtons.style.display = 'none';
-  if (invoicerButtons) invoicerButtons.style.display = 'none';
+  if (bookerButtons) bookerButtons.style.display = 'none';
   if (thankyouButtons) thankyouButtons.style.display = 'none';
   if (responderButtons) responderButtons.style.display = 'none';
   if (outreachButtons) outreachButtons.style.display = 'none';
@@ -380,8 +380,8 @@ function updateActionButtons(page) {
   // Show the appropriate button wrapper based on page name
   if (page.pageName === 'startup' && startupButtons) {
     startupButtons.style.display = 'flex';
-  } else if (page.pageName === 'invoicer' && invoicerButtons) {
-    invoicerButtons.style.display = 'flex';
+  } else if (page.pageName === 'booker' && bookerButtons) {
+    bookerButtons.style.display = 'flex';
   } else if (page.pageName === 'thankyou' && thankyouButtons) {
     thankyouButtons.style.display = 'flex';
   } else if (page.pageName === 'responder' && responderButtons) {
@@ -397,8 +397,8 @@ function updateActionButtons(page) {
   const buttons = page.getActionButtons();
 
   if (buttons && buttons.length > 0) {
-    // Dynamic buttons needed - use invoicer-buttons wrapper for legacy compatibility
-    const buttonWrapper = document.getElementById('invoicer-buttons');
+    // Dynamic buttons needed - use booker-buttons wrapper for legacy compatibility
+    const buttonWrapper = document.getElementById('booker-buttons');
     if (buttonWrapper) {
       buttonWrapper.style.display = 'flex';
 

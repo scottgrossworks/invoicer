@@ -8,7 +8,7 @@
  * 5. Prelim parse found identity → search DB → if found, render green and STOP
  * 6. No DB match → run full LLM parse and render result
  *
- * Subclasses: ClientCapture, Invoicer, Responder, ThankYou
+ * Subclasses: ClientCapture, Booker, Responder, ThankYou
  */
 
 import { Page } from './Page.js';
@@ -196,11 +196,6 @@ export class DataPage extends Page {
       actionButtons.style.display = 'none';
     }
 
-    // Hide share buttons container (for Share page)
-    const shareButtons = document.getElementById('share-buttons');
-    if (shareButtons) {
-      shareButtons.style.display = 'none';
-    }
   }
 
   /**
@@ -233,11 +228,6 @@ export class DataPage extends Page {
       actionButtons.style.display = 'flex';
     }
 
-    // Show share buttons (for Share page)
-    const shareButtons = document.getElementById('share-buttons');
-    if (shareButtons) {
-      shareButtons.style.display = 'flex';
-    }
   }
 
   /**

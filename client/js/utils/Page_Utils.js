@@ -279,7 +279,7 @@ Never output empty lines for missing fields.`;
                    ValidationUtils.isEmpty(clientData.clientNotes));
         });
       } else {
-        // Single client mode (Responder, Invoicer, etc.)
+        // Single client mode (Responder, Booker, etc.)
         const clientData = state.Client;
 
         // Check if client has any meaningful data

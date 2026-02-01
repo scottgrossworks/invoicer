@@ -17,7 +17,7 @@ export class Page {
 
   /**
    * Constructor
-   * @param {string} pageName - Name of the page (e.g., 'invoicer', 'clients')
+   * @param {string} pageName - Name of the page (e.g., 'booker', 'clients')
    * @param {object} state - Reference to global state object
    * @param {object} leedzConfig - Optional reference to leedz_config.json (for pages that need it)
    */

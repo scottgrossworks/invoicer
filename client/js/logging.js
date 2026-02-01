@@ -3,7 +3,7 @@
  * LOGGING UTILITIES
  * ==============================================================================
  *
- * Client-side logging and notification utilities for the Leedz Invoicer
+ * Client-side logging and notification utilities for the Leedz Booker
  * Chrome extension sidebar UI.
  *
  * Features:

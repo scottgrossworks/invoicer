@@ -6,7 +6,7 @@
  * - totalAmount
  * - duration (optional)
  *
- * Used by: Invoicer, Outreach, Responder
+ * Used by: Booker, Outreach, Responder
  */
 
 import { PageUtils } from './Page_Utils.js';

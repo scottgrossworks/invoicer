@@ -9,7 +9,7 @@ import { DataPage } from './DataPage.js';
 import { DateTimeUtils } from '../utils/DateTimeUtils.js';
 import Booking from '../db/Booking.js';
 import Client from '../db/Client.js';
-import { generateShareEmailBody } from '../utils/ShareUtils.js';
+import { generateShareEmailBody, synthesizeLeedDetails, synthesizeLeedRequirements } from '../utils/ShareUtils.js';
 import { sendGmailMessage } from '../utils/GmailAuth.js';
 import { log, logError, showToast } from '../logging.js';
 
@@ -55,8 +55,9 @@ export class Share extends DataPage {
   async initialize() {
     // console.log('[DEBUG] Share.js VERSION: 2025-12-29-18:00 - Price section state management implemented');
 
-    // Start loading trades in background (independent of LLM parse)
+    // Start loading trades and friends in background (independent of LLM parse)
     this.loadTradesAsync();
+    this.loadFriendsAsync();
 
     // Wire up email list handlers
     const addEmailBtn = document.getElementById('addEmailBtn');
@@ -75,6 +76,11 @@ export class Share extends DataPage {
     if (tradeSelect) {
       tradeSelect.addEventListener('change', (e) => {
         this.selectedTrade = e.target.value;
+        const selected = e.target.selectedOptions[0];
+        const indicator = document.querySelector('.trade-indicator');
+        if (indicator) {
+          indicator.style.backgroundColor = selected?.dataset.color || 'var(--LEEDZ_DARKGREEN)';
+        }
         console.log('Selected trade:', this.selectedTrade);
       });
     }
@@ -250,6 +256,60 @@ export class Share extends DataPage {
   }
 
   /**
+   * Load user's friends list from AWS getUser API in background
+   * Populates email list with fr field entries
+   */
+  async loadFriendsAsync(retries = 3) {
+    const API_GATEWAY = "https://jjz8op6uy4.execute-api.us-west-2.amazonaws.com/Leedz_Stage_1/";
+
+    try {
+      // Wait for Startup page to fetch JWT (runs in parallel)
+      let token = null;
+      for (let i = 0; i < retries; i++) {
+        try {
+          token = await this.getJWTToken();
+          break;
+        } catch (e) {
+          if (i < retries - 1) {
+            await new Promise(r => setTimeout(r, 2000));
+          } else {
+            throw e;
+          }
+        }
+      }
+
+      const response = await fetch(`${API_GATEWAY}getUser?session=${encodeURIComponent(token)}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const user = await response.json();
+      const fr = user.fr || '';
+      if (!fr) return;
+
+      // Split friends list, dedupe, add to email list
+      const friends = fr.split(',').map(e => e.trim()).filter(e => e);
+      friends.forEach(address => {
+        if (this.emailList.find(e => e.address === address)) return;
+        this.emailList.push({
+          address,
+          selected: false,
+          color: this.emailColors[this.nextColorIndex % this.emailColors.length]
+        });
+        this.nextColorIndex++;
+      });
+
+      this.renderEmailList();
+      console.log('Friends loaded:', friends.length);
+
+    } catch (error) {
+      console.error('Failed to load friends:', error);
+      // Non-critical - user can still add emails manually
+    }
+  }
+
+  /**
    * Populate trade select pulldown with loaded trades
    */
   populateTradeSelect() {
@@ -270,15 +330,32 @@ export class Share extends DataPage {
       a.sk.localeCompare(b.sk)
     );
 
-    // Add trade options
+    // Add trade options (store color in data attribute)
     sortedTrades.forEach(trade => {
       const option = document.createElement('option');
       option.value = trade.sk;
       option.textContent = trade.sk;
+      if (trade.cs) option.dataset.color = trade.cs;
       tradeSelect.appendChild(option);
     });
 
     console.log('Trade select populated with', sortedTrades.length, 'trades');
+  }
+
+  clearPageUI() {
+    super.clearPageUI();
+    const shareButtons = document.getElementById('share-buttons');
+    if (shareButtons) {
+      shareButtons.style.display = 'none';
+    }
+  }
+
+  showPageUI() {
+    super.showPageUI();
+    const shareButtons = document.getElementById('share-buttons');
+    if (shareButtons) {
+      shareButtons.style.display = 'flex';
+    }
   }
 
   /**
@@ -295,10 +372,21 @@ export class Share extends DataPage {
     this.renderEmailList();
     this.updateFromState(this.state);
 
-    // Reset trade selector to default
+    // Reset trade selector and indicator to default
     const tradeSelect = document.getElementById('tradeSelect');
     if (tradeSelect) {
       tradeSelect.selectedIndex = 0;
+    }
+    const indicator = document.querySelector('.trade-indicator');
+    if (indicator) {
+      indicator.style.backgroundColor = '';
+    }
+
+    // Reset broadcast button
+    this.broadcastMode = false;
+    const broadcastBtn = document.getElementById('broadcastBtn');
+    if (broadcastBtn) {
+      broadcastBtn.classList.remove('active');
     }
 
     log('Cleared');
@@ -434,10 +522,11 @@ export class Share extends DataPage {
   /**
    * Build addLeed API payload from current state
    * @param {string} shareList - Share list parameter (sh)
+   * @param {string} leedId - Pre-generated leed ID (optional)
    * @returns {Object} Payload ready for addLeed API
    * @throws {Error} If validation fails
    */
-  buildAddLeedPayload(shareList) {
+  buildAddLeedPayload(shareList, leedId) {
     const errors = [];
 
     // TRADE NAME (tn) - REQUIRED
@@ -495,11 +584,14 @@ export class Share extends DataPage {
       }
     }
 
-    // DETAILS (dt) - OPTIONAL
-    const details = this.specialInfo || this.state.Booking.notes || '';
+    // DETAILS (dt) - OPTIONAL - Booking.description
+    const details = synthesizeLeedDetails(this.state.Booking);
 
-    // REQUIREMENTS (rq) - OPTIONAL
-    const requirements = this.state.Booking.requirements || '';
+    // REQUIREMENTS (rq) - OPTIONAL - Special Instructions + Booking.notes
+    const requirements = synthesizeLeedRequirements(this.specialInfo, this.state.Booking);
+
+    // CLIENT NAME (cn) - OPTIONAL - Client.name
+    const clientName = this.state.Client.name || '';
 
     // PHONE (ph) - OPTIONAL, validate if provided
     let phone = '';
@@ -533,7 +625,7 @@ export class Share extends DataPage {
     }
 
     // Build query string parameters (addLeed expects query params, not JSON body)
-    return {
+    const payload = {
       tn: this.selectedTrade,
       ti: title.trim(),
       lc: location.trim(),
@@ -544,9 +636,17 @@ export class Share extends DataPage {
       rq: requirements.trim(),
       ph: phone,
       em: email.trim(),
+      cn: clientName.trim(),
       pr: priceCents.toString(),
       sh: shareList
     };
+
+    // Include pre-generated ID if provided
+    if (leedId) {
+      payload.id = leedId;
+    }
+
+    return payload;
   }
 
   /**
@@ -788,7 +888,7 @@ export class Share extends DataPage {
       if (logo) {
         squareBtn.appendChild(logo.cloneNode(true));
       }
-      squareBtn.appendChild(document.createTextNode(' Payments Authorized with Square'));
+      squareBtn.appendChild(document.createTextNode(' Square Authorized'));
       squareBtn.classList.remove('unauthenticated');
       squareBtn.classList.add('authenticated');
     } else {
@@ -816,9 +916,9 @@ export class Share extends DataPage {
    * just for bookeeping and should be independent of sending the emails
    * Will throw Exception
    */
-  async sendToServer(shareList) {
+  async sendToServer(shareList, leedId) {
     // Build addLeed payload
-      const payload = this.buildAddLeedPayload(shareList);
+      const payload = this.buildAddLeedPayload(shareList, leedId);
 
       // Get JWT token
       const token = await this.getJWTToken();
@@ -829,29 +929,14 @@ export class Share extends DataPage {
         throw new Error('AWS API Gateway URL not found in leedz_config.json. Check client/leedz_config.json aws.apiGatewayUrl');
       }
 
-      // Build query string
+      // Build query string with session token for API Gateway authorizer
+      payload.session = token;
       const queryString = new URLSearchParams(payload).toString();
       const url = `${awsApiGatewayUrl}/addLeed?${queryString}`;
 
-      // DIAGNOSTIC LOGGING
-      /*
-      console.log('=== AWS addLeed API Call ===');
-      console.log('URL:', url);
-      console.log('Payload:', payload);
-      console.log('JWT Token (first 20 chars):', token.substring(0, 20) + '...');
-      console.log('FULL JWT TOKEN FOR TESTING:', token);
-      */
-
-      // Show loading
-      showToast('Sharing lead...', 'info');
-
       // Call addLeed API
       const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+        method: 'GET'
       });
 
       console.log('Response status:', response.status);
@@ -888,7 +973,7 @@ export class Share extends DataPage {
   * @returns {Promise<string>} Gmail message ID
   * @throws {Error} If auth fails or send fails
   */
-  async sendGmailMessages(selectedEmails) {
+  async sendGmailMessages(selectedEmails, leedId) {
 
     const emailSubject = `New Leed: ${this.state.Booking.title || this.state.Client.name || 'No Title'}`;
 
@@ -904,18 +989,25 @@ export class Share extends DataPage {
       // Get Config from state (null if leedz_server not connected)
       const config = this.state.Config || null;
 
+      // Get sender email from chrome.storage.local (set by Startup.fetchJWTToken)
+      const stored = await chrome.storage.local.get(['leedzUserEmail']);
+      const senderEmail = stored.leedzUserEmail || '';
+
       // Iterate through selected emails and send each one
       for (const emailObj of selectedEmails) {
         try {
           // Generate email body for this recipient
-          const emailBody = generateShareEmailBody(
+          const emailBody = await generateShareEmailBody(
             this.state.Client,
             this.state.Booking,
             this.specialInfo,
             this.priceEnabled,
             fullConfig.shareEmail,
             emailObj.address,
-            config
+            config,
+            senderEmail,
+            this.selectedTrade,
+            leedId
           );
 
           const messageId = await sendGmailMessage(emailObj.address, emailSubject, emailBody);
@@ -927,7 +1019,7 @@ export class Share extends DataPage {
         }
       }
 
-      showToast(`Emails sent to ${selectedEmails.length} recipient(s)`, 'success');
+      showToast(`Emailed ${selectedEmails.length} recipient(s)`, 'success');
 
     } catch (error) {
       logError('Gmail send failed:', error);
@@ -943,68 +1035,73 @@ export class Share extends DataPage {
    * Broadcast lead to all users in the system
    */
   async onBroadcast() {
-
-    this.broadcastMode = true; // Set broadcast mode
+    this.broadcastMode = !this.broadcastMode;
+    const btn = document.getElementById('broadcastBtn');
+    if (btn) {
+      btn.classList.toggle('active', this.broadcastMode);
+    }
   }
 
 
 
   /**
    * Share lead/booking via email to selected recipients
-   * Calls AWS addLeed API 
+   * Calls AWS addLeed API
    * CASE 1: Private Share via Gmail API
-   * Share List Format**: sh = "email1,email2,email3" (comma-delimited list, no asterisk)
+   * Share List Format: sh = "email1,email2,email3" (comma-delimited list, no asterisk)
    *
-   * CASE 2: Broadcast with Exclusions
-   * Share List Format**: sh = "*,email1,email2,email3" (asterisk + comma + exclusion list)
+   * CASE 2: Full Broadcast (no private emails)
+   * Share List Format: sh = "*" (asterisk only)
    *
-   * CASE 3: Full Broadcast
-   * Share List Format**: sh = "*" (asterisk only, no exclusions)
+   * CASE 3: Broadcast + Private Emails
+   * Share List Format: sh = "*,email1,email2,email3" (asterisk + comma + exclusion list)
    */
   async onShare() {
     try {
-      // Validate email selection
+      // Pre-generate leed ID for email button URLs
+      // Uses 48-bit random integer (281 trillion values) to avoid collisions
+      // Server reuses this ID; on the extremely unlikely collision, server generates its own
+      const leedId = String(Math.floor(Math.random() * (2 ** 48)));
+
       const selectedEmails = this.emailList.filter(e => e.selected);
-      if (selectedEmails.length === 0) {
-        showToast('Please select at least one email recipient', 'error');
+      const emailAddresses = selectedEmails.map(e => e.address).join(',');
+
+      // Build shareList: broadcast check FIRST
+      let shareList = '';
+      if (this.broadcastMode && selectedEmails.length > 0) {
+        // CASE 3: Broadcast + private emails
+        shareList = `*,${emailAddresses}`;
+      } else if (this.broadcastMode) {
+        // CASE 2: Full broadcast, no private emails
+        shareList = '*';
+      } else if (selectedEmails.length > 0) {
+        // CASE 1: Private share only
+        shareList = emailAddresses;
+      } else {
+        // No broadcast, no emails -- nothing to do
+        showToast('Please select at least one email recipient or enable Broadcast', 'error');
         return;
       }
-      // selectedEmails is non-empty
 
-      await this.sendGmailMessages(selectedEmails);
+      // Send Gmail to selected recipients (if any)
+      if (selectedEmails.length > 0) {
+        await this.sendGmailMessages(selectedEmails, leedId);
 
-      // create a share list and
-      // append share list to Config.friends
-      let shareList = '';
-      try {
-
-        shareList = selectedEmails.map(e => e.address).join(',');
-
-        // Load Config data from s
-        await this.state.loadConfigFromDB();
-        // Append to existing friends list
-        this.state.Config.friends = `${this.state.Config.friends},${shareList}`;
-        await this.state.save();
-      
-      } catch (err) {
-        console.warn('Failed to load Config. Is leedz server connected?');
-      }
-   
-
-
-      // If in broadcast mode, prepend *, to shareList
-      if (this.broadcastMode) {
-        shareList = `*,${shareList}`;
+        // Append to local Config friends list
+        try {
+          await this.state.loadConfigFromDB();
+          this.state.Config.friends = `${this.state.Config.friends},${emailAddresses}`;
+          await this.state.save();
+        } catch (err) {
+          console.log('Failed to load Config. Is leedz server connected?');
+        }
       }
 
+      // Send leed to server (addLeed API) with pre-generated ID
+      let result = await this.sendToServer(shareList, leedId);
 
-      // calls addLeed()
-      // just for bookeeping and should be independent of sending the emails
-      let result = await this.sendToServer( shareList );
-
-      // SUCCESS
-      showToast(`Lead shared with ${selectedEmails.length} recipient(s)`, 'success');
-      log(`Lead shared successfully: ${result.ti} (${result.tn})`);
+      log(`Lead shared: ${result.ti} (${result.tn}) sh=${shareList}`);
+      showToast('Success! Leed Shared.', 'success');
 
     } catch (error) {
       logError('Share failed:', error);

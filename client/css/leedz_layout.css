@@ -38,7 +38,7 @@ html, body {
   justify-content: space-between;
   padding: 12px;
   background-color: white;
-  border-top: 4px solid var(--LEEDZ_GREEN);
+  border-top: 4px solid var(--LEEDZ_DARKGREEN);
 }
 
 .logo-container {
@@ -122,8 +122,8 @@ html, body {
 /* APP LABEL COLOR VARIANTS (changes per page)       */
 /* ================================================== */
 
-/* Default invoicer page - dark green */
-.app-label.invoicer {
+/* Default booker page - dark green */
+.app-label.booker {
   background-color: darkgreen;
 }
 
@@ -145,9 +145,9 @@ html, body {
   min-height: 0; /* Allow flex child to shrink */
 }
 
-/* Invoicer button wrapper - hidden by default */
-#invoicer-buttons {
-  display: none; /* Hidden by default - JavaScript shows when invoicer page is active */
+/* Booker button wrapper - hidden by default */
+#booker-buttons {
+  display: none; /* Hidden by default - JavaScript shows when booker page is active */
 }
 
 /* Scrollable content section */
@@ -159,7 +159,7 @@ html, body {
   min-height: 0;      /* Prevent flexbox overflow issues */
   padding: 10px;
   height: auto;
-  max-height: 80vh;
+  max-height: min-content !important;
   width: 98%;
   margin: 0 auto;
   box-sizing: border-box;
@@ -350,19 +350,7 @@ html, body {
 
 
 
-/* Footer */
-.leedz-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  background: var(--LEEDZ_GREEN);
-  height: 10px;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-}
+
 
 .leedz-grass {
   position: absolute;
@@ -374,6 +362,19 @@ html, body {
   display: block;
 }
 
+
+.leedz-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+
+  height: 0px !important; 
+  display: flex;
+  flex-direction: column;
+  }
+
+  
 /* Debug output styling 
 .debug-output {
   overflow-y: auto;
@@ -654,6 +655,12 @@ input.invalid {
   border-radius: 4px;
   resize: vertical;
   box-sizing: border-box;
+}
+
+/* Share table styling when client found in DB */
+.share-table-from-db {
+  background-color: honeydew;
+  border-color: var(--LEEDZ_GREEN);
 }
 
 /* ThankYou table styling when client found in DB */
@@ -1479,7 +1486,7 @@ input.invalid {
 }
 
 .price-section.active.authenticated .price-header {
-  background-color: var(--LEEDZ_GREEN);
+  background-color: var(--LEEDZ_DARKGREEN);
   color: white;
 }
 
@@ -1497,7 +1504,7 @@ input.invalid {
 }
 
 .price-section.active.authenticated .price-checkbox:checked::after {
-  color: var(--LEEDZ_GREEN);
+  color: var(--LEEDZ_DARKGREEN);
 }
 
 .price-input-group {
@@ -1575,8 +1582,8 @@ input.invalid {
 
 /* Share button */
 #shareBtn {
-  width:70%;
-  background-color: royalblue;
+  width:50%;
+  background-color: dodgerblue;
 }
 
 #shareBtn:hover:not(:disabled) {
@@ -1611,15 +1618,14 @@ input.invalid {
   background-color: #d0d5da;
 }
 
-/* Broadcast button - active state (dodgerblue background, white text) */
+/* Broadcast button - active state (LEEDZ_DARKGREEN background, white text/border) */
 .broadcast-btn.active {
-  background-color: dodgerblue;
+  background-color: var(--LEEDZ_DARKGREEN);
   color: white;
-  border-color: dodgerblue;
+  border-color:var(--LEEDZ_DARKGREEN);
 }
-
 .broadcast-btn.active:hover {
-  background-color: #1e90ff;
+  background-color: var(--LEEDZ_DARKGREEN);
 }
 
 .trade-indicator {

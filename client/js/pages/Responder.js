@@ -17,7 +17,7 @@ export class Responder extends DataPage {
   constructor(state) {
     super('responder', state);
 
-    // Full field list (all Client + Booking fields) like Invoicer
+    // Full field list (all Client + Booking fields) like Booker
     this.clientFields = Client.getFieldNames();
     this.bookingFields = Booking.getFieldNames();
 

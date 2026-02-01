@@ -27,7 +27,7 @@ class State {
 
   /**
    * Backward compatibility getter - returns first client
-   * Invoicer and parsers use state.Client (singular)
+   * Booker and parsers use state.Client (singular)
    */
   get Client() {
     if (this.Clients.length === 0) {
@@ -38,7 +38,7 @@ class State {
 
   /**
    * Backward compatibility setter - sets first client
-   * Invoicer and parsers write to state.Client
+   * Booker and parsers write to state.Client
    */
   set Client(data) {
     this.Clients[0] = data;
@@ -173,7 +173,7 @@ class State {
 
   /**
    * Load STATE from chrome storage - that will be most recent copy
-   * Does NOT load Config from DB - that should only happen in Invoicer page
+   * Does NOT load Config from DB - that should only happen in Booker page
    */
   async load() {
 
@@ -184,7 +184,7 @@ class State {
 
   /**
    * Load Config data from DB
-   * Only called by Invoicer page when it needs Config data for PDF generation
+   * Only called by Booker page when it needs Config data for PDF generation
    * If Config not found, let the caller assign its own defaults
    */
   async loadConfigFromDB() {

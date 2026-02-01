@@ -114,7 +114,7 @@ cleanFloat(value) {
 
         if (!clientRes.ok) {
           const errorText = await clientRes.text();
-          console.error(`Client ${i} save failed:`, errorText);
+          console.log(`Client ${i} save failed:`, errorText);
           throw new Error(`Client ${i} save failed: ${clientRes.status} ${errorText}`);
         }
 
@@ -122,14 +122,14 @@ cleanFloat(value) {
 
         // Verify client creation and ID
         if (!client || !client.id) {
-          console.error(`Client ${i} save failed - no valid client ID returned:`, client);
+          console.log(`Client ${i} save failed - no valid client ID returned:`, client);
           throw new Error(`Client ${i} save failed - no valid ID returned`);
         }
 
         console.log(`Client ${i} saved: ${client.name} (${client.id})`);
 
         // BOOKING (optional - only save if booking data exists)
-        // Only save booking for first client (Invoicer use case: 1 client = 1 booking)
+        // Only save booking for first client (Booker use case: 1 client = 1 booking)
         if (i === 0 && state.Booking && Object.keys(state.Booking).length > 0) {
           let data = state.Booking;
           data.clientId = client.id;
@@ -166,7 +166,7 @@ cleanFloat(value) {
 
           if (!bookingRes.ok) {
             const errorText = await bookingRes.text();
-            console.error('Booking save failed:', errorText);
+            console.log('Booking save failed:', errorText);
             throw new Error(`Booking save failed: ${bookingRes.status} ${errorText}`);
           }
 
@@ -174,7 +174,7 @@ cleanFloat(value) {
 
           // Verify booking creation and ID
           if (!booking || !booking.id) {
-            console.error('Booking save failed - no valid booking ID returned:', booking);
+            console.log('Booking save failed - no valid booking ID returned:', booking);
             throw new Error('Booking save failed - no valid ID returned');
           }
 
@@ -235,7 +235,7 @@ cleanFloat(value) {
 
         if (!configRes.ok) {
           const errorText = await configRes.text();
-          console.error('Config save failed:', errorText);
+          console.log('Config save failed:', errorText);
           throw new Error(`Config save failed: ${configRes.status} ${errorText}`);
         }
         // console.log('Config saved to database');
@@ -313,16 +313,6 @@ async load() {
 
       if (dbResponse.ok) {
         const dbConfig = await dbResponse.json();
-        // console.log("=== PDF settings loaded from database ===");
-        /* console.log('Config data received from server:', {
-          hasData: !!dbConfig,
-          keys: dbConfig ? Object.keys(dbConfig) : [],
-          companyName: dbConfig?.companyName,
-          companyEmail: dbConfig?.companyEmail,
-          fullData: dbConfig
-        });
-        */
-
         return dbConfig;
 
       } else {
@@ -336,7 +326,7 @@ async load() {
       if (error.message.includes('Failed to fetch')) {
         return null;
       }
-      console.error('DB Config load ERROR:', error.message);
+      console.log('DB Config load ERROR:', error.message);
       return null;
     }
   }
@@ -349,8 +339,6 @@ async load() {
    */
   async searchClient(email, name) {
     try {
-      // console.log('=== DB_LAYER.searchClient() CALLED ===');
-      // console.log('Parameters:', { email, name });
 
       // Build query parameters
       const params = new URLSearchParams();
@@ -358,7 +346,7 @@ async load() {
       if (name) params.append('name', name);
 
       if (!email && !name) {
-        console.error('searchClient: No email or name provided');
+        console.log('searchClient: No email or name provided');
         return null;
       }
 
@@ -369,7 +357,7 @@ async load() {
       // console.log('Response status:', response.status, response.statusText);
 
       if (!response.ok) {
-        console.error(`searchClient: Server returned ${response.status}`);
+        console.log(`searchClient: Server returned ${response.status}`);
         return null;
       }
 
