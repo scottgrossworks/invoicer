@@ -46,9 +46,14 @@ export class ClientCapture extends DataPage {
     console.log('=== reloadParser result:', result);
 
     if (result.success) {
+      // Include Client (singular) so DataPage.searchDB can find name/email
+      const firstClient = result.clients[0] || {};
       return {
         success: true,
-        data: { Clients: result.clients },
+        data: {
+          Clients: result.clients,
+          Client: { name: firstClient.name, email: firstClient.email }
+        },
         fromDB: result.fromDB
       };
     }

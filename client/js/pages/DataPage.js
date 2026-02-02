@@ -21,6 +21,8 @@ export class DataPage extends Page {
     if (new.target === DataPage) {
       throw new TypeError('Cannot construct DataPage instances directly - must extend DataPage');
     }
+    // DataPage manages its own button visibility in sync with spinner
+    this.managesOwnButtons = true;
   }
 
   /**
@@ -196,6 +198,13 @@ export class DataPage extends Page {
       actionButtons.style.display = 'none';
     }
 
+    // Hide all page-specific button wrappers (DataPage owns button lifecycle)
+    const wrapperIds = ['booker-buttons', 'thankyou-buttons', 'responder-buttons', 'share-buttons'];
+    wrapperIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+
   }
 
   /**
@@ -226,6 +235,11 @@ export class DataPage extends Page {
     const actionButtons = document.getElementById('action-buttons');
     if (actionButtons) {
       actionButtons.style.display = 'flex';
+    }
+
+    // Show page-specific buttons (DataPage owns button lifecycle)
+    if (window.updateActionButtons) {
+      window.updateActionButtons(this);
     }
 
   }

@@ -85,6 +85,7 @@ export class Responder extends DataPage {
       Object.assign(this.state.Booking, stateData.Booking || {});
     }
     this.populateResponderTable();
+    this._expandBookingAccordion();
   }
 
   /**
@@ -114,6 +115,7 @@ export class Responder extends DataPage {
     }
 
     this.populateResponderTable(true);
+    this._expandBookingAccordion();
   }
 
   /**
@@ -130,6 +132,17 @@ export class Responder extends DataPage {
     }
 
     this.populateResponderTable();
+    this._expandBookingAccordion();
+  }
+
+  /**
+   * Expand booking accordion when data arrives
+   */
+  _expandBookingAccordion() {
+    const accordion = document.getElementById('booking-section-responder');
+    if (accordion) {
+      accordion.open = true;
+    }
   }
 
 
@@ -221,17 +234,22 @@ export class Responder extends DataPage {
   populateResponderTable() {
     const tbody = document.getElementById('responder_tbody');
     const table = document.getElementById('responder_table');
+    const bookingTbody = document.getElementById('responder_booking_tbody');
+    const bookingTable = document.getElementById('responder_booking_table');
     if (!tbody || !table) return;
 
     // Clear existing rows
     tbody.innerHTML = '';
+    if (bookingTbody) bookingTbody.innerHTML = '';
 
     // Check if client was found in DB using persistent flag
     // Use persistent flag OR transient state flag (for backward compatibility)
     if (this.clientFromDB || this.state.Client._fromDB) {
       table.classList.add('responder-table-from-db');
+      if (bookingTable) bookingTable.classList.add('responder-table-from-db');
     } else {
       table.classList.remove('responder-table-from-db');
+      if (bookingTable) bookingTable.classList.remove('responder-table-from-db');
     }
 
     // Populate CLIENT fields
@@ -276,7 +294,8 @@ export class Responder extends DataPage {
       tbody.appendChild(row);
     });
 
-    // Populate BOOKING fields (excluding rate fields - handled by Calculator below)
+    // Populate BOOKING fields into accordion table
+    const bookingTarget = bookingTbody || tbody;
     const rateFields = ['hourlyRate', 'flatRate', 'totalAmount'];
     const skipFields = ['id', 'clientId', 'createdAt', 'updatedAt', ...rateFields];
 
@@ -336,13 +355,13 @@ export class Responder extends DataPage {
       valueCell.appendChild(input);
       row.appendChild(nameCell);
       row.appendChild(valueCell);
-      tbody.appendChild(row);
+      bookingTarget.appendChild(row);
     });
 
     // Populate Booking rate fields using Calculator
     // No duration field for Responder - defaults to 1 internally
     Calculator.renderFields(
-      tbody,
+      bookingTarget,
       this.state.Booking,
       () => this.updateFromState(this.state),
       { includeDuration: false }

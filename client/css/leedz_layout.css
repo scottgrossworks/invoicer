@@ -197,7 +197,7 @@ html, body {
 
 .leedz-form-section textarea {
   resize: vertical;
-  min-height: 60px;
+  max-height:50px;
 }
 
 .display-win {

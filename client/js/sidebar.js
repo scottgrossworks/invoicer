@@ -169,6 +169,8 @@ async function initializeAppBackground() {
 
     // Expose switchToPage globally so pages can navigate
     window.switchToPage = switchToPage;
+    // Expose so DataPage.showPageUI can call it after spinner completes
+    window.updateActionButtons = updateActionButtons;
 
     // DO NOT call onShow() again - tempStartupPage already called it on line 86
     // Calling it twice causes duplicate JWT token fetches
@@ -330,8 +332,10 @@ function switchToPage(pageName) {
   // STEP 6: Update UI (app label) IMMEDIATELY
   updateAppLabel(pageName);
 
-  // STEP 7: Show buttons IMMEDIATELY
-  updateActionButtons(page);
+  // STEP 7: Show buttons IMMEDIATELY (unless page manages its own button lifecycle)
+  if (!page.managesOwnButtons) {
+    updateActionButtons(page);
+  }
 
   // STEP 8: Call page onShow() in background (non-blocking)
   // DataPage needs await for workflow, Startup doesn't block
