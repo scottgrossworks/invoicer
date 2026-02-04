@@ -84,7 +84,7 @@ export class Startup extends Page {
    * Reload/retry server connection
    */
   async reload() {
-    console.log('Retrying server connection...');
+    // console.log('Retrying server connection...');
 
     const host = document.getElementById('startup-serverHost')?.value || 'localhost';
     const port = document.getElementById('startup-serverPort')?.value || '3000';
@@ -127,7 +127,7 @@ export class Startup extends Page {
       const sevenDays = 7 * 24 * 60 * 60 * 1000;
 
       if (stored.leedzJWT && stored.leedzJWTExpiry > (now + sevenDays)) {
-        console.log('JWT token valid until:', new Date(stored.leedzJWTExpiry));
+        // console.log('JWT token valid until:', new Date(stored.leedzJWTExpiry));
         return;
       }
 
@@ -157,7 +157,7 @@ export class Startup extends Page {
         leedzUserEmail: userInfo.email
       });
 
-      console.log('JWT token obtained, expires:', new Date(expires * 1000));
+      // console.log('JWT token obtained, expires:', new Date(expires * 1000));
     } catch (error) {
       console.log('JWT token fetch failed (non-critical):', error.message);
     }

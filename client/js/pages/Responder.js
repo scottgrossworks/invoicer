@@ -437,7 +437,7 @@ export class Responder extends DataPage {
 
               // Close the sidebar to make room for email composition
               chrome.tabs.sendMessage(tabs[0].id, { action: 'toggleSidebar' }, () => {
-                console.log('Sidebar closed');
+                console.log('Leedz sidebar closed');
               });
             }
           });

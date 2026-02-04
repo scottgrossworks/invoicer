@@ -9,7 +9,7 @@ import { DataPage } from './DataPage.js';
 import { DateTimeUtils } from '../utils/DateTimeUtils.js';
 import Booking from '../db/Booking.js';
 import Client from '../db/Client.js';
-import { generateShareEmailBody, synthesizeLeedDetails, synthesizeLeedRequirements } from '../utils/ShareUtils.js';
+import { generateShareEmailBody, synthesizeLeedDetails, synthesizeLeedRequirements, initiateSquareOAuth } from '../utils/ShareUtils.js';
 import { sendGmailMessage } from '../utils/GmailAuth.js';
 import { log, logError, showToast } from '../logging.js';
 
@@ -23,7 +23,7 @@ export class Share extends DataPage {
     this.emailColors = ['orange', 'RebeccaPurple', 'dodgerblue', 'deeppink', 'gold',  'green', 'DarkMagenta', 'blue', 'coral', 'Turquoise', 'darkorchid',  'lightsalmon', 'LightSeaGreen'];
     this.nextColorIndex = 0;
 
-    // Square authentication state (MOCK)
+    // Square authentication state (checked from server sq_st on load)
     this.squareAuthenticated = false;
 
     // Price enabled state
@@ -81,7 +81,7 @@ export class Share extends DataPage {
         if (indicator) {
           indicator.style.backgroundColor = selected?.dataset.color || 'var(--LEEDZ_DARKGREEN)';
         }
-        console.log('Selected trade:', this.selectedTrade);
+        // console.log('Selected trade:', this.selectedTrade);
       });
     }
 
@@ -106,7 +106,7 @@ export class Share extends DataPage {
     // Wire up Square auth button
     const squareAuthBtn = document.getElementById('squareAuthBtn');
     if (squareAuthBtn) {
-      squareAuthBtn.addEventListener('click', () => this.mockSquareAuth());
+      squareAuthBtn.addEventListener('click', () => this.handleSquareAuth());
     }
 
     // Wire up Share button
@@ -242,7 +242,7 @@ export class Share extends DataPage {
       // Populate trade pulldown
       this.populateTradeSelect();
 
-      console.log('Trades loaded:', trades.length);
+      // console.log('Trades loaded:', trades.length);
     } catch (error) {
       console.error('Failed to load trades:', error);
       showToast('Failed to load trades', 'error');
@@ -285,6 +285,13 @@ export class Share extends DataPage {
       }
 
       const user = await response.json();
+
+      // Check Square authorization status from server
+      if (user.sq_st === 'authorized') {
+        this.squareAuthenticated = true;
+        this.updateSquareButtonState();
+      }
+
       const fr = user.fr || '';
       if (!fr) return;
 
@@ -301,7 +308,7 @@ export class Share extends DataPage {
       });
 
       this.renderEmailList();
-      console.log('Friends loaded:', friends.length);
+      // console.log('Friends loaded:', friends.length);
 
     } catch (error) {
       console.error('Failed to load friends:', error);
@@ -339,7 +346,7 @@ export class Share extends DataPage {
       tradeSelect.appendChild(option);
     });
 
-    console.log('Trade select populated with', sortedTrades.length, 'trades');
+    // console.log('Trade select populated with', sortedTrades.length, 'trades');
   }
 
   clearPageUI() {
@@ -714,7 +721,7 @@ export class Share extends DataPage {
     this.renderEmailList();
 
     // MOCK: Update database
-    console.log('[MOCK] Updating email list in database:', this.emailList);
+    // console.log('[MOCK] Updating email list in database:', this.emailList);
   }
 
   /**
@@ -835,36 +842,48 @@ export class Share extends DataPage {
   }
 
   /**
-   * MOCK Square authentication
+   * Handle Square authentication via real OAuth flow
    */
-  async mockSquareAuth() {
+  async handleSquareAuth() {
     if (this.squareAuthenticated) {
-      // Already authenticated - this would normally open Square dashboard or settings
-      showToast('Square already authenticated', 'info');
+      showToast('Square already authorized', 'info');
       return;
     }
 
-    // MOCK: Simulate authentication flow
-    showToast('Authenticating with Square...', 'info');
+    try {
+      // Load Square config from leedz_config.json
+      const configResponse = await fetch(chrome.runtime.getURL('leedz_config.json'));
+      const config = await configResponse.json();
+      const squareUrl = config.square?.url;
+      const squareAppId = config.square?.appId;
 
-    // Simulate async auth delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!squareUrl || !squareAppId) {
+        throw new Error('Square configuration not found in leedz_config.json');
+      }
 
-    // MOCK: Set authenticated state
-    this.squareAuthenticated = true;
+      showToast('Connecting to Square...', 'info');
 
-    // Enable Price checkbox (user can now request payment)
-    const priceCheckbox = document.getElementById('priceCheckbox');
-    if (priceCheckbox) {
-      priceCheckbox.checked = true;
-      this.togglePrice(true);
+      // Real OAuth flow: popup → Square → auth code → AWS Lambda → DynamoDB
+      const result = await initiateSquareOAuth(squareUrl, squareAppId);
+
+      if (result.authorized) {
+        this.squareAuthenticated = true;
+
+        // Enable Price checkbox
+        const priceCheckbox = document.getElementById('priceCheckbox');
+        if (priceCheckbox) {
+          priceCheckbox.checked = true;
+          this.togglePrice(true);
+        }
+
+        this.updateSquareButtonState();
+        showToast('Square authorization successful!', 'success');
+      }
+
+    } catch (error) {
+      logError('Square OAuth failed:', error);
+      showToast('Square authorization failed: ' + error.message, 'error');
     }
-
-    // Update button state
-    this.updateSquareButtonState();
-
-    showToast('Square authentication successful', 'success');
-    console.log('[MOCK] Square authenticated successfully');
   }
 
   /**
@@ -939,8 +958,8 @@ export class Share extends DataPage {
         method: 'GET'
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      // console.log('Response status:', response.status);
+      // console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const errorBody = await response.text();

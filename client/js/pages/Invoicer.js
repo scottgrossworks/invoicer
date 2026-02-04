@@ -158,20 +158,21 @@ export class Invoicer extends DataPage {
         });
       });
 
-      console.log('OAuth token obtained for Calendar API');
+      // console.log('OAuth token obtained for Calendar API');
 
       // STEP 2: Construct Calendar event object from Booking data
       const calendarEvent = this.buildCalendarEvent();
 
       // DEBUG: Log what we're sending to Google
-      console.log('=== CALENDAR API REQUEST ===');
-      console.log('Booking data:', {
-        startDate: this.state.Booking.startDate,
-        startTime: this.state.Booking.startTime,
-        endDate: this.state.Booking.endDate,
-        endTime: this.state.Booking.endTime
-      });
-      console.log('Calendar event payload:', JSON.stringify(calendarEvent, null, 2));
+      /*
+        console.log('Booking data:', {
+          startDate: this.state.Booking.startDate,
+          startTime: this.state.Booking.startTime,
+          endDate: this.state.Booking.endDate,
+          endTime: this.state.Booking.endTime
+        });
+        console.log('Calendar event payload:', JSON.stringify(calendarEvent, null, 2));
+      */
 
       // STEP 3: POST to Google Calendar API
       const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
@@ -196,7 +197,7 @@ export class Invoicer extends DataPage {
 
       // SUCCESS
       showToast('Booking added to Google Calendar successfully', 'success');
-      console.log('Calendar event created:', result);
+      // console.log('Calendar event created:', result);
 
     } catch (error) {
       // ERROR HANDLING
@@ -236,12 +237,14 @@ export class Invoicer extends DataPage {
       const startTime24 = DateTimeUtils.convertTo24Hour(booking.startTime);
       const endTime24 = DateTimeUtils.convertTo24Hour(booking.endTime);
 
+      /*
       console.log('Time conversion:', {
         startTime12: booking.startTime,
         startTime24: startTime24,
         endTime12: booking.endTime,
         endTime24: endTime24
       });
+      */
 
       event.start = {
         dateTime: this.combineDateAndTime(booking.startDate, startTime24),
@@ -391,16 +394,16 @@ export class Invoicer extends DataPage {
     tbody.innerHTML = '';
 
     // Apply green table styling if client was loaded from DB
-    console.log('=== INVOICER TABLE STYLING ===');
-    console.log('_fromDB flag:', this.state.Client._fromDB);
-    console.log('clientFromDB flag:', this.clientFromDB);
+    /*
+      console.log('=== INVOICER TABLE STYLING ===');
+      console.log('_fromDB flag:', this.state.Client._fromDB);
+      console.log('clientFromDB flag:', this.clientFromDB);
+    */
 
     // Use persistent flag OR transient state flag (for backward compatibility)
     if (this.clientFromDB || this.state.Client._fromDB) {
-      console.log('✓ Client from DB - adding green table styling');
       table.classList.add('thankyou-table-from-db');  // Reuse same CSS class
     } else {
-      console.log('✗ Client NOT from DB - removing green styling');
       table.classList.remove('thankyou-table-from-db');
     }
 

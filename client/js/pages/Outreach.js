@@ -422,7 +422,7 @@ export class Outreach extends Page {
 
               // Close sidebar
               chrome.tabs.sendMessage(tabs[0].id, { action: 'toggleSidebar' }, () => {
-                console.log('Sidebar closed');
+                console.log('Leedz sidebar closed');
               });
             }
           });

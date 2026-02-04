@@ -371,7 +371,7 @@ export class Thankyou extends DataPage {
         return;
       }
 
-      log('Thank you text generated successfully');
+      // log('Thank you text generated successfully');
 
       // Get current tab and send message to content script
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -408,7 +408,7 @@ export class Thankyou extends DataPage {
               // Close the sidebar to make room for email composition
               // FIXME FIXME FIXME 11/5: Is this working?
               chrome.tabs.sendMessage(tabs[0].id, { action: 'toggleSidebar' }, () => {
-                console.log('Sidebar closed');
+                console.log('Leedz sidebar closed');
               });
             }
           });
@@ -479,7 +479,7 @@ BOOKING INFORMATION:
 - Notes: ${bookingNotes}${specialInfoSection}
 
 INSTRUCTIONS:
-1. Write a natural, conversational thank you email (3-6 concise sentences)
+1. Write a natural, conversational thank you email (3-5 concise sentences, including any special instructions)
 2. Express genuine gratitude for their business
 3. Reference the specific service/event that was completed
 4. If special information is provided above, incorporate it into the message
