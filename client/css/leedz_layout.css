@@ -281,7 +281,7 @@ html, body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 1000;
+
   text-align: center;
 }
 
@@ -292,10 +292,11 @@ html, body {
 }
 
 .loading-spinner span {
+  z-index: 10000;
   display: block;
   font-size: 15px;
   font-weight: 600;
-  color: dimgray;
+  color: darkslategrey;
 }
 
 .status-bar {
@@ -1633,5 +1634,12 @@ input.invalid {
   height: 16px;
   background-color: var(--LEEDZ_DARKGREEN);
   border-radius: 50%;
+}
+
+
+div.trade-selector-container {
+  display:flex;
+  padding:10px;
+  align-items: center;
 }
 

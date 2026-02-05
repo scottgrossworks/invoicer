@@ -147,12 +147,6 @@ export class Share extends DataPage {
     }
     this.populateBookingTable();
     this.populateSpecialInfoSection();
-
-    // CRITICAL: Expand Booking accordion when data arrives
-    const bookingAccordion = document.getElementById('booking-section-share');
-    if (bookingAccordion) {
-      bookingAccordion.open = true;
-    }
   }
 
   /**
@@ -185,12 +179,6 @@ export class Share extends DataPage {
     // CRITICAL: Apply green styling - client from DB
     this.populateBookingTable(true);
     this.populateSpecialInfoSection();
-
-    // CRITICAL: Expand Booking accordion when data arrives
-    const bookingAccordion = document.getElementById('booking-section-share');
-    if (bookingAccordion) {
-      bookingAccordion.open = true;
-    }
   }
 
   /**
@@ -209,12 +197,6 @@ export class Share extends DataPage {
 
     this.populateBookingTable();
     this.populateSpecialInfoSection();
-
-    // CRITICAL: Expand Booking accordion when data arrives
-    const bookingAccordion = document.getElementById('booking-section-share');
-    if (bookingAccordion) {
-      bookingAccordion.open = true;
-    }
   }
 
   /**
