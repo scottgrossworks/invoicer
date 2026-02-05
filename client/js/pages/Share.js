@@ -9,7 +9,7 @@ import { DataPage } from './DataPage.js';
 import { DateTimeUtils } from '../utils/DateTimeUtils.js';
 import Booking from '../db/Booking.js';
 import Client from '../db/Client.js';
-import { generateShareEmailBody, synthesizeLeedDetails, synthesizeLeedRequirements, initiateSquareOAuth } from '../utils/ShareUtils.js';
+import { generateShareEmailBody, synthesizeLeedDetails, synthesizeLeedRequirements } from '../utils/ShareUtils.js';
 import { sendGmailMessage } from '../utils/GmailAuth.js';
 import { log, logError, showToast } from '../logging.js';
 
@@ -842,7 +842,9 @@ export class Share extends DataPage {
   }
 
   /**
-   * Handle Square authentication via real OAuth flow
+   * Handle Square authorization
+   * If already authorized, do nothing.
+   * Otherwise open editUserPage for Square OAuth (server handles user creation if needed).
    */
   async handleSquareAuth() {
     if (this.squareAuthenticated) {
@@ -851,38 +853,19 @@ export class Share extends DataPage {
     }
 
     try {
-      // Load Square config from leedz_config.json
-      const configResponse = await fetch(chrome.runtime.getURL('leedz_config.json'));
-      const config = await configResponse.json();
-      const squareUrl = config.square?.url;
-      const squareAppId = config.square?.appId;
-
-      if (!squareUrl || !squareAppId) {
-        throw new Error('Square configuration not found in leedz_config.json');
+      const token = await this.getJWTToken();
+      if (!token) {
+        throw new Error('No session token. Please restart the extension.');
       }
 
-      showToast('Connecting to Square...', 'info');
-
-      // Real OAuth flow: popup → Square → auth code → AWS Lambda → DynamoDB
-      const result = await initiateSquareOAuth(squareUrl, squareAppId);
-
-      if (result.authorized) {
-        this.squareAuthenticated = true;
-
-        // Enable Price checkbox
-        const priceCheckbox = document.getElementById('priceCheckbox');
-        if (priceCheckbox) {
-          priceCheckbox.checked = true;
-          this.togglePrice(true);
-        }
-
-        this.updateSquareButtonState();
-        showToast('Square authorization successful!', 'success');
-      }
+      // Open editUserPage in new tab — server creates user if needed, Square OAuth flow lives there
+      chrome.tabs.create({
+        url: `https://jjz8op6uy4.execute-api.us-west-2.amazonaws.com/Leedz_Stage_1/editUserPage?session=${encodeURIComponent(token)}`
+      });
 
     } catch (error) {
-      logError('Square OAuth failed:', error);
-      showToast('Square authorization failed: ' + error.message, 'error');
+      logError('Square auth redirect failed:', error);
+      showToast('Could not open Square authorization: ' + error.message, 'error');
     }
   }
 
