@@ -1061,6 +1061,8 @@ export class Share extends DataPage {
    */
   async onShare() {
     try {
+      this.showLoadingSpinner();
+
       // Pre-generate leed ID for email button URLs
       // Uses 48-bit random integer (281 trillion values) to avoid collisions
       // Server reuses this ID; on the extremely unlikely collision, server generates its own
@@ -1109,6 +1111,8 @@ export class Share extends DataPage {
     } catch (error) {
       logError('Share failed:', error);
       showToast(`Share failed: ${error.message}`, 'error');
+    } finally {
+      this.hideLoadingSpinner();
     }
   }
 
