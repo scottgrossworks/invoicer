@@ -613,14 +613,15 @@ export class Share extends DataPage {
     // EMAIL (em) - OPTIONAL
     const email = this.state.Client.email || '';
 
-    // PRICE (pr) - REQUIRED, validate and convert to cents
+    // PRICE (pr) - validate and convert to cents
+    // MAX_PRICE_CENTS from leedz_config.json must match server env var on addLeed Lambda
     let priceCents = 0;
     if (this.priceEnabled) {
       const priceInput = document.getElementById('priceAmount');
       const priceValue = priceInput?.value || '0';
+      const maxPriceCents = this.state.Config?.pricing?.MAX_PRICE_CENTS || 10000;
       try {
-        const priceDollars = DateTimeUtils.validatePrice(priceValue);
-        priceCents = priceDollars * 100; // Convert dollars to cents
+        priceCents = DateTimeUtils.validatePrice(priceValue, maxPriceCents);
       } catch (err) {
         errors.push(`Price error: ${err.message}`);
       }

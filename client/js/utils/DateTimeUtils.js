@@ -367,13 +367,16 @@ export class DateTimeUtils {
   }
 
   /**
-   * Validate price value (integer dollars between 0 and 200)
-   * Ported from inline-edit.js price validation
-   * @param {string|number} priceValue - Price value to validate
-   * @returns {number} Validated price as integer
-   * @throws {Error} If price is invalid
+   * Validate price and convert to cents for server/Square API.
+   * Accepts: '$5', '5', '$5.14', '10.50', '0'
+   * Returns price in cents (e.g. '$5.14' -> 514)
+   *
+   * @param {string|number} priceValue - Price in dollars (user input)
+   * @param {number} maxPriceCents - Max allowed price in cents (from leedz_config.json)
+   * @returns {number} Price in cents (integer)
+   * @throws {Error} If price is invalid or exceeds max
    */
-  static validatePrice(priceValue) {
+  static validatePrice(priceValue, maxPriceCents = 10000) {
     if (priceValue === null || priceValue === undefined || priceValue === '') {
       return 0; // Allow 0 for free leedz
     }
@@ -384,19 +387,20 @@ export class DateTimeUtils {
       priceStr = priceStr.substring(1);
     }
 
-    // Must be whole number
-    if (!/^[0-9]+$/.test(priceStr)) {
-      throw new Error('Price must be a whole number (no decimals)');
+    // Must be a number with optional 2 decimal places: '5', '5.14', '10.50'
+    if (!/^[0-9]+(\.[0-9]{1,2})?$/.test(priceStr)) {
+      throw new Error('Price must be a dollar amount (e.g. 5, 5.14, 10.50)');
     }
 
-    const price = parseInt(priceStr, 10);
+    // Convert dollars to cents (integer)
+    const priceCents = Math.round(parseFloat(priceStr) * 100);
 
-    // Max price 200
-    if (price > 200) {
-      throw new Error('Maximum leed price: $200');
+    const maxDollars = maxPriceCents / 100;
+    if (priceCents > maxPriceCents) {
+      throw new Error(`Maximum leed price: $${maxDollars}`);
     }
 
-    return price;
+    return priceCents;
   }
 
   /**
