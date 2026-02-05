@@ -1094,6 +1094,9 @@ export class Share extends DataPage {
       log(`Lead shared: ${result.ti} (${result.tn}) sh=${shareList}`);
       showToast('Success! Leed Shared.', 'success');
 
+      // Clear form to prevent duplicate posting
+      this.clear();
+
     } catch (error) {
       logError('Share failed:', error);
       showToast(`Share failed: ${error.message}`, 'error');
