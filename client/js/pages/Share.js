@@ -11,6 +11,7 @@ import Booking from '../db/Booking.js';
 import Client from '../db/Client.js';
 import { generateShareEmailBody, synthesizeLeedDetails, synthesizeLeedRequirements } from '../utils/ShareUtils.js';
 import { sendGmailMessage } from '../utils/GmailAuth.js';
+import { Calculator } from '../utils/Calculator.js';
 import { log, logError, showToast } from '../logging.js';
 
 export class Share extends DataPage {
@@ -418,8 +419,8 @@ export class Share extends DataPage {
       table.classList.remove('share-table-from-db');
     }
 
-    // Skip internal fields
-    const skipFields = ['id', 'clientId', 'createdAt', 'updatedAt'];
+    // Skip internal fields + rate fields (handled by Calculator.renderFields)
+    const skipFields = ['id', 'clientId', 'createdAt', 'updatedAt', 'duration', 'hourlyRate', 'flatRate', 'totalAmount'];
     const allFields = [...this.clientFields, ...this.bookingFields];
 
     // Populate table rows with booking and client data
@@ -495,6 +496,9 @@ export class Share extends DataPage {
       row.appendChild(valueCell);
       tbody.appendChild(row);
     });
+
+    // Rate fields with auto-calculation (reuse Calculator pattern from Booker/Invoicer)
+    Calculator.renderFields(tbody, this.state.Booking, () => this.populateBookingTable(this.clientFromDB), { includeDuration: true });
   }
 
   /**
