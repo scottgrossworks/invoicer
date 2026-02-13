@@ -41,6 +41,9 @@ try {
 let oauthToken = null;
 let tokenExpiry = null;
 
+// Token refresh interval - validates token every 45 minutes
+let tokenRefreshInterval = null;
+
 // ==============================================================================
 // HTTP SERVER (for Chrome extension communication)
 // ==============================================================================
@@ -68,6 +71,12 @@ function createHttpServer() {
             return;
         }
 
+        // GET /token - Share token with sibling instances
+        if (req.method === 'GET' && req.url === '/token') {
+            handleTokenRequest(req, res);
+            return;
+        }
+
         // POST /gmail-authorize - Receive OAuth token from extension
         if (req.method === 'POST' && req.url === '/gmail-authorize') {
             handleAuthorize(req, res);
@@ -80,6 +89,15 @@ function createHttpServer() {
     });
 
     const port = config.http?.port || 3001;
+
+    server.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            console.error(`[Gmail MCP] Port ${port} already in use — another instance owns the HTTP server. MCP stdio will still work.`);
+        } else {
+            console.error(`[Gmail MCP] HTTP server error: ${err.message}`);
+        }
+    });
+
     server.listen(port, '127.0.0.1', () => {
         console.error(`[Gmail MCP] HTTP server listening on http://127.0.0.1:${port}`);
     });
@@ -109,8 +127,66 @@ function handleHealthCheck(req, res) {
 }
 
 /**
+ * Handle token request from sibling instances
+ * Returns the current OAuth token if valid
+ */
+function handleTokenRequest(req, res) {
+    const hasValidToken = oauthToken && tokenExpiry && Date.now() < tokenExpiry;
+
+    if (!hasValidToken) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'No valid token' }));
+        return;
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ token: oauthToken, expiry: tokenExpiry }));
+    console.error('[Gmail MCP] Token shared with sibling instance');
+}
+
+/**
+ * Try to fetch token from the primary instance on port 3001
+ * Used when this instance lost the port race
+ */
+async function fetchTokenFromPrimary() {
+    const port = config.http?.port || 3001;
+    try {
+        const response = await axios.get(`http://127.0.0.1:${port}/token`, { timeout: 2000 });
+        if (response.data?.token) {
+            oauthToken = response.data.token;
+            tokenExpiry = response.data.expiry;
+            console.error('[Gmail MCP] Token fetched from primary instance');
+            return true;
+        }
+    } catch (error) {
+        console.error(`[Gmail MCP] Could not fetch token from primary: ${error.message}`);
+    }
+    return false;
+}
+
+/**
+ * Validate token against Gmail API to check if it's actually still valid
+ * Chrome tokens can expire before our local timer thinks they should
+ * @returns {Promise<boolean>} True if token is valid
+ */
+async function validateTokenWithGmail() {
+    if (!oauthToken) return false;
+
+    try {
+        const response = await axios.get('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
+            headers: { 'Authorization': `Bearer ${oauthToken}` },
+            timeout: 5000
+        });
+        return response.status === 200;
+    } catch (error) {
+        console.error(`[Gmail MCP] Token validation failed: ${error.message}`);
+        return false;
+    }
+}
+
+/**
  * Handle OAuth token authorization from Chrome extension
- * Stores token for 1 hour
+ * Stores token with 1-hour expiry and sets up periodic validation
  */
 function handleAuthorize(req, res) {
     let body = '';
@@ -119,7 +195,7 @@ function handleAuthorize(req, res) {
         body += chunk.toString();
     });
 
-    req.on('end', () => {
+    req.on('end', async () => {
         try {
             const data = JSON.parse(body);
 
@@ -133,12 +209,41 @@ function handleAuthorize(req, res) {
             oauthToken = data.token;
             tokenExpiry = Date.now() + (60 * 60 * 1000); // 1 hour from now
 
-            console.error(`[Gmail MCP] OAuth token received, expires at ${new Date(tokenExpiry).toISOString()}`);
+            // Validate token immediately to confirm it works
+            const isValid = await validateTokenWithGmail();
+            if (!isValid) {
+                oauthToken = null;
+                tokenExpiry = null;
+                console.error('[Gmail MCP] Token received but failed Gmail API validation');
+                res.writeHead(401, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Token failed Gmail API validation. Try revoking and re-authorizing.' }));
+                return;
+            }
+
+            console.error(`[Gmail MCP] OAuth token received and validated, expires at ${new Date(tokenExpiry).toISOString()}`);
+
+            // Set up periodic token validation (every 45 minutes)
+            // This catches early expiration from Chrome/Google side
+            if (tokenRefreshInterval) clearInterval(tokenRefreshInterval);
+            tokenRefreshInterval = setInterval(async () => {
+                if (!oauthToken) {
+                    clearInterval(tokenRefreshInterval);
+                    return;
+                }
+                const stillValid = await validateTokenWithGmail();
+                if (!stillValid) {
+                    console.error('[Gmail MCP] Token expired during periodic check, clearing token');
+                    oauthToken = null;
+                    tokenExpiry = null;
+                    clearInterval(tokenRefreshInterval);
+                }
+            }, 45 * 60 * 1000); // Check every 45 minutes
 
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
                 success: true,
-                expiresAt: new Date(tokenExpiry).toISOString()
+                expiresAt: new Date(tokenExpiry).toISOString(),
+                validated: true
             }));
 
         } catch (error) {
@@ -254,8 +359,14 @@ function handleToolsList(id) {
 async function handleToolCall(id, params) {
     console.error('[Gmail MCP] Handling tool call');
 
-    // Check if we have a valid token
-    const hasValidToken = oauthToken && tokenExpiry && Date.now() < tokenExpiry;
+    // Check if we have a valid token, try fetching from primary if not
+    let hasValidToken = oauthToken && tokenExpiry && Date.now() < tokenExpiry;
+
+    if (!hasValidToken) {
+        console.error('[Gmail MCP] No local token, attempting to fetch from primary instance...');
+        const fetched = await fetchTokenFromPrimary();
+        hasValidToken = fetched && oauthToken && tokenExpiry && Date.now() < tokenExpiry;
+    }
 
     if (!hasValidToken) {
         return createErrorResponse(id, -32001, 'No valid OAuth token. Please authorize from Chrome extension first.');
@@ -290,6 +401,16 @@ async function handleToolCall(id, params) {
 
     } catch (error) {
         console.error(`[Gmail MCP] Failed to send email: ${error.message}`);
+
+        // If 401 Unauthorized, the token has expired early - clear it and give a clear message
+        if (error.response && error.response.status === 401) {
+            console.error('[Gmail MCP] Token rejected by Gmail API (401), clearing stored token');
+            oauthToken = null;
+            tokenExpiry = null;
+            if (tokenRefreshInterval) clearInterval(tokenRefreshInterval);
+            return createErrorResponse(id, -32001, 'OAuth token expired. Please re-authorize from Chrome extension (click Enable Gmail or Refresh Gmail).');
+        }
+
         return createErrorResponse(id, -32603, `Failed to send email: ${error.message}`);
     }
 }

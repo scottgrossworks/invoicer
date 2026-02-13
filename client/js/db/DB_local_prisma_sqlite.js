@@ -77,7 +77,7 @@ cleanFloat(value) {
       const clients = state.Clients || [];
 
       if (clients.length === 0) {
-        console.log('No clients to save');
+        // console.log('No clients to save');
         return;
       }
 
@@ -244,7 +244,7 @@ cleanFloat(value) {
 
       // SUCCESS!
       state.status = 'saved';
-      console.log("Save Successful :)");
+      // console.log("Save Successful :)");
       
     } catch (error) {
 
@@ -283,10 +283,10 @@ async load() {
           // Handle both old serverUrl format and new serverHost format
           if (startupConfig.serverHost && startupConfig.serverPort) {
             serverUrl = `http://${startupConfig.serverHost}:${startupConfig.serverPort}`;
-            console.log('Using startup config from Chrome storage for load():', serverUrl);
+            // console.log('Using startup config from Chrome storage for load():', serverUrl);
           } else if (startupConfig.serverUrl && startupConfig.serverPort) {
             serverUrl = `${startupConfig.serverUrl}:${startupConfig.serverPort}`;
-            console.log('Using legacy startup config from Chrome storage for load():', serverUrl);
+            // console.log('Using legacy startup config from Chrome storage for load():', serverUrl);
           }
         }
       } catch (error) {
@@ -346,7 +346,7 @@ async load() {
       if (name) params.append('name', name);
 
       if (!email && !name) {
-        console.log('searchClient: No email or name provided');
+        // console.log('searchClient: No email or name provided');
         return null;
       }
 
@@ -357,7 +357,7 @@ async load() {
       // console.log('Response status:', response.status, response.statusText);
 
       if (!response.ok) {
-        console.log(`searchClient: Server returned ${response.status}`);
+        // console.log(`searchClient: Server returned ${response.status}`);
         return null;
       }
 
@@ -371,7 +371,7 @@ async load() {
 
       // Return first matching client or null
       if (clients && clients.length > 0) {
-        console.log('✓ searchClient: Found client:', clients[0]);
+        // console.log('✓ searchClient: Found client:', clients[0]);
         return clients[0];
       }
 

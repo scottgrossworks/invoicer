@@ -65,6 +65,9 @@ public partial class Form1 : Form
             InitializeComponent();
 
             SetupTrayIcon();
+
+            // Auto-start the server on launch
+            StartNodeServer();
         }
         catch (Exception ex)
         {

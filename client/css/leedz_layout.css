@@ -143,6 +143,7 @@ html, body {
   flex-direction: column;
   flex: 1;       /* Take remaining space after .section-header */
   min-height: 0; /* Allow flex child to shrink */
+  max-height:650px;
 }
 
 /* Booker button wrapper - hidden by default */
@@ -204,6 +205,7 @@ html, body {
   flex: 1;
   margin: 2px 0 20px 0;
   min-height: 0;     /* Allow flex child to shrink below content size */
+  max-height: 700px !important;
   overflow-y: auto;  /* This container scrolls, not the parent */
   border: 1px solid silver;
   border-radius: 4px;
@@ -1171,6 +1173,14 @@ input.invalid {
 /* ============================================================================ */
 /* STARTUP CONFIGURATION PAGE STYLES                                          */
 /* ============================================================================ */
+
+/* Remove height caps for Startup page so accordion content fills sidebar space */
+#page-startup.page-content {
+  max-height: none;
+}
+#display_win_startup {
+  max-height: 76vh !important;
+}
 
 /* Increase font size by 20% for startup page table */
 #page-startup .booking-table {

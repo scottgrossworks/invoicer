@@ -11,6 +11,7 @@ export class Startup extends Page {
   constructor(state, leedzConfig = null) {
     super('startup', state, leedzConfig);
     this.awsApiGatewayUrl = (leedzConfig || this.leedzConfig)?.aws?.apiGatewayUrl || null;
+    this.gmailRefreshTimer = null;
   }
 
   async initialize() {
@@ -19,7 +20,12 @@ export class Startup extends Page {
     document.getElementById('startupSaveBtn')?.addEventListener('click', () => this.save());
     document.getElementById('reloadBtnStartup')?.addEventListener('click', () => this.reload());
 
-    // Gmail buttons removed - no longer in Startup page
+    // Wire up Gmail authorization buttons
+    const enableBtn = document.getElementById('enable-gmail-btn');
+    const refreshBtn = document.getElementById('refresh-gmail-btn');
+
+    enableBtn?.addEventListener('click', () => this.enableGmail());
+    refreshBtn?.addEventListener('click', () => this.refreshGmail());
   }
 
   onShowImpl() {
@@ -30,6 +36,7 @@ export class Startup extends Page {
     setTimeout(() => {
       this.loadSavedConfig();
       this.checkServerStatus();
+      this.checkMcpStatus();
       this.fetchJWTToken();
     }, 100);
   }
@@ -114,7 +121,215 @@ export class Startup extends Page {
     }
   }
 
-  // MCP and Gmail functions removed - not needed in Startup page
+  /**
+   * Check MCP server status
+   */
+  async checkMcpStatus() {
+    const host = document.getElementById('mcp-host')?.value || '127.0.0.1';
+    const port = document.getElementById('mcp-port')?.value || '3001';
+    const statusDiv = document.getElementById('mcp-status');
+    const enableBtn = document.getElementById('enable-gmail-btn');
+    const refreshBtn = document.getElementById('refresh-gmail-btn');
+
+    if (!statusDiv) return;
+
+    try {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 2000);
+
+      const response = await fetch(`http://${host}:${port}/health`, {
+        signal: controller.signal,
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      const data = await response.json();
+
+      enableBtn.disabled = false;
+      refreshBtn.disabled = !data.tokenValid;
+
+      statusDiv.innerHTML = `Connected to ${data.service || 'gmail-mcp'}<br>IP: ${host}:${port}<br>${data.tokenValid ? 'Authorized and ready' : 'Ready to authorize'}`;
+      statusDiv.className = 'status-success';
+    } catch (error) {
+      enableBtn.disabled = true;
+      refreshBtn.disabled = true;
+      statusDiv.textContent = error.name === 'AbortError' ? `MCP server not responding at ${host}:${port}` : 'MCP server offline';
+      statusDiv.className = 'status-warning';
+    }
+  }
+
+  /**
+   * Enable Gmail sending via MCP server
+   * Starts auto-refresh timer to keep token alive for the full hour
+   */
+  async enableGmail() {
+    const host = document.getElementById('mcp-host')?.value || '127.0.0.1';
+    const port = document.getElementById('mcp-port')?.value || '3001';
+    const statusDiv = document.getElementById('mcp-status');
+
+    try {
+      statusDiv.textContent = 'Getting OAuth token...';
+      statusDiv.className = 'status-checking';
+
+      // Get OAuth token from Chrome
+      const token = await new Promise((resolve, reject) => {
+        chrome.identity.getAuthToken({ interactive: true }, (token) => {
+          chrome.runtime.lastError ? reject(chrome.runtime.lastError) : resolve(token);
+        });
+      });
+
+      // Send token to MCP server
+      const response = await fetch(`http://${host}:${port}/gmail-authorize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `MCP server returned ${response.status}`);
+      }
+
+      statusDiv.textContent = 'Gmail sending enabled (auto-refresh active, 1 hour session)';
+      statusDiv.className = 'status-success';
+      document.getElementById('refresh-gmail-btn').disabled = false;
+      showToast('Gmail authorization successful', 'success');
+
+      // Start auto-refresh timer: refresh token every 45 minutes to prevent expiration
+      this.startGmailAutoRefresh();
+
+    } catch (error) {
+      statusDiv.textContent = `Authorization failed: ${error.message}`;
+      statusDiv.className = 'status-error';
+      showToast('Gmail authorization failed', 'error');
+    }
+  }
+
+  /**
+   * Auto-refresh Gmail token every 45 minutes
+   * Chrome OAuth tokens can expire silently. This keeps the session alive
+   * by proactively cycling the token before Google revokes it.
+   */
+  startGmailAutoRefresh() {
+    // Clear any existing timer
+    if (this.gmailRefreshTimer) clearInterval(this.gmailRefreshTimer);
+
+    const REFRESH_INTERVAL = 45 * 60 * 1000; // 45 minutes
+
+    this.gmailRefreshTimer = setInterval(async () => {
+      console.log('[Gmail Auto-Refresh] Refreshing token...');
+      try {
+        await this.refreshGmailSilent();
+        console.log('[Gmail Auto-Refresh] Token refreshed successfully');
+      } catch (error) {
+        console.log('[Gmail Auto-Refresh] Failed:', error.message);
+        // Stop auto-refresh if it fails - user will need to re-enable manually
+        clearInterval(this.gmailRefreshTimer);
+        this.gmailRefreshTimer = null;
+
+        const statusDiv = document.getElementById('mcp-status');
+        if (statusDiv) {
+          statusDiv.textContent = 'Token expired. Click Enable Gmail to re-authorize.';
+          statusDiv.className = 'status-warning';
+        }
+      }
+    }, REFRESH_INTERVAL);
+
+    console.log(`[Gmail Auto-Refresh] Timer set: refresh every ${REFRESH_INTERVAL / 60000} minutes`);
+  }
+
+  /**
+   * Silent token refresh - no UI feedback, used by auto-refresh timer
+   */
+  async refreshGmailSilent() {
+    const host = document.getElementById('mcp-host')?.value || '127.0.0.1';
+    const port = document.getElementById('mcp-port')?.value || '3001';
+
+    // Revoke old cached token from Chrome
+    await new Promise((resolve) => {
+      chrome.identity.getAuthToken({ interactive: false }, (token) => {
+        if (token) {
+          chrome.identity.removeCachedAuthToken({ token }, resolve);
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    // Get fresh token (non-interactive since user already authorized)
+    const token = await new Promise((resolve, reject) => {
+      chrome.identity.getAuthToken({ interactive: false }, (token) => {
+        chrome.runtime.lastError ? reject(chrome.runtime.lastError) : resolve(token);
+      });
+    });
+
+    if (!token) throw new Error('No token returned from Chrome');
+
+    // Send fresh token to MCP server
+    const response = await fetch(`http://${host}:${port}/gmail-authorize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token })
+    });
+
+    if (!response.ok) throw new Error(`MCP server returned ${response.status}`);
+  }
+
+  /**
+   * Refresh Gmail OAuth token (manual button click)
+   * Also restarts the auto-refresh timer
+   */
+  async refreshGmail() {
+    const host = document.getElementById('mcp-host')?.value || '127.0.0.1';
+    const port = document.getElementById('mcp-port')?.value || '3001';
+    const statusDiv = document.getElementById('mcp-status');
+
+    try {
+      statusDiv.textContent = 'Refreshing token...';
+      statusDiv.className = 'status-checking';
+
+      // Revoke old token
+      await new Promise((resolve) => {
+        chrome.identity.getAuthToken({ interactive: false }, (token) => {
+          if (token) {
+            chrome.identity.removeCachedAuthToken({ token }, resolve);
+          } else {
+            resolve();
+          }
+        });
+      });
+
+      // Get new token
+      const token = await new Promise((resolve, reject) => {
+        chrome.identity.getAuthToken({ interactive: true }, (token) => {
+          chrome.runtime.lastError ? reject(chrome.runtime.lastError) : resolve(token);
+        });
+      });
+
+      // Send to MCP server
+      const response = await fetch(`http://${host}:${port}/gmail-authorize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `MCP server returned ${response.status}`);
+      }
+
+      statusDiv.textContent = 'Token refreshed (auto-refresh active, 1 hour session)';
+      statusDiv.className = 'status-success';
+      showToast('Gmail token refreshed', 'success');
+
+      // Restart auto-refresh timer
+      this.startGmailAutoRefresh();
+
+    } catch (error) {
+      statusDiv.textContent = `Refresh failed: ${error.message}`;
+      statusDiv.className = 'status-error';
+      showToast('Token refresh failed', 'error');
+    }
+  }
 
   /**
    * Fetch JWT token for LEEDZ marketplace

@@ -52,8 +52,8 @@ if exist "img" (
 echo [3/6] Copying JavaScript (excluding dev files)...
 if exist "js" (
     mkdir "%DIST_DIR%\js"
-    :: /XF excludes specific files
-    robocopy "js" "%DIST_DIR%\js" /E /XF *.copy.js NOTES.md /NFL /NDL /NJH /NJS
+    :: /XF excludes dev files, /XD excludes dev directories
+    robocopy "js" "%DIST_DIR%\js" /E /XD TMP /XF *.copy.js *.md *.txt /NFL /NDL /NJH /NJS
 )
 
 :: 4. COPY ROOT FILES

@@ -17,7 +17,7 @@ pushd "%EXE_DIR%" || (
   exit /b 1
 )
 
-tray.exe ^
+TheLeedz.exe ^
   --icon-path="%ICON_FULL%" ^
   --config-path="%CONFIG_FULL%"
 

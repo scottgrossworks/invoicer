@@ -31,7 +31,7 @@ class GmailParser extends EventParser {
       const configResponse = await fetch(chrome.runtime.getURL('leedz_config.json'));
       if (!configResponse.ok) throw new Error(`Config file not found: ${configResponse.status}`);
       CONFIG = await configResponse.json();
-      console.log('Gmail parser config loaded successfully');
+      // console.log('Gmail parser config loaded successfully');
     } catch (error) {
       console.error('FATAL: Unable to load leedz_config.json:', error);
       throw new Error('Gmail parser cannot initialize - config file missing or invalid');
@@ -47,10 +47,11 @@ class GmailParser extends EventParser {
       // Load Config from state if available
       if (this.STATE && this.STATE.Config) {
         this.userConfig = this.STATE.Config;
-        console.log('GmailParser: User config loaded from state', {
+        /* console.log('GmailParser: User config loaded from state', {
           hasEmail: !!this.userConfig.companyEmail,
           hasName: !!this.userConfig.companyName
         });
+        */
       }
     } catch (error) {
       console.warn('GmailParser: Failed to load user config, identity filtering disabled:', error);
@@ -101,7 +102,7 @@ class GmailParser extends EventParser {
           name: senderData.name || null
         });
       } else {
-        console.log('GmailParser: Filtered out user identity from sender:', senderData);
+        // console.log('GmailParser: Filtered out user identity from sender:', senderData);
       }
     }
 
@@ -117,7 +118,7 @@ class GmailParser extends EventParser {
               name: recipient.name || null
             });
           } else {
-            console.log('GmailParser: Filtered out user identity from recipients:', recipient);
+            // console.log('GmailParser: Filtered out user identity from recipients:', recipient);
           }
         }
       });
@@ -288,12 +289,11 @@ class GmailParser extends EventParser {
             const name = this._normalizeName(rawName);
             // console.log(`Primary sender found: name='${name}', email='${email}'`);
             return { email, name };
-        } else {
-          console.log("All sender elements were inside quote blocks");
-        }
+        } 
       }
-      console.log("Could not find a primary sender element.");
+      console.log("Gmail parser could not find a primary sender element.");
       return { email: null, name: null };
+    
     } catch (error) {
       console.error('Error extracting email/name:', error);
       return { email: null, name: null };

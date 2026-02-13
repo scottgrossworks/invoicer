@@ -42,6 +42,12 @@ try {
 
 // Fetch API key from database Config at startup
 let dbApiKey = null;
+
+// Leedz marketplace JWT - fetched from AWS getToken endpoint
+// Same token Startup.js stores in chrome.storage.local.leedzJWT
+let leedzJWT = null;
+let leedzJWTExpiry = null;
+
 (async () => {
     try {
         const dbConfigUrl = `${config.database.apiUrl}/config`;
@@ -53,6 +59,9 @@ let dbApiKey = null;
     } catch (error) {
         console.error(`[MCP] Could not fetch API key from database, using config file: ${error.message}`);
     }
+
+    // Fetch Leedz JWT at startup
+    await fetchLeedzJWT();
 })();
 
 // System prompt for Claude API - defines available endpoints and response format
@@ -210,6 +219,53 @@ function extractJsonString(text) {
     
     // Strategy 3: Find first JSON block by bracket balancing
     return findFirstJsonBlock(trimmed);
+}
+
+// ==============================================================================
+// AWS / LEEDZ JWT UTILITIES
+// ==============================================================================
+
+/**
+ * Fetch JWT token from AWS getToken endpoint
+ * Same flow as Startup.js:fetchJWTToken() (lines 337-379)
+ * Calls GET /getToken?email={email} and stores token in memory
+ */
+async function fetchLeedzJWT() {
+    try {
+        const apiUrl = config.aws?.apiGatewayUrl;
+        const email = config.aws?.email;
+
+        if (!apiUrl || !email) {
+            logWarn('AWS config missing apiGatewayUrl or email - share_leed will not work');
+            return;
+        }
+
+        // Check if token still valid (7+ days remaining, same threshold as Startup.js)
+        const now = Date.now();
+        const sevenDays = 7 * 24 * 60 * 60 * 1000;
+        if (leedzJWT && leedzJWTExpiry > (now + sevenDays)) {
+            return;
+        }
+
+        const url = `${apiUrl}/getToken?email=${encodeURIComponent(email)}`;
+        const response = await axios.get(url, { timeout: 5000 });
+
+        const { token, expires } = response.data;
+        if (!token) {
+            logWarn('getToken returned no token');
+            return;
+        }
+
+        leedzJWT = token;
+        leedzJWTExpiry = expires * 1000; // Convert seconds to ms, same as Startup.js line 371
+
+        logInfo(`Leedz JWT obtained, expires: ${new Date(leedzJWTExpiry).toISOString()}`);
+        console.error(`[MCP] Leedz JWT obtained, expires: ${new Date(leedzJWTExpiry).toISOString()}`);
+
+    } catch (error) {
+        logError(`Failed to fetch Leedz JWT: ${error.message}`);
+        console.error(`[MCP] Failed to fetch Leedz JWT: ${error.message}`);
+    }
 }
 
 // ==============================================================================
@@ -491,6 +547,30 @@ function handleToolsList(id) {
                         },
                         required: ['message']
                     }
+                },
+                {
+                    name: 'share_leed',
+                    description: 'Share a leed to the Leedz marketplace DynamoDB. Calls the addLeed API on AWS API Gateway. Use this to seed leedz with precise structured data.',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            tn: { type: 'string', description: 'Trade name (e.g. Caricatures, DJ, Photographer)' },
+                            ti: { type: 'string', description: 'Leed title (short event name)' },
+                            lc: { type: 'string', description: 'Location - must end with 5-digit zip code' },
+                            zp: { type: 'string', description: '5-digit zip code extracted from location' },
+                            st: { type: 'string', description: 'Start time as epoch milliseconds' },
+                            et: { type: 'string', description: 'End time as epoch milliseconds (optional)' },
+                            dt: { type: 'string', description: 'Description/details (optional)' },
+                            rq: { type: 'string', description: 'Requirements/special instructions (optional)' },
+                            cn: { type: 'string', description: 'Client name (optional)' },
+                            ph: { type: 'string', description: 'Client phone digits only (optional)' },
+                            em: { type: 'string', description: 'Client email (optional)' },
+                            pr: { type: 'string', description: 'Price in cents, 0 = free (optional, defaults to 0)' },
+                            sh: { type: 'string', description: 'Share list: #email1,email2 for private, #* for broadcast, #*,email1 for both' },
+                            id: { type: 'string', description: 'Pre-generated leed ID (optional, server generates if omitted)' }
+                        },
+                        required: ['tn', 'ti', 'lc', 'st', 'sh']
+                    }
                 }
             ]
         }
@@ -503,9 +583,111 @@ function handleToolsList(id) {
  * @returns {string|null} User message or null if not found
  */
 function extractUserMessage(params) {
-    return params.arguments?.request || 
-           params.arguments?.message || 
+    return params.arguments?.request ||
+           params.arguments?.message ||
            (params.messages && params.messages[params.messages.length - 1]?.content);
+}
+
+/**
+ * Handle share_leed tool call
+ * Direct API call to AWS addLeed - no LLM translation needed
+ * Same flow as Share.js:sendToServer() (lines 916-957)
+ * @param {string} id - JSON-RPC request ID
+ * @param {Object} params - Tool call params with arguments
+ * @returns {Object} JSON-RPC response
+ */
+async function handleShareLeed(id, params) {
+    const args = params.arguments || {};
+
+    // Validate required fields (same as Share.js:buildAddLeedPayload)
+    const errors = [];
+    if (!args.tn) errors.push('Trade name (tn) is required');
+    if (!args.ti) errors.push('Title (ti) is required');
+    if (!args.lc) errors.push('Location (lc) is required');
+    if (!args.st) errors.push('Start time (st) is required');
+    if (!args.sh) errors.push('Share list (sh) is required');
+
+    // Validate zip in location (must end with 5-digit zip)
+    if (args.lc && !/\d{5}$/.test(args.lc.trim())) {
+        errors.push('Location must end with 5-digit zip code');
+    }
+
+    if (errors.length > 0) {
+        return createErrorResponse(id, -32602, errors.join('; '));
+    }
+
+    // Ensure we have a valid JWT
+    const now = Date.now();
+    if (!leedzJWT || !leedzJWTExpiry || leedzJWTExpiry < now) {
+        await fetchLeedzJWT();
+    }
+    if (!leedzJWT) {
+        return createErrorResponse(id, -32001, 'No valid Leedz JWT. Check aws.email and aws.apiGatewayUrl in mcp_server_config.json');
+    }
+
+    try {
+        const apiUrl = config.aws.apiGatewayUrl;
+
+        // Build query params - same keys as Share.js:buildAddLeedPayload (line 633-654)
+        const payload = {
+            tn: args.tn,
+            ti: args.ti,
+            lc: args.lc.trim(),
+            zp: args.zp || args.lc.trim().slice(-5),
+            st: args.st,
+            sh: args.sh,
+            session: leedzJWT
+        };
+
+        // Optional fields - only include if provided
+        if (args.et) payload.et = args.et;
+        if (args.dt) payload.dt = args.dt;
+        if (args.rq) payload.rq = args.rq;
+        if (args.cn) payload.cn = args.cn;
+        if (args.ph) payload.ph = args.ph;
+        if (args.em) payload.em = args.em;
+        if (args.pr) payload.pr = args.pr;
+        if (args.id) payload.id = args.id;
+
+        // Default price to 0 (free) if not provided
+        if (!payload.pr) payload.pr = '0';
+
+        const queryString = new URLSearchParams(payload).toString();
+        const url = `${apiUrl}/addLeed?${queryString}`;
+
+        logInfo(`Calling addLeed: tn=${args.tn}, ti=${args.ti}, lc=${args.lc}`);
+
+        // GET request - same as Share.js line 935-937
+        const response = await axios.get(url, { timeout: 10000 });
+        const result = response.data;
+
+        // Check response format: {cd: 1, id, ti, tn, pr} or {cd: 0, er}
+        // Same check as Share.js lines 948-954
+        if (result.cd === 0) {
+            logError(`addLeed error: ${result.er}`);
+            return createErrorResponse(id, -32603, `addLeed failed: ${result.er || 'Unknown error'}`);
+        }
+
+        if (result.cd !== 1) {
+            logError(`addLeed invalid response: ${JSON.stringify(result)}`);
+            return createErrorResponse(id, -32603, 'Invalid response from addLeed API');
+        }
+
+        logInfo(`Leed shared: id=${result.id}, tn=${result.tn}, ti=${result.ti}`);
+        return createSuccessResponse(id, `✅ Leed shared successfully!\n\nID: ${result.id}\nTrade: ${result.tn}\nTitle: ${result.ti}\nPrice: ${result.pr === 0 ? 'FREE' : '$' + (result.pr / 100).toFixed(2)}`);
+
+    } catch (error) {
+        logError(`share_leed error: ${error.message}`);
+
+        // If 401/403, JWT may be bad - clear it
+        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+            leedzJWT = null;
+            leedzJWTExpiry = null;
+            return createErrorResponse(id, -32001, 'JWT rejected by API Gateway. Token cleared - will re-fetch on next call.');
+        }
+
+        return createErrorResponse(id, -32603, `share_leed failed: ${error.message}`);
+    }
 }
 
 /**
@@ -516,6 +698,11 @@ function extractUserMessage(params) {
  */
 async function handleToolCall(id, params) {
     try {
+        // Route share_leed directly - no LLM translation needed
+        if (params.name === 'share_leed') {
+            return await handleShareLeed(id, params);
+        }
+
         const userMessage = extractUserMessage(params);
 
         if (!userMessage) {

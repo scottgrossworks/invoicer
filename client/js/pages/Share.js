@@ -11,7 +11,6 @@ import Booking from '../db/Booking.js';
 import Client from '../db/Client.js';
 import { generateShareEmailBody, synthesizeLeedDetails, synthesizeLeedRequirements } from '../utils/ShareUtils.js';
 import { sendGmailMessage } from '../utils/GmailAuth.js';
-import { Calculator } from '../utils/Calculator.js';
 import { log, logError, showToast } from '../logging.js';
 
 export class Share extends DataPage {
@@ -54,8 +53,6 @@ export class Share extends DataPage {
    * Initialize share page (called once on app startup)
    */
   async initialize() {
-    // console.log('[DEBUG] Share.js VERSION: 2025-12-29-18:00 - Price section state management implemented');
-
     // Start loading trades and friends in background (independent of LLM parse)
     this.loadTradesAsync();
     this.loadFriendsAsync();
@@ -82,7 +79,6 @@ export class Share extends DataPage {
         if (indicator) {
           indicator.style.backgroundColor = selected?.dataset.color || 'var(--LEEDZ_DARKGREEN)';
         }
-        // console.log('Selected trade:', this.selectedTrade);
       });
     }
 
@@ -163,9 +159,6 @@ export class Share extends DataPage {
       name: dbData.name || '',
       email: dbData.email || '',
       phone: dbData.phone || '',
-      company: dbData.company || '',
-      website: dbData.website || '',
-      clientNotes: dbData.clientNotes || '',
       _fromDB: true
     });
 
@@ -225,7 +218,6 @@ export class Share extends DataPage {
       // Populate trade pulldown
       this.populateTradeSelect();
 
-      // console.log('Trades loaded:', trades.length);
     } catch (error) {
       console.error('Failed to load trades:', error);
       showToast('Failed to load trades', 'error');
@@ -291,7 +283,6 @@ export class Share extends DataPage {
       });
 
       this.renderEmailList();
-      // console.log('Friends loaded:', friends.length);
 
     } catch (error) {
       console.error('Failed to load friends:', error);
@@ -329,7 +320,6 @@ export class Share extends DataPage {
       tradeSelect.appendChild(option);
     });
 
-    // console.log('Trade select populated with', sortedTrades.length, 'trades');
   }
 
   clearPageUI() {
@@ -353,14 +343,34 @@ export class Share extends DataPage {
    */
   clear() {
     this.state.clear();
+    this.state.saveLocal(); // Persist cleared state to Chrome storage
+
     this.emailList = [];
     this.priceEnabled = false;
-    this.squareAuthenticated = false;
     this.specialInfo = '';
     this.selectedTrade = '';
     this.clientFromDB = false;
     this.renderEmailList();
     this.updateFromState(this.state);
+
+    // Reset Price section UI
+    this.togglePrice(false);
+
+    // Reset Special Info textarea
+    const textarea = document.getElementById('specialInfoTextarea-share');
+    if (textarea) {
+      textarea.value = '';
+    }
+
+    // Collapse accordions
+    const bookingAccordion = document.getElementById('booking-section-share');
+    if (bookingAccordion) {
+      bookingAccordion.removeAttribute('open');
+    }
+    const specialInfoAccordion = document.getElementById('special-info-section-share');
+    if (specialInfoAccordion) {
+      specialInfoAccordion.removeAttribute('open');
+    }
 
     // Reset trade selector and indicator to default
     const tradeSelect = document.getElementById('tradeSelect');
@@ -401,8 +411,9 @@ export class Share extends DataPage {
       table.classList.remove('share-table-from-db');
     }
 
-    // Skip internal fields + rate fields (handled by Calculator.renderFields)
-    const skipFields = ['id', 'clientId', 'createdAt', 'updatedAt', 'duration', 'hourlyRate', 'flatRate', 'totalAmount'];
+    // Only show fields that map to cloud API (addLeed): title, description, location,
+    // startDate (as "date"), startTime, endTime, name, email, phone, notes
+    const skipFields = ['id', 'clientId', 'createdAt', 'updatedAt', 'duration', 'hourlyRate', 'flatRate', 'totalAmount', 'endDate', 'company', 'website', 'clientNotes'];
     const allFields = [...this.clientFields, ...this.bookingFields];
 
     // Populate table rows with booking and client data
@@ -413,7 +424,7 @@ export class Share extends DataPage {
       // Field name cell
       const nameCell = document.createElement('td');
       nameCell.className = 'field-name';
-      nameCell.textContent = field;
+      nameCell.textContent = (field === 'startDate') ? 'date' : field;
 
       // Field value cell with input
       const valueCell = document.createElement('td');
@@ -457,6 +468,10 @@ export class Share extends DataPage {
           this.state.Client[field] = rawValue;
         } else if (this.bookingFields.includes(field)) {
           this.state.Booking[field] = rawValue;
+          // Share leedz are 1-day events: endDate always equals startDate
+          if (field === 'startDate') {
+            this.state.Booking.endDate = rawValue;
+          }
         }
       });
 
@@ -479,8 +494,6 @@ export class Share extends DataPage {
       tbody.appendChild(row);
     });
 
-    // Rate fields with auto-calculation (reuse Calculator pattern from Booker/Invoicer)
-    Calculator.renderFields(tbody, this.state.Booking, () => this.populateBookingTable(this.clientFromDB), { includeDuration: true });
   }
 
   /**
@@ -509,8 +522,6 @@ export class Share extends DataPage {
     }
   }
 
-
-  
 
   /**
    * Build addLeed API payload from current state
@@ -706,9 +717,6 @@ export class Share extends DataPage {
   removeEmail(index) {
     this.emailList.splice(index, 1);
     this.renderEmailList();
-
-    // MOCK: Update database
-    // console.log('[MOCK] Updating email list in database:', this.emailList);
   }
 
   /**
@@ -928,9 +936,6 @@ export class Share extends DataPage {
         method: 'GET'
       });
 
-      // console.log('Response status:', response.status);
-      // console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
       if (!response.ok) {
         const errorBody = await response.text();
         console.error('Error response body:', errorBody);
@@ -954,14 +959,7 @@ export class Share extends DataPage {
 
   /**
    * Send Gmail messages to selected recipients
-    **
-  * Send email via Gmail API
-  * @param {string} to - Recipient email address
-  * @param {string} subject - Email subject line
-  * @param {string} body - Email body (HTML)
-  * @returns {Promise<string>} Gmail message ID
-  * @throws {Error} If auth fails or send fails
-  */
+   */
   async sendGmailMessages(selectedEmails, leedId) {
 
     const emailSubject = `New Leed: ${this.state.Booking.title || this.state.Client.name || 'No Title'}`;
@@ -1017,9 +1015,6 @@ export class Share extends DataPage {
     }
   }
 
-
-
-
   /**
    * Broadcast lead to all users in the system
    */
@@ -1058,16 +1053,18 @@ export class Share extends DataPage {
       const emailAddresses = selectedEmails.map(e => e.address).join(',');
 
       // Build shareList: broadcast check FIRST
+      // '#' prefix = client already sent private emails (Gmail)
+      // Server will skip SES for private list but still use for broadcast dedup
       let shareList = '';
       if (this.broadcastMode && selectedEmails.length > 0) {
-        // CASE 3: Broadcast + private emails
-        shareList = `*,${emailAddresses}`;
+        // CASE 3: Broadcast + private emails (already sent by client)
+        shareList = `#*,${emailAddresses}`;
       } else if (this.broadcastMode) {
         // CASE 2: Full broadcast, no private emails
-        shareList = '*';
+        shareList = '#*';
       } else if (selectedEmails.length > 0) {
-        // CASE 1: Private share only
-        shareList = emailAddresses;
+        // CASE 1: Private share only (already sent by client)
+        shareList = `#${emailAddresses}`;
       } else {
         // No broadcast, no emails -- nothing to do
         showToast('Please select at least one email recipient or enable Broadcast', 'error');

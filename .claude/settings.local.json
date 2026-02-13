@@ -53,7 +53,9 @@
       "Bash(powershell:*)",
       "Bash(del test_date_fix.js test_utc_midnight_bug.js)",
       "Bash(del nul)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(python3 -c \"import zipfile; z=zipfile.ZipFile\\(r''C:\\\\Users\\\\Scott\\\\Desktop\\\\WKG\\\\LEEDZ\\\\FRONT_3\\\\py\\\\reportLeed\\\\reportLeed.zip''\\); [print\\(f\\) for f in z.namelist\\(\\) if ''reportLeed'' in f or f.endswith\\(''.py''\\)]\")",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []
