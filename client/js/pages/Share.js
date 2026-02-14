@@ -793,8 +793,9 @@ export class Share extends DataPage {
 
   /**
    * Toggle Price section enabled/disabled
+   * When enabling, re-check Square auth (user may have just completed OAuth in browser)
    */
-  togglePrice(enabled) {
+  async togglePrice(enabled) {
     this.priceEnabled = enabled;
 
     const priceSection = document.getElementById('price-section-share');
@@ -804,6 +805,11 @@ export class Share extends DataPage {
 
     if (enabled) {
       priceSection.classList.add('active');
+
+      // Re-check Square auth if not already authenticated
+      if (!this.squareAuthenticated) {
+        await this.recheckSquareAuth();
+      }
     } else {
       priceSection.classList.remove('active');
     }
@@ -838,13 +844,19 @@ export class Share extends DataPage {
 
   /**
    * Handle Square authorization
-   * If already authorized, do nothing.
-   * Otherwise open editUserPage for Square OAuth (server handles user creation if needed).
+   * Re-check auth first (user may have completed OAuth in browser).
+   * If now authorized, update UI. Otherwise open editUserPage for Square OAuth.
    */
   async handleSquareAuth() {
     if (this.squareAuthenticated) {
       showToast('Square already authorized', 'info');
       return;
+    }
+
+    // Re-check — user may have just completed OAuth in browser
+    await this.recheckSquareAuth();
+    if (this.squareAuthenticated) {
+      return; // recheckSquareAuth already showed toast and updated UI
     }
 
     try {
@@ -861,6 +873,37 @@ export class Share extends DataPage {
     } catch (error) {
       logError('Square auth redirect failed:', error);
       showToast('Could not open Square authorization: ' + error.message, 'error');
+    }
+  }
+
+  /**
+   * Re-check Square authorization by calling getUser() API
+   * Shows spinner while checking. Updates UI if auth is now valid.
+   */
+  async recheckSquareAuth() {
+    const API_GATEWAY = "https://jjz8op6uy4.execute-api.us-west-2.amazonaws.com/Leedz_Stage_1/";
+
+    try {
+      this.showLoadingSpinner();
+      const token = await this.getJWTToken();
+      const response = await fetch(`${API_GATEWAY}getUser?session=${encodeURIComponent(token)}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const user = await response.json();
+
+      if (user.sq_st === 'authorized') {
+        this.squareAuthenticated = true;
+        this.updateSquareButtonState();
+        this.updatePriceInputState();
+        showToast('Square authorized!', 'success');
+      }
+    } catch (error) {
+      log('Square auth re-check failed: ' + error.message);
+    } finally {
+      this.hideLoadingSpinner();
     }
   }
 
