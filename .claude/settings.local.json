@@ -55,7 +55,8 @@
       "Bash(del nul)",
       "Bash(ls:*)",
       "Bash(python3 -c \"import zipfile; z=zipfile.ZipFile\\(r''C:\\\\Users\\\\Scott\\\\Desktop\\\\WKG\\\\LEEDZ\\\\FRONT_3\\\\py\\\\reportLeed\\\\reportLeed.zip''\\); [print\\(f\\) for f in z.namelist\\(\\) if ''reportLeed'' in f or f.endswith\\(''.py''\\)]\")",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(unzip:*)"
     ],
     "deny": [],
     "ask": []

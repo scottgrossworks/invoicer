@@ -113,7 +113,7 @@ class Booking {
       'description',
       'startDate',
       'startTime',
-      'endDate',
+      // endDate hidden from UI — all gigs are 1-day, endDate auto-set to startDate internally
       'endTime',
       'duration',
       'hourlyRate',
