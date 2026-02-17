@@ -1,5 +1,5 @@
 ====================================================================
-LEEDZ SERVER INSTALLATION GUIDE
+LEEDZ SERVER - INSTALL, CONFIGURE & RUN
 ====================================================================
 
 
@@ -14,12 +14,13 @@ STEP 1: DOWNLOAD AND EXTRACT
 4. Click "Extract"
 
 You should see a folder containing:
-  - TheLeedz.exe (System tray application)
-  - leedz-server.exe (Backend server)
-  - launch_leedz.bat (Startup script)
-  - prisma/ folder (Database and schema)
-  - server_config.json (Server settings)
-  - img/ folder (Icons)
+  - TheLeedz.exe           (System tray application)
+  - leedz-server.exe       (Backend server)
+  - launch_leedz.bat       (Startup script)
+  - server_config.json     (Server settings)
+  - prisma/ folder         (Database schema)
+  - data/ folder           (Your database files)
+  - img/ folder            (Icons)
 
 --------------------------------------------------------------------
 STEP 2: START THE SERVER
@@ -32,27 +33,24 @@ STEP 2: START THE SERVER
 The system tray icon lets you quickly access server controls and
 settings. Right-click the icon to see available options.
 
---------------------------------------------------------------------
-STEP 3: VERIFY IT'S WORKING
---------------------------------------------------------------------
-The server is now running and ready to connect with your Chrome
-extension. You can verify by:
-  - Checking the system tray for the Leedz icon
-  - The command window shows "Server listening on port 3000"
-
 Leave the command window open while using Leedz. Closing it will
 stop the server.
 
 --------------------------------------------------------------------
-STEP 4: CONNECT YOUR CHROME EXTENSION
+STEP 3: CONNECT YOUR CHROME EXTENSION
 --------------------------------------------------------------------
 Now install the Leedz Chrome extension (see separate instructions).
-The extension will automatically connect to your local server at
-http://localhost:3000
+On the Chrome Extension's Startup page, enter:
+  - Server URL: localhost
+  - Port: 3000
 
---------------------------------------------------------------------
+When connected, the Database Name will appear on the Startup page.
+
+
+====================================================================
 STOPPING AND RESTARTING
---------------------------------------------------------------------
+====================================================================
+
 TO STOP: Close the command window, or right-click the tray icon
 and select "Exit"
 
@@ -65,6 +63,62 @@ TO AUTO-START ON WINDOWS BOOT (Recommended):
 4. Click "Save"
 
 Now Leedz will automatically start every time Windows boots!
+
+
+====================================================================
+CONFIGURATION
+====================================================================
+
+CHANGING THE SERVER PORT:
+If port 3000 is in use by another program, change it:
+1. Open "server_config.json" in any text editor (Notepad works)
+2. Change the "port" number to any available port (e.g., 3001)
+3. Save the file and restart the server
+4. Update your Chrome Extension Startup page to use the new port
+
+SERVER LOG:
+The server writes a log file to "server.log" in the same folder.
+If something isn't working, check this file for error messages.
+
+
+====================================================================
+DATABASES
+====================================================================
+
+Your data is stored in a SQLite database file inside the data/ folder.
+By default: data\leedz.sqlite
+
+SWITCHING DATABASES:
+You can maintain multiple databases (one per business, or a test DB):
+1. Open "server_config.json" in a text editor
+2. Change the "url" value under "database" to point to your file:
+
+   "database": {
+     "type": "prisma_sqlite",
+     "url": "file:./data/my_other_business.sqlite"
+   }
+
+3. Save the file and restart the server
+4. The Chrome Extension Startup page will show the new DB name
+
+BACKING UP YOUR DATABASE:
+To back up your data, simply copy the .sqlite file from the data/
+folder to a safe location. To restore, copy it back.
+
+STARTING FRESH:
+1. Stop the server
+2. Delete (or rename) the current .sqlite file in data/
+3. Copy the original leedz.sqlite from a backup or re-extract the ZIP
+4. Restart the server
+
+EXPORTING DATA:
+Open these URLs in your browser while the server is running:
+  - http://localhost:3000/api/dump/clients   (export all clients)
+  - http://localhost:3000/api/dump/bookings  (export all bookings)
+  - http://localhost:3000/api/dump/config    (export configuration)
+
+Files are saved to an exports/ folder with timestamps.
+
 
 ====================================================================
 TROUBLESHOOTING
@@ -82,13 +136,14 @@ Try running as Administrator (right-click launch_leedz.bat, select
 "Run as administrator").
 
 EXTENSION CAN'T CONNECT: Verify the server is running (check for
-the tray icon and command window). Make sure no firewall is blocking
-localhost connections.
+the tray icon and command window). Make sure the port in the Chrome
+Extension's Startup page matches server_config.json.
 
-DATABASE ISSUES: Your database is stored in prisma/leedz.sqlite.
+DATABASE ISSUES: Your database is stored in data\leedz.sqlite.
 To backup your data, copy this file to a safe location.
 
 SUPPORT: theleedz.com@gmail.com
+
 
 ====================================================================
 SYSTEM REQUIREMENTS

@@ -155,8 +155,8 @@ for %%A in (%ARCHITECTURES%) do (
         goto :ERROR
     )
 
-    :: Copy README.md from parent directory
-    copy /Y "..\README.md" "!PKG_DIR!\README.md" >nul
+    :: Copy README.md from server directory
+    copy /Y "README.md" "!PKG_DIR!\README.md" >nul
     if errorlevel 1 (
         echo [ERROR] Failed to copy README.md for %%A
         goto :ERROR
