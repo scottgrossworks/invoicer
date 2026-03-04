@@ -471,7 +471,7 @@ export class Outreach extends Page {
     }
 
     // Get outreach example from config
-    const outreachExample = this.state.leedzConfig?.outreachEmail?.responseExample || '';
+    const outreachExample = this.leedzConfig?.outreachEmail?.responseExample || '';
 
     // Build signature
     const signatureExample = PageUtils.buildSignatureBlock(businessInfo, 'Scott');

@@ -503,7 +503,7 @@ export class Responder extends DataPage {
     }
 
     // Get response example from config
-    const responseExample = this.state.leedzConfig?.responderEmail?.responseExample || '';
+    const responseExample = this.leedzConfig?.responderEmail?.responseExample || '';
 
     // Build signature example using utility
     const signatureExample = PageUtils.buildSignatureBlock(businessInfo, 'Scott');
