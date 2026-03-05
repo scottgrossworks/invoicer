@@ -120,7 +120,9 @@ export class DateTimeUtils {
     if (/(January|February|March|April|May|June|July|August|September|October|November|December)/i.test(s)) {
       return s;
     }
-    const d = new Date(s);
+    // For ISO date-only strings, append noon to avoid UTC midnight off-by-one in local timezones
+    const dateStr = /^\d{4}-\d{2}-\d{2}$/.test(s) ? s + 'T12:00:00' : s;
+    const d = new Date(dateStr);
     if (isNaN(d.getTime())) return s;
     return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   }
@@ -193,34 +195,6 @@ export class DateTimeUtils {
     const minutesStr = minutes < 10 ? '0' + minutes : minutes;
 
     return `${hours}:${minutesStr} ${ampm}`;
-  }
-
-  /**
-   * Validate that startDate is before or equal to endDate
-   * @param {string} startDateValue - Start date in any format (ISO or display)
-   * @param {string} endDateValue - End date in any format (ISO or display)
-   * @returns {boolean} True if valid (start <= end), false otherwise
-   */
-  static validateDateRange(startDateValue, endDateValue) {
-    if (!startDateValue || !endDateValue) return true; // No validation if either is empty
-
-    try {
-      const startDate = new Date(this.parseDisplayDateToISO(startDateValue));
-      const endDate = new Date(this.parseDisplayDateToISO(endDateValue));
-
-      // Check for invalid dates
-      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-        return true; // Don't validate if dates are unparseable
-      }
-
-      // Compare dates (ignoring time component)
-      startDate.setHours(0, 0, 0, 0);
-      endDate.setHours(0, 0, 0, 0);
-
-      return startDate <= endDate;
-    } catch (error) {
-      return true; // Don't block on parsing errors
-    }
   }
 
   /**

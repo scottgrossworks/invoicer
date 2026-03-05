@@ -5,7 +5,6 @@
 
 import { DataPage } from './DataPage.js';
 import { DateTimeUtils } from '../utils/DateTimeUtils.js';
-import { ValidationUtils } from '../utils/ValidationUtils.js';
 import { PageUtils } from '../utils/Page_Utils.js';
 import { Calculator } from '../utils/Calculator.js';
 import { log, logError, logValidation, showToast } from '../logging.js';
@@ -533,26 +532,17 @@ export class Booker extends DataPage {
     }
 
     // Format date fields
-    if (['startDate', 'endDate'].includes(fieldName) && rawValue) {
+    // NOTE: endDate is hidden from the UI and never edited by the user.
+    // All gigs are 1-day events — endDate is always auto-set to match startDate.
+    if (fieldName === 'startDate' && rawValue) {
       const isoDate = DateTimeUtils.parseDisplayDateToISO(rawValue);
-      if (isoDate) {
+      if (!isNaN(new Date(isoDate).getTime())) {
         formattedValue = DateTimeUtils.formatDateForDisplay(isoDate);
-      }
-
-      // Validate date range after formatting
-      const isValid = DateTimeUtils.validateDateRange(this.state.Booking.startDate, this.state.Booking.endDate);
-      if (!isValid) {
-        const errorMsg = 'Start date must be before or equal to end date';
-        logValidation(errorMsg);
-        showToast(errorMsg, 'error');
-
-        // Clear the invalid field
-        if (fieldName === 'startDate') {
-          this.state.Booking.startDate = null;
-        } else {
-          this.state.Booking.endDate = null;
-        }
+        PageUtils.autoCompleteEndDate(isoDate, this.state, '[data-field="endDate"]');
+      } else {
+        this.state.Booking.startDate = null;
         inputElement.value = '';
+        showToast('Invalid date', 'error');
         return;
       }
     }
@@ -560,14 +550,6 @@ export class Booker extends DataPage {
     // Format phone fields
     if (fieldName === 'phone' && rawValue) {
       formattedValue = Booker.formatPhoneForDisplay(rawValue);
-    }
-
-    // Auto-set endDate to match startDate if endDate is empty
-    if (fieldName === 'startDate' && rawValue) {
-      const isoDate = DateTimeUtils.parseDisplayDateToISO(rawValue);
-      if (isoDate) {
-        PageUtils.autoCompleteEndDate(isoDate, this.state, '[data-field="endDate"]');
-      }
     }
 
     // Update the input display and exit edit mode

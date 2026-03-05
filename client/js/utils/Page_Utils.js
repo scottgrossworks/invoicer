@@ -226,23 +226,20 @@ Never output empty lines for missing fields.`;
   }
 
   /**
-   * Auto-complete endDate to match startDate if endDate is empty
-   * Standardizes endDate auto-fill behavior across all pages
-   * @param {string} startDateISO - ISO format date string (already parsed)
+   * Sync endDate to startDate. All gigs are 1-day events — endDate is never
+   * shown in the UI and always mirrors startDate. Called whenever startDate changes.
+   * @param {string} startDateISO - ISO format date string
    * @param {object} state - State object with Booking property
-   * @param {string} endDateSelector - CSS selector string for endDate input
+   * @param {string} endDateSelector - CSS selector for endDate input (hidden, updated silently)
    */
   static autoCompleteEndDate(startDateISO, state, endDateSelector) {
-    // Auto-set endDate to match startDate if endDate is empty
-    if (!state.Booking.endDate || state.Booking.endDate.trim() === '') {
-      state.Booking.endDate = startDateISO;
-      console.log('Auto-set endDate to match startDate:', startDateISO);
+    // Always sync endDate to startDate (all gigs are 1-day events)
+    state.Booking.endDate = startDateISO;
 
-      // Update the endDate input field display
-      const endDateInput = document.querySelector(endDateSelector);
-      if (endDateInput) {
-        endDateInput.value = DateTimeUtils.formatDateForDisplay(startDateISO);
-      }
+    // Update the endDate input field display
+    const endDateInput = document.querySelector(endDateSelector);
+    if (endDateInput) {
+      endDateInput.value = DateTimeUtils.formatDateForDisplay(startDateISO);
     }
   }
 
