@@ -175,9 +175,14 @@ export class Booker extends DataPage {
       console.log('Calendar event payload:', JSON.stringify(calendarEvent, null, 2));
       */
 
-      // STEP 3: POST to Google Calendar API
-      const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
-        method: 'POST',
+      // STEP 3: POST (create) or PUT (update) depending on whether we already have an event ID
+      const existingEventId = this.state.Booking.gcalEventId;
+      const url = existingEventId
+        ? `https://www.googleapis.com/calendar/v3/calendars/primary/events/${existingEventId}`
+        : 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
+
+      const response = await fetch(url, {
+        method: existingEventId ? 'PUT' : 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -196,9 +201,13 @@ export class Booker extends DataPage {
 
       const result = await response.json();
 
+      // Store the event ID for future updates (session-only)
+      this.state.Booking.gcalEventId = result.id;
+
       // SUCCESS
-      showToast('Booking added to Google Calendar successfully', 'success');
-      console.log('Calendar event created:', result);
+      const action = existingEventId ? 'updated' : 'added to';
+      showToast(`Booking ${action} Google Calendar successfully`, 'success');
+      console.log('Calendar event saved:', result);
 
     } catch (error) {
       // ERROR HANDLING
