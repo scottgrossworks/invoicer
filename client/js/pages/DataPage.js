@@ -416,7 +416,21 @@ export class DataPage extends Page {
       // STEP 3: Render DB data if found, else parsed data
       if (dbData) {
         log('RELOAD: Client found in database');
-        await this.renderFromDB(dbData);
+        // On forced reload: enrich client fields from DB (green styling) but
+        // KEEP freshly parsed booking data - don't overwrite with old DB booking
+        if (parseResult.data) {
+          if (!parseResult.data.Client) parseResult.data.Client = {};
+          Object.assign(parseResult.data.Client, {
+            name: dbData.name || parseResult.data.Client.name,
+            email: dbData.email || parseResult.data.Client.email,
+            phone: dbData.phone || parseResult.data.Client.phone,
+            company: dbData.company || parseResult.data.Client.company,
+            website: dbData.website || parseResult.data.Client.website,
+            clientNotes: dbData.clientNotes || parseResult.data.Client.clientNotes,
+            _fromDB: true
+          });
+        }
+        await this.renderFromParse(parseResult);
         showToast('Client Found in Database', 'info');
       } else {
         log('RELOAD: Client not in database, using parsed data');
