@@ -80,12 +80,15 @@ export class Booker extends DataPage {
       _fromDB: true
     });
 
-    // If DB has bookings, use first one
+    // If DB has a booking, merge non-null fields only
+    // DB wins for values it has; cached/LLM-parsed values survive for null DB fields
     if (dbData.bookings?.length > 0) {
-      Object.assign(this.state.Booking, {
-        ...dbData.bookings[0],
-        _fromDB: true
+      Object.entries(dbData.bookings[0]).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          this.state.Booking[key] = value;
+        }
       });
+      this.state.Booking._fromDB = true;
     }
 
     // Render with green styling

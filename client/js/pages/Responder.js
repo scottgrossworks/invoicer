@@ -297,7 +297,7 @@ export class Responder extends DataPage {
     // Populate BOOKING fields into accordion table
     const bookingTarget = bookingTbody || tbody;
     const rateFields = ['hourlyRate', 'flatRate', 'totalAmount'];
-    const skipFields = ['id', 'clientId', 'createdAt', 'updatedAt', ...rateFields];
+    const skipFields = ['id', 'clientId', 'createdAt', 'updatedAt', 'endDate', ...rateFields];
 
     this.bookingFields.forEach(field => {
       if (skipFields.includes(field)) return;

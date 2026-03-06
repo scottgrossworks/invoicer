@@ -297,7 +297,11 @@ export class DataPage extends Page {
 
         if (bookingsResponse.ok) {
           const bookings = await bookingsResponse.json();
-          dbClient.bookings = bookings || [];
+          // Sort newest first — createBooking creates duplicates when location is null,
+          // so [0] must always be the most recently saved booking
+          dbClient.bookings = (bookings || []).sort((a, b) =>
+            new Date(b.createdAt) - new Date(a.createdAt)
+          );
         }
 
         return dbClient;

@@ -424,9 +424,26 @@ function updateActionButtons(page) {
 }
 
 /**
+ * Open user dashboard via magic link
+ */
+async function openDashboard() {
+  const stored = await chrome.storage.local.get(['leedzUserEmail']);
+  const email = stored.leedzUserEmail;
+  if (!email) return;
+
+  const res = await fetch(`https://kxi7whi2p5f3nqfa4jm6lnyzoy0oisgu.lambda-url.us-west-2.on.aws/?email=${encodeURIComponent(email)}`);
+  const data = await res.json();
+  if (data.magic_url) {
+    chrome.tabs.create({ url: data.magic_url });
+  }
+}
+
+/**
  * Setup header buttons (reload, settings)
  */
 function setupHeaderButtons() {
+  const logo = document.querySelector('.logo-container');
+  if (logo) logo.addEventListener('click', openDashboard);
   // Consolidate reload button handlers
   const reloadButtons = ['reloadBtn', 'reloadBtnClients', 'reloadBtnThankYou', 'reloadBtnResponder', 'reloadBtnShare'];
   reloadButtons.forEach(btnId => {
