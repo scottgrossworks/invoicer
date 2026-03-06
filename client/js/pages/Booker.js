@@ -446,7 +446,7 @@ export class Booker extends DataPage {
       // Field name cell
       const nameCell = document.createElement('td');
       nameCell.className = 'field-name';
-      nameCell.textContent = field;
+      nameCell.textContent = (field === 'startDate') ? 'date' : field;
 
       // Field value cell with input
       const valueCell = document.createElement('td');

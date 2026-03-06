@@ -261,7 +261,7 @@ export class Responder extends DataPage {
       // Field name cell
       const nameCell = document.createElement('td');
       nameCell.className = 'field-name';
-      nameCell.textContent = field;
+      nameCell.textContent = (field === 'startDate') ? 'date' : field;
 
       // Field value cell with editable input
       const valueCell = document.createElement('td');
@@ -307,7 +307,7 @@ export class Responder extends DataPage {
       // Field name cell
       const nameCell = document.createElement('td');
       nameCell.className = 'field-name';
-      nameCell.textContent = field;
+      nameCell.textContent = (field === 'startDate') ? 'date' : field;
 
       // Field value cell with editable input
       const valueCell = document.createElement('td');
