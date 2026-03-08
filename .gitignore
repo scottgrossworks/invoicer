@@ -54,5 +54,5 @@ build/
 .fake
 
 # ShareEx
-shareex/API_KEY.json
+shareex/LLM_KEY.json
 shareex/*.zip
