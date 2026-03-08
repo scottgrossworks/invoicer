@@ -20,14 +20,14 @@ class GCalParser extends EventParser {
     if (CONFIG) return;
 
     try {
-      const configResponse = await fetch(chrome.runtime.getURL('invoicer_config.json'));
+      const configResponse = await fetch(chrome.runtime.getURL('leedz_config.json'));
       if (!configResponse.ok) {
         throw new Error(`Config file not found: ${configResponse.status}`);
       }
       CONFIG = await configResponse.json();
       // console.log('GCal parser config loaded successfully');
     } catch (error) {
-      console.error('FATAL: Unable to load invoicer_config.json:', error);
+      console.error('FATAL: Unable to load leedz_config.json:', error);
       throw new Error('GCal parser cannot initialize - config file missing or invalid');
     }
   }

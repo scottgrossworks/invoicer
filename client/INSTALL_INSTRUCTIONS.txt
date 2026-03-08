@@ -21,20 +21,38 @@ STEP 1: DOWNLOAD AND EXTRACT
 4. Click "Extract"
 
 --------------------------------------------------------------------
-STEP 2: OPEN CHROME EXTENSIONS PAGE
+STEP 2: SET YOUR ANTHROPIC API KEY
+--------------------------------------------------------------------
+1. Open the extracted folder
+2. Find the file named "LLM_KEY.json" and open it in any text editor
+   (Notepad, TextEdit, VS Code, etc.)
+3. Replace the placeholder text:
+      "sk-ant-PASTE-YOUR-KEY-HERE"
+   with your actual Anthropic API key.
+4. Save the file.
+
+Your Anthropic API key is available at:
+   https://console.anthropic.com/settings/keys
+
+   Note: You must create an Anthropic account and add billing to
+   generate an API key. LLM parsing costs fractions of a cent
+   per email parsed.
+
+--------------------------------------------------------------------
+STEP 3: OPEN CHROME EXTENSIONS PAGE
 --------------------------------------------------------------------
 1. Open Google Chrome browser
 2. In the address bar, type: chrome://extensions
 3. Press Enter
 
 --------------------------------------------------------------------
-STEP 3: ENABLE DEVELOPER MODE
+STEP 4: ENABLE DEVELOPER MODE
 --------------------------------------------------------------------
 Look for a toggle switch labeled "Developer mode" in the top-right
 corner. Click it to turn it ON (it should turn blue).
 
 --------------------------------------------------------------------
-STEP 4: LOAD THE EXTENSION
+STEP 5: LOAD THE EXTENSION
 --------------------------------------------------------------------
 1. Click the "Load unpacked" button (appears after Developer mode)
 2. Browse to the folder you extracted in Step 1
@@ -42,7 +60,7 @@ STEP 4: LOAD THE EXTENSION
 4. The Leedz extension will appear in your extension list
 
 --------------------------------------------------------------------
-STEP 5: START USING LEEDZ
+STEP 6: START USING LEEDZ
 --------------------------------------------------------------------
 Look for the Leedz icon in your Chrome toolbar (top-right). Click it
 to start creating invoices!
@@ -57,6 +75,9 @@ that hasn't been published publicly. The extension is safe to use.
 
 EXTENSION DISABLED: If Chrome disables the extension after an update,
 simply return to chrome://extensions and re-enable it.
+
+LLM NOT PARSING: Make sure LLM_KEY.json has your valid Anthropic key
+and that you have billing set up at console.anthropic.com.
 
 SUPPORT: theleedz.com@gmail.com
 

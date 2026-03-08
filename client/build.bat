@@ -70,6 +70,9 @@ if exist "*.html" copy /Y "*.html" "%DIST_DIR%\" >nul
 if exist "leedz_config.json" copy /Y "leedz_config.json" "%DIST_DIR%\" >nul
 if exist "invoicer_config.json" copy /Y "invoicer_config.json" "%DIST_DIR%\" >nul
 
+:: User-editable LLM key file (the ONLY user-editable setting)
+if exist "LLM_KEY.json" copy /Y "LLM_KEY.json" "%DIST_DIR%\" >nul
+
 :: Docs
 if exist "LICENSE" copy /Y "LICENSE" "%DIST_DIR%\" >nul
 

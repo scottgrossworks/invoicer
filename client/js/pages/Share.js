@@ -12,11 +12,12 @@ import Client from '../db/Client.js';
 import { generateShareEmailBody, synthesizeLeedDetails, synthesizeLeedRequirements } from '../utils/ShareUtils.js';
 import { sendGmailMessage } from '../utils/GmailAuth.js';
 import { log, logError, showToast } from '../logging.js';
+import { PageUtils } from '../utils/Page_Utils.js';
 
 export class Share extends DataPage {
 
-  constructor(state) {
-    super('share', state);
+  constructor(state, leedzConfig = null) {
+    super('share', state, leedzConfig);
 
     // Email list management
     this.emailList = [];
@@ -43,6 +44,9 @@ export class Share extends DataPage {
 
     // Track if client was loaded from database (persistent flag)
     this.clientFromDB = false;
+
+    // Thank-You Note enabled state
+    this.thankYouEnabled = false;
 
     // Get full field names from models
     this.clientFields = Client.getFieldNames();
@@ -116,6 +120,14 @@ export class Share extends DataPage {
     const broadcastBtn = document.getElementById('broadcastBtn');
     if (broadcastBtn) {
       broadcastBtn.addEventListener('click', () => this.onBroadcast());
+    }
+
+    // Wire up Thank-You Note checkbox
+    const thankYouCheckbox = document.getElementById('thankYouCheckbox');
+    if (thankYouCheckbox) {
+      thankYouCheckbox.addEventListener('change', (e) => {
+        this.thankYouEnabled = e.target.checked;
+      });
     }
 
     // Initialize default Price section state (unauthenticated, disabled)
@@ -1059,6 +1071,81 @@ export class Share extends DataPage {
   }
 
   /**
+   * Generate and send thank-you note to client after sharing
+   * Opens Gmail compose in reply mode for user review before sending
+   */
+  async sendThankYouNote() {
+    try {
+      if (!this.state.Client.name || !this.state.Client.email) {
+        console.log('Thank-you note skipped: no client name or email');
+        return;
+      }
+
+      const prompt = this.buildThankYouPrompt();
+      const thankYouText = await PageUtils.sendLLMRequest(prompt);
+
+      if (!thankYouText) {
+        showToast('Failed to generate thank-you note', 'error');
+        return;
+      }
+
+      // Send to content script to open Gmail compose (reply mode)
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs && tabs.length > 0) {
+          chrome.tabs.sendMessage(tabs[0].id, {
+            action: 'openThankYou',
+            clientEmail: this.state.Client.email,
+            clientName: this.state.Client.name,
+            subject: `Re: ${this.state.Booking.title || 'Your Inquiry'}`,
+            body: thankYouText
+          }, () => {
+            if (chrome.runtime.lastError) {
+              showToast('Failed to open compose window', 'error');
+            } else {
+              // Close sidebar to make room for compose
+              chrome.tabs.sendMessage(tabs[0].id, { action: 'toggleSidebar' });
+            }
+          });
+        }
+      });
+
+    } catch (error) {
+      logError('Thank-you note failed:', error);
+      showToast('Error generating thank-you note', 'error');
+    }
+  }
+
+  /**
+   * Build LLM prompt for thank-you note generation
+   */
+  buildThankYouPrompt() {
+    const clientFirstName = this.state.Client.name?.split(' ')[0] || 'Client';
+    const bookingTitle = this.state.Booking.title || 'your event';
+    const bookingDate = this.state.Booking.startDate || '';
+    const location = this.state.Booking.location || '';
+    const specialInfo = this.specialInfo || '';
+    const responseExample = this.leedzConfig?.thankYouNote?.responseExample || '';
+
+    return `Generate a polite, professional decline email to a client whose booking you are passing along to your network.
+
+CLIENT: ${clientFirstName}
+EVENT: ${bookingTitle} on ${bookingDate}
+LOCATION: ${location}
+${specialInfo ? `SPECIAL NOTES: ${specialInfo}` : ''}
+
+KEY MESSAGE:
+- You cannot take this gig personally
+- You have shared it with your trusted network of vendors
+- They should expect to hear from someone soon
+- Express gratitude for being considered
+
+EXAMPLE (match this tone and length):
+${responseExample}
+
+Write the email body only (no subject line). Keep it concise (3-5 sentences). Return plain text.`;
+  }
+
+  /**
    * Broadcast lead to all users in the system
    */
   async onBroadcast() {
@@ -1133,6 +1220,11 @@ export class Share extends DataPage {
 
       log(`Lead shared: ${result.ti} (${result.tn}) sh=${shareList}`);
       showToast('Success! Leed Shared.', 'success');
+
+      // If Thank-You Note is enabled, generate and open compose (runs before clear so state is intact)
+      if (this.thankYouEnabled) {
+        await this.sendThankYouNote();
+      }
 
       // Clear form to prevent duplicate posting
       this.clear();

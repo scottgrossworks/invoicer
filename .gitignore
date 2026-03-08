@@ -52,3 +52,7 @@ pids
 dist/
 build/
 .fake
+
+# ShareEx
+shareex/API_KEY.json
+shareex/*.zip
