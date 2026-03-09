@@ -140,7 +140,8 @@ export class Share extends DataPage {
    */
   async fullParse() {
     await this.reloadParser({ forceFullParse: true });
-    return { success: true, data: this.state.toObject() };
+    const parsed = !!(this.state.Client?.name || this.state.Client?.email);
+    return { success: parsed, data: this.state.toObject(), llmError: this._lastLlmError || null };
   }
 
   /**

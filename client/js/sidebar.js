@@ -102,20 +102,6 @@ async function initializeAppBackground() {
     // Load configuration FIRST - abort if missing or invalid
     await loadLeedzConfig();
 
-    // Load user-editable LLM key from LLM_KEY.json and inject into config
-    try {
-      const keyUrl = chrome.runtime.getURL('LLM_KEY.json');
-      const keyResponse = await fetch(keyUrl);
-      if (keyResponse.ok) {
-        const llmKey = await keyResponse.json();
-        if (llmKey['api-key'] && LEEDZ_CONFIG.llm) {
-          LEEDZ_CONFIG.llm['api-key'] = llmKey['api-key'];
-        }
-      }
-    } catch (e) {
-      console.warn('LLM_KEY.json not found or invalid — LLM parsing will be disabled.');
-    }
-
     // Initialize database layer globally (respects Chrome storage config + leedz_config.json)
     try {
       window.DB_LAYER = await getDbLayer();

@@ -1,6 +1,7 @@
 // gCal_parser.js — extract Google Calendar event content and process via LLM
 
 import { EventParser } from './event_parser.js';
+import { loadConfig } from '../utils/ConfigLoader.js';
 
 // Global CONFIG variable - loaded once when parser initializes
 let CONFIG = null;
@@ -18,14 +19,8 @@ class GCalParser extends EventParser {
 
   async _initializeConfig() {
     if (CONFIG) return;
-
     try {
-      const configResponse = await fetch(chrome.runtime.getURL('leedz_config.json'));
-      if (!configResponse.ok) {
-        throw new Error(`Config file not found: ${configResponse.status}`);
-      }
-      CONFIG = await configResponse.json();
-      // console.log('GCal parser config loaded successfully');
+      CONFIG = await loadConfig();
     } catch (error) {
       console.error('FATAL: Unable to load leedz_config.json:', error);
       throw new Error('GCal parser cannot initialize - config file missing or invalid');

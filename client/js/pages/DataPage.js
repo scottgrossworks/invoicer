@@ -141,7 +141,11 @@ export class DataPage extends Page {
         } else {
           log('Client not in database, using parsed data');
           await this.renderFromParse(parseResult);
-          showToast('Page parsed successfully', 'success');
+          if (parseResult.llmError) {
+            showToast(parseResult.llmError, 'error', 10000);
+          } else {
+            showToast('Page parsed successfully', 'success');
+          }
         }
       } else {
         // Parse failed - render blank
@@ -275,7 +279,7 @@ export class DataPage extends Page {
    */
   async searchDB(stateData) {
     if (!window.DB_LAYER) {
-      console.log('DB_LAYER not available - skipping DB search');
+      // console.log('DB_LAYER not available - skipping DB search');
       return null;
     }
 
@@ -439,7 +443,11 @@ export class DataPage extends Page {
       } else {
         log('RELOAD: Client not in database, using parsed data');
         await this.renderFromParse(parseResult);
-        showToast('Page parsed successfully', 'success');
+        if (parseResult.llmError) {
+          showToast(parseResult.llmError, 'error');
+        } else {
+          showToast('Page parsed successfully', 'success');
+        }
       }
 
       // Show UI elements

@@ -14,7 +14,7 @@ html, body {
   flex-direction: column;
   height: 100vh;
   width: 100%;
-  overflow-y: auto; /* Ensure sidebar itself can scroll if content exceeds viewport */
+  overflow: hidden; /* Contain flex children within 100vh; display-win scrolls internally */
 
   background-color: white;
 }
@@ -144,7 +144,6 @@ html, body {
   flex-direction: column;
   flex: 1;       /* Take remaining space after .section-header */
   min-height: 0; /* Allow flex child to shrink */
-  max-height:650px;
 }
 
 /* Booker button wrapper - hidden by default */
@@ -158,10 +157,8 @@ html, body {
   display: flex;
   flex-direction: column;
   overflow-y: hidden;  /* Parent doesn't scroll - children handle their own scrolling */
-  min-height: 0;      /* Prevent flexbox overflow issues */
+  min-height: 0;
   padding: 10px;
-  height: auto;
-  max-height: min-content !important;
   width: 98%;
   margin: 0 auto;
   box-sizing: border-box;
@@ -206,7 +203,7 @@ html, body {
   flex: 1;
   margin: 2px 0 20px 0;
   min-height: 0;     /* Allow flex child to shrink below content size */
-  max-height: 700px !important;
+  
   overflow-y: auto;  /* This container scrolls, not the parent */
   border: 1px solid silver;
   border-radius: 4px;
@@ -1175,10 +1172,7 @@ input.invalid {
 /* STARTUP CONFIGURATION PAGE STYLES                                          */
 /* ============================================================================ */
 
-/* Remove height caps for Startup page so accordion content fills sidebar space */
-#page-startup.page-content {
-  max-height: none;
-}
+/* Startup page */
 #display_win_startup {
   max-height: 76vh !important;
 }

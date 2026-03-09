@@ -330,10 +330,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
 
         reply({
           ok: true,
-          data: data
+          data: data,
+          llmError: parser._llmError || null
         });
       } catch (e) {
-        console.error('Content script parser error:', e);
+        console.log('!!! Content script parser error:', e.message);
         reply({ ok: false, error: e.message });
       }
     })();

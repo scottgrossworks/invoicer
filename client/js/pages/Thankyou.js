@@ -56,7 +56,8 @@ export class Thankyou extends DataPage {
   async fullParse() {
     // Use inherited reloadParser() with forceFullParse to skip prelim/DB (already done in DataPage.onShow)
     await this.reloadParser({ forceFullParse: true });
-    return { success: true, data: this.state.toObject() };
+    const parsed = !!(this.state.Client?.name || this.state.Client?.email);
+    return { success: parsed, data: this.state.toObject() };
   }
 
   /**

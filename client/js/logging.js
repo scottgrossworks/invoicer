@@ -187,7 +187,7 @@ const TOAST_DEDUPE_WINDOW = 5000; // Don't show same toast within 5 seconds
  * @param {string} message - Message text to display
  * @param {string} type - Toast type: 'success', 'error', or 'info' (default: 'info')
  */
-export function showToast(message, type = 'info') {
+export function showToast(message, type = 'info', duration = 4000) {
   // Check if this exact toast was shown recently
   const toastKey = `${message}:${type}`;
   const now = Date.now();
@@ -222,10 +222,10 @@ export function showToast(message, type = 'info') {
   toast.textContent = message;
   document.body.appendChild(toast);
 
-  // Auto-remove toast after 4 seconds
+  // Auto-remove toast after duration
   setTimeout(() => {
     if (toast.parentNode) {
       toast.parentNode.removeChild(toast);
     }
-  }, 4000);
+  }, duration);
 }

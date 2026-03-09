@@ -92,17 +92,23 @@ export async function getDbLayer() {
   // Fall back to leedz_config.json if no startup config found
   if (!baseUrl) {
     const cfg = await loadConfig();
-    baseUrl = cfg?.db?.baseUrl || 'http://localhost:3000';
-    provider = cfg?.db?.provider || 'local_prisma_sqlite';
-    console.log('Using default config from leedz_config.json:', baseUrl);
+    if (!cfg?.db?.baseUrl) return null; // No DB configured (e.g. ShareEx)
+    baseUrl = cfg.db.baseUrl;
+    provider = cfg.db.provider || 'local_prisma_sqlite';
+    // console.log('Using default config from leedz_config.json:', baseUrl);
   }
 
   // Create DB layer instance
   if (provider === 'local_prisma_sqlite') {
-    const module = await import('./db/DB_local_prisma_sqlite.js');
-    return new module.DB_Local_PrismaSqlite(baseUrl);
+    try {
+      const module = await import('./db/DB_local_prisma_sqlite.js');
+      return new module.DB_Local_PrismaSqlite(baseUrl);
+    } catch (e) {
+      // Server not running or module unavailable - DB disabled
+      return null;
+    }
   }
-  throw new Error('Unknown DB provider: ' + provider);
+  return null;
 }
 
 /**

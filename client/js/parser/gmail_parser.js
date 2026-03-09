@@ -12,6 +12,7 @@ import { PageUtils } from '../utils/Page_Utils.js';
 import { ValidationUtils } from '../utils/ValidationUtils.js';
 import Client from '../db/Client.js';
 import Booking from '../db/Booking.js';
+import { loadConfig } from '../utils/ConfigLoader.js';
 
 // Global CONFIG variable
 let CONFIG = null;
@@ -28,10 +29,7 @@ class GmailParser extends EventParser {
   async _initializeConfig() {
     if (CONFIG) return;
     try {
-      const configResponse = await fetch(chrome.runtime.getURL('leedz_config.json'));
-      if (!configResponse.ok) throw new Error(`Config file not found: ${configResponse.status}`);
-      CONFIG = await configResponse.json();
-      // console.log('Gmail parser config loaded successfully');
+      CONFIG = await loadConfig();
     } catch (error) {
       console.error('FATAL: Unable to load leedz_config.json:', error);
       throw new Error('Gmail parser cannot initialize - config file missing or invalid');
@@ -178,7 +176,9 @@ class GmailParser extends EventParser {
       const response = await this._sendLLMRequest(llmConfig, prompt);
 
       if (!response?.ok) {
-        console.error('LLM request failed:', response?.error || 'Request failed');
+        const errMsg = response?.error || 'LLM request failed';
+        console.log('!!! LLM request failed:', errMsg, '— Edit LLM_KEY.json to configure your Anthropic API key, then reload the extension.');
+        this._llmError = errMsg;
         return null;
       }
 
@@ -196,7 +196,7 @@ class GmailParser extends EventParser {
       return parsedResult;
 
     } catch (error) {
-      console.error('LLM processing failed:', error);
+      console.log('!!! LLM processing error:', error.message);
       return null;
     }
   }

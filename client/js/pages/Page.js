@@ -422,6 +422,9 @@ export class Page {
                   const parserTimestamp = Date.now();
                   this.state._parserTimestamp = parserTimestamp;
 
+                  // Capture LLM error (e.g. API key not configured) for surface to UI
+                  this._lastLlmError = response.llmError || null;
+
                   // Merge parsed data into state's sub-objects
                   mergePageData(this.state, response.data);
 
@@ -432,7 +435,7 @@ export class Page {
 
                   resolve();
                 } else {
-                  logError(`Parser ${p.name} failed:`, response?.error || 'Unknown error');
+                  log(`!!! Parser ${p.name} failed:`, response?.error || 'Unknown error');
                   resolve(); // Still resolve even on failure
                 }
               });

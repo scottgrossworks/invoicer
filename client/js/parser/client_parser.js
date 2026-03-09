@@ -5,6 +5,7 @@
  */
 
 import { ProfileParser } from './profile_parser.js';
+import { loadConfig } from '../utils/ConfigLoader.js';
 
 // Global CONFIG variable
 let CONFIG = null;
@@ -20,10 +21,7 @@ class ClientParser extends ProfileParser {
   async _initializeConfig() {
     if (CONFIG) return;
     try {
-      const configResponse = await fetch(chrome.runtime.getURL('leedz_config.json'));
-      if (!configResponse.ok) throw new Error(`Config file not found: ${configResponse.status}`);
-      CONFIG = await configResponse.json();
-      console.log('Client parser config loaded successfully');
+      CONFIG = await loadConfig();
     } catch (error) {
       console.error('FATAL: Unable to load leedz_config.json:', error);
       throw new Error('Client parser cannot initialize - config file missing or invalid');

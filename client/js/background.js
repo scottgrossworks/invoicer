@@ -26,6 +26,21 @@ chrome.action.onClicked.addListener((tab) => {
 
 
 
+// Load LLM key once from LLM_KEY.json (background is always extension context)
+let _llmApiKey = null;
+async function getLlmApiKey() {
+  if (_llmApiKey) return _llmApiKey;
+  try {
+    const r = await fetch(chrome.runtime.getURL('LLM_KEY.json'));
+    if (r.ok) {
+      const d = await r.json();
+      const key = d['api-key'] || '';
+      if (key && !key.includes('PASTE-YOUR-KEY')) _llmApiKey = key;
+    }
+  } catch (e) {}
+  return _llmApiKey;
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   
   //
@@ -38,19 +53,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Keep the message channel open for async response
   }
 
+  // NOTE: leedz_open_dashboard handler removed — openDashboard() now opens
+  // dashboard URL directly (no Lambda call) to prevent unwanted magic link emails
+
   //
   // Handle LLM requests to avoid CORS issues
   //
   if (message.type === 'leedz_llm_request') {
-    //console.log('DEBUG: Background script received LLM request');
     const { request } = message;
-    
-    // console.log('DEBUG: Making fetch to:', request.url);
-    // console.log('DEBUG: Request method:', request.method);
-    // console.log('DEBUG: Request headers:', request.headers);
-    // console.log('DEBUG: Request body:', JSON.stringify(request.body, null, 2));
-    
-    fetch(request.url, {
+    (async () => {
+      const apiKey = await getLlmApiKey();
+      if (!apiKey) {
+        console.warn('LLM_KEY.json not configured — set your Anthropic key in LLM_KEY.json');
+        sendResponse({ ok: false, error: 'LLM API key not configured. Edit LLM_KEY.json.' });
+        return;
+      }
+      request.headers['x-api-key'] = apiKey;
+      fetch(request.url, {
       method: request.method,
       headers: request.headers,
       body: JSON.stringify(request.body)
@@ -71,11 +90,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ ok: false, status: response.status, statusText: response.statusText });
       }
     })
-    .catch(error => {
-      console.error('Fetch failed:', error.message);
-      sendResponse({ ok: false, error: error.message });
-    });
-    
+      .catch(error => {
+        console.error('Fetch failed:', error.message);
+        sendResponse({ ok: false, error: error.message });
+      });
+    })();
     return true;
   }
 

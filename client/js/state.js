@@ -197,7 +197,7 @@ class State {
       const dbLayer = await getDbLayer();
 
       if (!dbLayer) {
-        console.log("No DB Layer configured - Config will not be loaded from database");
+        // console.log("No DB Layer configured - Config will not be loaded from database");
         return;
       }
 
