@@ -114,6 +114,23 @@ async function initializeAppBackground() {
     // Initialize state with persistence (pass LEEDZ_CONFIG for Square settings)
     STATE = await StateFactory.create(LEEDZ_CONFIG);
 
+    // Load runtime business identity from DOCS/VALUE_PROP.md (runtime-only; never
+    // persisted - plan KTD1/R2). Must happen before pages/parsers use it (KTD12).
+    // Non-blocking failure: a load error sets STATE.BusinessIdentity.errors and the
+    // Startup page surfaces it; the temp Startup page is already visible.
+    try {
+      const { loadValuePropIdentity } = await import(chrome.runtime.getURL('js/utils/ValuePropLoader.js'));
+      STATE.BusinessIdentity = await loadValuePropIdentity(LEEDZ_CONFIG);
+      if (STATE.BusinessIdentity.errors.length) {
+        console.warn('VALUE_PROP identity errors:', STATE.BusinessIdentity.errors);
+      }
+      if (STATE.BusinessIdentity.warnings.length) {
+        console.warn('VALUE_PROP identity warnings:', STATE.BusinessIdentity.warnings);
+      }
+    } catch (error) {
+      console.error('Failed to load business identity:', error);
+    }
+
     // Listen for storage changes from settings page
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName === 'local' && changes.currentBookingState) {
@@ -166,6 +183,12 @@ async function initializeAppBackground() {
 
     // Set CURRENT_PAGE to startup page
     CURRENT_PAGE = PAGES['startup'];
+
+    // Render the loaded business identity on the Startup page (the real startup page's
+    // onShow() is not called again after init, so render explicitly here).
+    if (PAGES['startup'] && typeof PAGES['startup'].renderBusinessIdentity === 'function') {
+      PAGES['startup'].renderBusinessIdentity(STATE.BusinessIdentity);
+    }
 
     // Expose switchToPage globally so pages can navigate
     window.switchToPage = switchToPage;

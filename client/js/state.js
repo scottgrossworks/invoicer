@@ -18,6 +18,10 @@ class State {
     this.Booking = {};
     this.Config = {};
     this.Square = {};  // Square OAuth configuration from leedz_config.json
+    // Runtime-only business identity from DOCS/VALUE_PROP.md (see ValuePropLoader).
+    // NEVER persisted to chrome storage / SQLite / Config (plan KTD1/R2). It rides the
+    // toObject() message payload so content-script parsers can read it (KTD12).
+    this.BusinessIdentity = null;
     this.storageKey = 'currentBookingState';
     this.status = 'new';
 
@@ -84,8 +88,22 @@ class State {
     this.Booking = {};
     // DO NOT CLEAR CONFIG DATA
     // this.Config = {};
+    // DO NOT CLEAR BusinessIdentity - it is runtime identity loaded once at startup.
+    // fromObject() restores it only when the incoming payload carries it.
 
     this.status = 'clear';
+  }
+
+  /**
+   * Single "identity not usable" predicate for consumers (Share, Write).
+   * Non-blocking warnings (e.g. tradeUnverified) do NOT make identity blocked.
+   * @returns {boolean} true when identity is missing or carries blocking errors
+   */
+  isIdentityBlocked() {
+    const bi = this.BusinessIdentity;
+    if (!bi) return true;
+    if (Array.isArray(bi.errors) && bi.errors.length > 0) return true;
+    return bi.loadedAt == null;
   }
 
   /**
@@ -104,8 +122,22 @@ class State {
       Client: cleanClients[0] || {},  // Backward compatibility - first client
       Clients: cleanClients,           // Array of clients
       Booking: { ...this.Booking },
-      Config: { ...this.Config }
+      Config: { ...this.Config },
+      // Included so the content-script parsers receive runtime identity via the
+      // message payload (KTD12). Stripped from durable persistence by toPersistedObject().
+      BusinessIdentity: this.BusinessIdentity ? { ...this.BusinessIdentity } : null
     };
+  }
+
+  /**
+   * Durable-persistence shape: toObject() minus runtime identity (R2 - identity is
+   * never written to currentBookingState). Used by saveLocal().
+   * @returns {Object}
+   */
+  toPersistedObject() {
+    const data = this.toObject();
+    delete data.BusinessIdentity;
+    return data;
   }
 
   /**
@@ -133,6 +165,13 @@ class State {
 
     Object.assign(this.Booking, obj.Booking || {});
     Object.assign(this.Config, obj.Config || {});
+
+    // Restore runtime identity only when the payload carries it (e.g. content-script
+    // message). DB records and local storage never carry it, so existing identity is
+    // preserved (clear() above does not wipe it).
+    if (obj.BusinessIdentity) {
+      this.BusinessIdentity = obj.BusinessIdentity;
+    }
 
   }
 
@@ -255,7 +294,7 @@ class State {
    */
   async saveLocal() {
     try {
-      const data = this.toObject();
+      const data = this.toPersistedObject();  // excludes runtime BusinessIdentity (R2)
       await chrome.storage.local.set({ [this.storageKey]: data });
     } catch (error) {
       console.warn('Failed to save state to storage:', error);

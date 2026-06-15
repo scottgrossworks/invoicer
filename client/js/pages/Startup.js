@@ -59,6 +59,49 @@ export class Startup extends Page {
   }
 
   /**
+   * Render runtime business identity (from DOCS/VALUE_PROP.md) into the Startup panel.
+   * Three render states: loaded+ok, loaded+blocking-errors, loaded+warnings.
+   * @param {object|null} bi - STATE.BusinessIdentity
+   */
+  renderBusinessIdentity(bi) {
+    const tbody = document.getElementById('business-identity-tbody');
+    const status = document.getElementById('business-identity-status');
+    if (!tbody) return;
+
+    const esc = (s) => String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    if (!bi) {
+      tbody.innerHTML = '<tr><td colspan="2">Identity not loaded</td></tr>';
+      if (status) { status.textContent = 'Business identity unavailable.'; status.style.color = '#b00000'; }
+      return;
+    }
+
+    const rows = [
+      ['Seller', bi.sellerName],
+      ['Company', bi.companyName],
+      ['Email', bi.companyEmail],
+      ['Phone', bi.companyPhone],
+      ['Trade', bi.canonicalTrade || bi.trade]
+    ];
+    tbody.innerHTML = rows
+      .map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v || '—')}</td></tr>`)
+      .join('');
+
+    if (!status) return;
+    if (Array.isArray(bi.errors) && bi.errors.length) {
+      status.innerHTML = bi.errors.map(esc).join('<br>');
+      status.style.color = '#b00000';   // blocking
+    } else if (Array.isArray(bi.warnings) && bi.warnings.length) {
+      status.innerHTML = bi.warnings.map(esc).join('<br>');
+      status.style.color = '#b06f00';   // warning (non-blocking)
+    } else {
+      status.textContent = 'Identity loaded.';
+      status.style.color = '#0a8a00';
+    }
+  }
+
+  /**
    * Check leedz_server status
    */
   async checkServerStatus() {
