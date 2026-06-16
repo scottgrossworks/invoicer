@@ -156,11 +156,10 @@ class Leedz_DB {
   async updateBooking(id, data) { throw new Error('Method not implemented'); }
   async deleteBooking(id) { throw new Error('Method not implemented'); }
 
-  // Config operations
-  async createConfig(data) { throw new Error('Method not implemented'); }
-  async getLatestConfig() { throw new Error('Method not implemented'); }
-  async updateConfig(id, data) { throw new Error('Method not implemented'); }
-  async upsertConfig(data) { throw new Error('Method not implemented'); }
+  // Square OAuth connection operations (singleton row, see KTD14)
+  async getSquareConnection() { throw new Error('Method not implemented'); }
+  async upsertSquareConnection(data) { throw new Error('Method not implemented'); }
+  async deleteSquareConnection() { throw new Error('Method not implemented'); }
 
   // System operations
   async connect() { throw new Error('Method not implemented'); }

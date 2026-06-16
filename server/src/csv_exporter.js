@@ -17,7 +17,13 @@ async function exportAllDataToCSV(prisma, exportPath) {
     // Query all data from all tables
     const clients = await prisma.client.findMany();
     const bookings = await prisma.booking.findMany();
-    const configs = await prisma.config.findMany();
+    // Config table removed (U4). Export the SquareConnection rows instead, with
+    // OAuth tokens redacted so the CSV never carries secrets (KTD15).
+    const squareConnections = (await prisma.squareConnection.findMany()).map(c => ({
+      ...c,
+      accessToken: c.accessToken ? '***REDACTED***' : null,
+      refreshToken: c.refreshToken ? '***REDACTED***' : null
+    }));
 
     // Build CSV content manually for combined file with table separators
     const csvLines = [];
@@ -79,17 +85,18 @@ async function exportAllDataToCSV(prisma, exportPath) {
     // Empty line separator
     csvLines.push('');
 
-    // CONFIG TABLE
-    csvLines.push('TABLE,Config');
-    if (configs.length > 0) {
-      const configHeaders = Object.keys(configs[0]);
-      csvLines.push(configHeaders.join(','));
+    // SQUARE CONNECTION TABLE
+    csvLines.push('TABLE,SquareConnection');
+    if (squareConnections.length > 0) {
+      const connHeaders = Object.keys(squareConnections[0]);
+      csvLines.push(connHeaders.join(','));
 
-      for (const config of configs) {
-        const row = configHeaders.map(header => {
-          const value = config[header];
+      for (const conn of squareConnections) {
+        const row = connHeaders.map(header => {
+          const value = conn[header];
           if (value === null || value === undefined) return '';
           if (value instanceof Date) return value.toISOString();
+          if (typeof value === 'bigint') return String(value);
           const strValue = String(value);
           if (strValue.includes(',') || strValue.includes('"') || strValue.includes('\n')) {
             return `"${strValue.replace(/"/g, '""')}"`;
@@ -99,7 +106,7 @@ async function exportAllDataToCSV(prisma, exportPath) {
         csvLines.push(row.join(','));
       }
     } else {
-      csvLines.push('No config records found');
+      csvLines.push('No SquareConnection records found');
     }
 
     // Write to file
@@ -108,7 +115,7 @@ async function exportAllDataToCSV(prisma, exportPath) {
 
     return {
       success: true,
-      message: `Successfully exported ${clients.length} clients, ${bookings.length} bookings, ${configs.length} configs`,
+      message: `Successfully exported ${clients.length} clients, ${bookings.length} bookings, ${squareConnections.length} square connections`,
       path: exportPath
     };
 

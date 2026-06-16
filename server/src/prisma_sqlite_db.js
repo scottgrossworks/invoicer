@@ -561,72 +561,57 @@ class Prisma_Sqlite_DB extends Leedz_DB {
     }
   }
 
-  // Config operations
-  async createConfig(data) {
-    return await this.prisma.config.create({ 
-      data: {
-        ...data,
-        // fontSize is no longer part of the schema
-        // No longer converting fontSize here
-        includeTerms: data.includeTerms === true || data.includeTerms === 'true' // Still converting includeTerms
-      }
+  // Square OAuth connection operations
+  //
+  // Singleton: a single connection row is enforced via a fixed sentinel id
+  // (KTD14). Business identity is NOT stored here — it loads at runtime from
+  // VALUE_PROP.md (KTD1). The legacy Config model is gone (U4).
+  static SQUARE_CONNECTION_ID = 'default';
+
+  async getSquareConnection() {
+    return await this.prisma.squareConnection.findUnique({
+      where: { id: Prisma_Sqlite_DB.SQUARE_CONNECTION_ID }
     });
   }
 
-  async getLatestConfig() {
-    return await this.prisma.config.findFirst({
-      orderBy: { createdAt: 'desc' }
+  async upsertSquareConnection(data) {
+    // Normalize the inbound shape to the SquareConnection columns only; never
+    // accept/forward stray business fields.
+    const fields = {
+      accessToken: data.accessToken ?? null,
+      refreshToken: data.refreshToken ?? null,
+      expiresAt: data.expiresAt === null || data.expiresAt === undefined
+        ? null
+        : BigInt(data.expiresAt),
+      merchantId: data.merchantId ?? null,
+      locationId: data.locationId ?? null,
+      state: data.state ?? null
+    };
+
+    return await this.prisma.squareConnection.upsert({
+      where: { id: Prisma_Sqlite_DB.SQUARE_CONNECTION_ID },
+      create: { id: Prisma_Sqlite_DB.SQUARE_CONNECTION_ID, ...fields },
+      update: fields
     });
   }
 
-  async updateConfig(id, data) {
-    return await this.prisma.config.update({
-      where: { id },
-      data: {
-        ...data,
-        // fontSize is no longer part of the schema
-        // No longer converting fontSize here
-        includeTerms: data.includeTerms === true || data.includeTerms === 'true' // Still converting includeTerms
-      }
-    });
-  }
-
-  async upsertConfig(data) {
-    // Try to find the latest existing config
-    const latestConfig = await this.prisma.config.findFirst({
-      orderBy: { createdAt: 'desc' }
-    });
-
-    if (latestConfig) {
-      // If a config exists, update it
-      return await this.prisma.config.update({
-        where: { id: latestConfig.id },
-        data: {
-          ...data,
-          // fontSize is no longer part of the schema
-          // No longer converting fontSize here
-          includeTerms: data.includeTerms === true || data.includeTerms === 'true' // Still converting includeTerms
-        }
+  async deleteSquareConnection() {
+    try {
+      await this.prisma.squareConnection.delete({
+        where: { id: Prisma_Sqlite_DB.SQUARE_CONNECTION_ID }
       });
-    } else {
-      // If no config exists, create a new one
-      return await this.prisma.config.create({
-        data: {
-          ...data,
-          // fontSize is no longer part of the schema
-          // No longer converting fontSize here
-          includeTerms: data.includeTerms === true || data.includeTerms === 'true' // Still converting includeTerms
-        }
-      });
+      return true;
+    } catch {
+      return false;
     }
   }
 
   // System operations
   async getSystemStats() {
-    const [totalClients, totalBookings, totalConfigs] = await Promise.all([
+    const [totalClients, totalBookings, squareConnections] = await Promise.all([
       this.prisma.client.count(),
       this.prisma.booking.count(),
-      this.prisma.config.count()
+      this.prisma.squareConnection.count()
     ]);
 
     // Extract database name from URL (e.g., "file:./prisma/leedz.sqlite" -> "leedz.sqlite")
@@ -635,7 +620,7 @@ class Prisma_Sqlite_DB extends Leedz_DB {
     return {
       clients: totalClients,
       bookings: totalBookings,
-      configs: totalConfigs,
+      squareConnections,
       databaseName: dbName
     };
   }

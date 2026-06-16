@@ -24,7 +24,7 @@ const fs = require('fs');
 const { DatabaseFactory } = require('./db_factory');
 const { Client } = require('./Client');
 const { Booking } = require('./Booking');
-const { Config } = require('./Config');
+// Config model removed (U4); business identity is runtime-only (KTD1).
 const { exportAllDataToCSV } = require('./csv_exporter');
 
 // Detect if running in pkg and get actual executable directory
@@ -116,7 +116,24 @@ const port = process.env.PORT || config.port || 3000;
 initLogging(config.logging, baseDir);
 
 app.use(express.json());
-app.use(cors());
+
+// CORS hardening (KTD15): the server binds 127.0.0.1, but open cors() let any
+// visited web page drive it. Restrict to the extension origin and localhost;
+// still allow origin-less requests (curl, same-origin OAuth redirects, health
+// probes). NOTE: per-route JWT auth on state-changing routes is a further KTD15
+// item that requires client-side coordination and is tracked separately.
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin) return callback(null, true); // curl / server-to-server / OAuth redirect
+    if (origin.startsWith('chrome-extension://') ||
+        origin.startsWith('moz-extension://') ||
+        /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Origin not allowed by CORS'));
+  }
+};
+app.use(cors(corsOptions));
 
 /**
  * Request logging middleware
@@ -549,53 +566,90 @@ app.get("/stats", asyncRoute(async (req, res) => {
   res.json(stats);
 }, "GET /stats"));
 
-// CONFIG ENDPOINTS
+// HEALTH / META ENDPOINT
+//
+// Replaces the removed GET/POST /config (U4/U5). Business identity now loads at
+// runtime from VALUE_PROP.md (KTD1); runtime connection/LLM settings live in the
+// client's chrome.storage. The only thing the client needs from the old /config
+// is the database name + a liveness signal.
 
 /**
- * POST /config
- * Uploads and saves client configuration to database
+ * Extract the sqlite filename from the database URL (no absolute path leaked).
  */
-app.post("/config", asyncRoute(async (req, res) => {
-  const configData = req.body;
-  
-  // Validate required fields (basic validation)
-  if (!configData || typeof configData !== 'object') {
-    return res.status(400).json({ error: "Invalid config data" });
-  }
-
-  const result = await db.upsertConfig(configData);
-  res.status(200).json(result);
-}, "POST /config"));
-
-/**
- * GET /config
- * Retrieves the latest configuration from database
- * Includes database name extracted from databaseUrl
- */
-app.get("/config", asyncRoute(async (req, res) => {
-  const config = await db.getLatestConfig();
-
-  if (!config) {
-    return res.status(404).json({ error: "No configuration found" });
-  }
-
-  // Extract database name from databaseUrl (e.g., "file:./leedz.sqlite" -> "leedz.sqlite")
-  let databaseName = 'unknown';
+function databaseDisplayName() {
   if (db.databaseUrl) {
     const match = db.databaseUrl.match(/[^/\\]+\.sqlite$/);
-    if (match) {
-      databaseName = match[0];
-    }
+    if (match) return match[0];
   }
+  return 'unknown';
+}
 
-  // Add database name to config response
-  const response = {
-    ...config,
-    databaseName: databaseName
-  };
+/**
+ * GET /health
+ * Liveness + database name. Returns ONLY { status, databaseName } — never any
+ * absolute filesystem path or secret (KTD15).
+ */
+app.get("/health", asyncRoute(async (req, res) => {
+  res.status(200).json({ status: "ok", databaseName: databaseDisplayName() });
+}, "GET /health"));
 
-  res.status(200).json(response);
-}, "GET /config"));
+// Alias: some callers may probe /meta.
+app.get("/meta", asyncRoute(async (req, res) => {
+  res.status(200).json({ status: "ok", databaseName: databaseDisplayName() });
+}, "GET /meta"));
+
+// SQUARE CONNECTION ENDPOINTS
+
+/**
+ * GET /square/status
+ * Reports whether a Square connection exists. Returns ONLY non-secret fields
+ * (KTD15) — never accessToken/refreshToken.
+ */
+app.get("/square/status", asyncRoute(async (req, res) => {
+  const conn = await db.getSquareConnection();
+  if (!conn || !conn.accessToken) {
+    return res.status(200).json({ connected: false });
+  }
+  res.status(200).json({
+    connected: true,
+    merchantId: conn.merchantId || null,
+    locationId: conn.locationId || null,
+    expiresAt: conn.expiresAt === null || conn.expiresAt === undefined
+      ? null
+      : String(conn.expiresAt)
+  });
+}, "GET /square/status"));
+
+/**
+ * POST /square/connection
+ * Upserts the singleton Square connection. Accepts only SquareConnection fields.
+ */
+app.post("/square/connection", asyncRoute(async (req, res) => {
+  const data = req.body;
+  if (!data || typeof data !== 'object') {
+    return res.status(400).json({ error: "Invalid connection data" });
+  }
+  await db.upsertSquareConnection(data);
+  // Echo back the safe status shape, not the stored tokens.
+  const conn = await db.getSquareConnection();
+  res.status(200).json({
+    connected: !!(conn && conn.accessToken),
+    merchantId: conn?.merchantId || null,
+    locationId: conn?.locationId || null,
+    expiresAt: conn?.expiresAt === null || conn?.expiresAt === undefined
+      ? null
+      : String(conn.expiresAt)
+  });
+}, "POST /square/connection"));
+
+/**
+ * DELETE /square/connection
+ * Clears the Square connection (disconnect).
+ */
+app.delete("/square/connection", asyncRoute(async (req, res) => {
+  await db.deleteSquareConnection();
+  res.status(200).json({ connected: false });
+}, "DELETE /square/connection"));
 
 /**
  * SQUARE OAUTH ENDPOINTS
@@ -699,19 +753,22 @@ app.get("/square/callback", asyncRoute(async (req, res) => {
       log(`WARNING: Failed to retrieve location ID: ${locationError.message}`);
     }
 
-    // Save tokens to database
-    const configData = await db.getConfig();
-    if (configData) {
-      configData.sq_access = tokenData.access_token;
-      configData.sq_refresh = tokenData.refresh_token;
-      configData.sq_expiration = BigInt(expiresAt);
-      configData.sq_merchant = tokenData.merchant_id;
-      configData.sq_location = locationId;
-      configData.sq_state = 'authorized';
-
-      await db.updateConfig(configData);
-      log(`[Square OAuth] Tokens saved to database for merchant: ${tokenData.merchant_id}`);
-    }
+    // Save tokens to the SquareConnection singleton (KTD8 fix: the old code
+    // called db.getConfig()/db.updateConfig(configData) — methods that never
+    // existed on the DB class, so persistence was silently broken).
+    await db.upsertSquareConnection({
+      accessToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token,
+      expiresAt: BigInt(expiresAt),
+      merchantId: tokenData.merchant_id,
+      locationId: locationId,
+      // Echo the OAuth state value Square returned. TODO(KTD15): validate this
+      // against a server-issued random nonce for CSRF protection — that requires
+      // the client to request a nonce when building the authorize URL (a
+      // client-side change outside this unit). Until then we record, not verify.
+      state: state || null
+    });
+    log(`[Square OAuth] Tokens saved to SquareConnection for merchant: ${tokenData.merchant_id}`);
 
     // Return success HTML that closes the window
     const successHtml = `
@@ -843,6 +900,18 @@ app.post("/api/square/token-exchange", asyncRoute(async (req, res) => {
       log(`WARNING: Failed to retrieve location ID: ${locationError.message}`);
     }
 
+    // Persist to the SquareConnection singleton. The client used to round-trip
+    // these through POST /config; that path is gone (U4/U5), so the server is
+    // now the system of record for Square OAuth state.
+    await db.upsertSquareConnection({
+      accessToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token,
+      expiresAt: BigInt(expiresAt),
+      merchantId: tokenData.merchant_id,
+      locationId: locationId,
+      state: state || null
+    });
+
     // Return tokens to client
     const result = {
       access_token: tokenData.access_token,
@@ -916,6 +985,9 @@ app.post("/api/square/revoke", asyncRoute(async (req, res) => {
       });
     }
 
+    // Clear the locally stored connection now that Square has revoked it.
+    await db.deleteSquareConnection();
+
     log(`[Square OAuth] Tokens revoked successfully for merchant: ${merchant_id}`);
     res.status(200).json({ success: true });
 
@@ -947,14 +1019,9 @@ app.get('/api/dump/bookings', asyncRoute(async (req, res) => {
   });
 }, "GET /api/dump/bookings"));
 
-app.get('/api/dump/config', asyncRoute(async (req, res) => {
-  const filePath = await dumpConfig();
-  res.status(200).json({
-    success: true,
-    message: 'Config dumped successfully',
-    filePath: filePath
-  });
-}, "GET /api/dump/config"));
+// NOTE: GET /api/dump/config removed — the Config table no longer exists (U4).
+// Square OAuth state is durable in SquareConnection; it is intentionally not
+// exposed via a token-dumping endpoint (KTD15).
 
 /**
  * DUMP FUNCTIONS FOR DATA EXPORT
@@ -1022,34 +1089,6 @@ async function dumpBookings() {
     return filePath;
   } catch (error) {
     log(`Booking dump failed: ${error.message}`);
-    throw error;
-  }
-}
-
-/**
- * Dump Config object to JSON file
- */
-async function dumpConfig() {
-  const fs = require('fs').promises;
-  const path = require('path');
-
-  try {
-    log("Starting Config dump...");
-    const config = await db.getLatestConfig();
-
-    // Convert config to JSON
-    const configObj = new Config(config || {});
-    const jsonOutput = JSON.stringify(configObj.toInterface(), null, 2);
-
-    // Save to file
-    const filePath = path.join(__dirname, '..', 'exports', `config_${Date.now()}.json`);
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.writeFile(filePath, jsonOutput);
-
-    log(`Config dumped to: ${filePath}`);
-    return filePath;
-  } catch (error) {
-    log(`Config dump failed: ${error.message}`);
     throw error;
   }
 }
