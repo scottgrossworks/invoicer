@@ -70,6 +70,17 @@ if exist "*.html" copy /Y "*.html" "%DIST_DIR%\" >nul
 if exist "leedz_config.json" copy /Y "leedz_config.json" "%DIST_DIR%\" >nul
 if exist "invoicer_config.json" copy /Y "invoicer_config.json" "%DIST_DIR%\" >nul
 
+:: User-editable LLM key file (referenced in manifest web_accessible_resources;
+:: carried over from the shareex build - the runtime reads the Anthropic key from here)
+if exist "LLM_KEY.json" copy /Y "LLM_KEY.json" "%DIST_DIR%\" >nul
+
+:: DOCS/VALUE_PROP.md - runtime business identity source (fetched via chrome.runtime.getURL).
+:: NOTE: the js robocopy above excludes *.md and never copies DOCS/, so copy it explicitly.
+if exist "DOCS\VALUE_PROP.md" (
+    if not exist "%DIST_DIR%\DOCS" mkdir "%DIST_DIR%\DOCS"
+    copy /Y "DOCS\VALUE_PROP.md" "%DIST_DIR%\DOCS\" >nul
+)
+
 :: Docs
 if exist "LICENSE" copy /Y "LICENSE" "%DIST_DIR%\" >nul
 

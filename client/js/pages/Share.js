@@ -121,6 +121,33 @@ export class Share extends DataPage {
     // Initialize default Price section state (unauthenticated, disabled)
     this.updateSquareButtonState();
     this.updatePriceInputState();
+
+    // Reflect runtime business-identity trade state on the Share button (U3).
+    this.updateTradeGate();
+  }
+
+  /**
+   * Reflect runtime business-identity trade state on the Share button (U3 / KTD3).
+   * - Blocking trade error (TRADE_MISSING / TRADE_UNRESOLVED) -> disable + show error.
+   * - tradeUnverified (marketplace unreachable) -> keep enabled, show a warning tooltip.
+   * - Resolved -> normal.
+   */
+  updateTradeGate() {
+    const shareBtn = document.getElementById('shareBtn');
+    if (!shareBtn) return;
+    const bi = this.state.BusinessIdentity;
+    const blocked = typeof this.state.isIdentityBlocked === 'function' && this.state.isIdentityBlocked();
+    if (blocked) {
+      shareBtn.disabled = true;
+      shareBtn.title = (bi && bi.errors && bi.errors.length)
+        ? bi.errors[0]
+        : 'Business identity is not loaded.';
+    } else {
+      shareBtn.disabled = false;
+      shareBtn.title = (bi && bi.tradeUnverified)
+        ? 'Trade unverified — could not reach the marketplace to confirm it. Sharing is allowed.'
+        : '';
+    }
   }
 
   /**
@@ -143,6 +170,7 @@ export class Share extends DataPage {
     }
     this.populateBookingTable();
     this.populateSpecialInfoSection();
+    this.updateTradeGate();
   }
 
   /**
@@ -1084,6 +1112,16 @@ export class Share extends DataPage {
    * Share List Format: sh = "*,email1,email2,email3" (asterisk + comma + exclusion list)
    */
   async onShare() {
+    // Trade gate (U3 / KTD3): block sharing while business identity has blocking
+    // errors (TRADE_MISSING / TRADE_UNRESOLVED / missing required field).
+    if (typeof this.state.isIdentityBlocked === 'function' && this.state.isIdentityBlocked()) {
+      const bi = this.state.BusinessIdentity;
+      const msg = (bi && bi.errors && bi.errors.length)
+        ? bi.errors[0]
+        : 'Business identity is not loaded — cannot share.';
+      showToast(msg, 'error');
+      return;
+    }
     try {
       this.showLoadingSpinner();
 

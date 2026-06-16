@@ -60,6 +60,8 @@
         "lib/*",
         "invoicer_config.json",
         "leedz_config.json",
+        "LLM_KEY.json",
+        "DOCS/VALUE_PROP.md",
         "sidebar.html",
         "pdf_settings.html",
         "icons/*",
