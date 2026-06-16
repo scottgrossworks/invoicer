@@ -8,7 +8,7 @@
  * 4. Send the complete and accurate data to the LLM for processing.
  */
 import { EventParser } from './event_parser.js';
-import { PageUtils } from '../utils/Page_Utils.js';
+import { verifyBookingExtraction } from '../utils/DateEvidence.js';
 import Client from '../db/Client.js';
 import Booking from '../db/Booking.js';
 
@@ -138,9 +138,6 @@ class GmailParser extends EventParser {
         email: this.STATE.Client?.email
       };
       const prompt = this._buildLLMPrompt(emailData, content, CONFIG.gmailParser);
-
-      console.log('=== LLM PROMPT (gmail) ===\n' + prompt);
-
       const response = await this._sendLLMRequest(llmConfig, prompt);
 
       if (!response?.ok) {
@@ -152,23 +149,86 @@ class GmailParser extends EventParser {
       const firstContent = contentArray?.[0];
       const textContent = firstContent?.text || firstContent;
 
-      console.log('=== LLM RAW RESPONSE (gmail) ===\n' + textContent);
+      const parsedResult = textContent ? this._parseLLMResponse(textContent) : null;
+      if (!parsedResult) return null;
 
-      let parsedResult = textContent ? this._parseLLMResponse(textContent) : null;
+      // Source-evidence verification (U11): scrub any date/time the LLM returned that is
+      // not supported by the email text. One repair pass on the failed fields, then
+      // re-verify. Surviving failures stay null - better blank than hallucinated.
+      const opts = { baseDate: new Date(), source: 'gmail' };
+      let verification = verifyBookingExtraction(parsedResult, content, opts);
 
-      console.log('=== LLM PARSED RESULT (gmail) ===', parsedResult);
-
-      // Validate and correct dates (prevent past bookings)
-      if (parsedResult) {
-        parsedResult = PageUtils.validateAndCorrectDates(parsedResult);
+      if (!verification.ok) {
+        const repaired = await this._repairLLMExtraction(verification.scrubbed, content, verification.errors);
+        if (repaired) {
+          verification = verifyBookingExtraction(repaired, content, opts);
+        }
       }
 
-      return parsedResult;
+      if (!verification.ok) {
+        // Attach verification detail so the UI can warn about unverified fields.
+        verification.scrubbed._verification = { errors: verification.errors };
+      }
+
+      return verification.scrubbed;
 
     } catch (error) {
       console.error('LLM processing failed:', error);
       return null;
     }
+  }
+
+  /**
+   * One repair pass over the fields that failed source verification. Asks the LLM to
+   * re-extract ONLY the failed fields from literal text, returning null when absent.
+   * @param {Object} scrubbed - the verified result with failed fields nulled
+   * @param {string} content - the email source text
+   * @param {string[]} failedFields - e.g. ['Booking.startTime']
+   * @returns {Promise<Object|null>} nested {Client, Booking, Config} or null
+   */
+  async _repairLLMExtraction(scrubbed, content, failedFields) {
+    try {
+      await this._initializeConfig();
+      const llmConfig = CONFIG.llm;
+      if (!llmConfig?.baseUrl || !llmConfig?.endpoints?.completions) return null;
+
+      const prompt = this._buildRepairPrompt(scrubbed, content, failedFields);
+      const response = await this._sendLLMRequest(llmConfig, prompt);
+      if (!response?.ok) return null;
+
+      const firstContent = response.data?.content?.[0];
+      const textContent = firstContent?.text || firstContent;
+      return textContent ? this._parseLLMResponse(textContent) : null;
+    } catch (error) {
+      console.error('Date/time repair pass failed:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Build the repair prompt (version-controlled here rather than leedz_config.json, which
+   * is gitignored). Mirrors the agent_shareLeed repair.json contract: correct only failed
+   * fields from literal text, never guess, return complete JSON with the same keys.
+   */
+  _buildRepairPrompt(scrubbed, content, failedFields) {
+    const currentYear = new Date().getFullYear();
+    const fields = (failedFields || []).join(', ');
+    return `You previously extracted booking fields from a Gmail thread. These fields could ` +
+      `not be verified against the email text: ${fields}.\n\n` +
+      `Re-examine the email and CORRECT only those fields. All other fields pass through unchanged.\n\n` +
+      `CORRECTION RULES:\n` +
+      `1. Re-extract the failed fields ONLY from text literally present in the email body.\n` +
+      `2. If a field is not literally present, return null for that field.\n` +
+      `3. DO NOT GUESS. DO NOT INFER AM/PM. DO NOT HALLUCINATE TIMES OR DATES.\n` +
+      `4. Do not modify any field not in the failed list.\n` +
+      `5. startDate/endDate are ISO YYYY-MM-DD; if the email has no year use ${currentYear}; ` +
+      `never roll a no-year date into next year.\n` +
+      `6. Times are 12-hour with AM/PM (e.g. "7:00 PM"); return null if no time with AM/PM ` +
+      `context is literally present.\n` +
+      `7. Return COMPLETE JSON with the same nested keys as the original ({Client, Booking, Config}).\n\n` +
+      `Original extraction:\n${JSON.stringify(scrubbed)}\n\n` +
+      `Email thread:\n${content}\n\n` +
+      `Return JSON only. No markdown fences, no commentary.`;
   }
 
   /**

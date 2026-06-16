@@ -1,6 +1,7 @@
 // gCal_parser.js — extract Google Calendar event content and process via LLM
 
 import { EventParser } from './event_parser.js';
+import { verifyBookingExtraction } from '../utils/DateEvidence.js';
 
 // Global CONFIG variable - loaded once when parser initializes
 let CONFIG = null;
@@ -353,9 +354,15 @@ class GCalParser extends EventParser {
         const textContent = firstContent?.text || firstContent;
         // console.log("Extracted LLM text content:", textContent);
 
-        const parsedResult = textContent ? this._parseLLMResponse(textContent) : null;
-        // console.log("Final parsed LLM result:", parsedResult);
-        
+        let parsedResult = textContent ? this._parseLLMResponse(textContent) : null;
+
+        // Source-evidence verification (U11): scrub any LLM date/time not supported by the
+        // event text. No repair pass here - calendar data is structured/DOM-derived.
+        if (parsedResult) {
+          const verification = verifyBookingExtraction(parsedResult, combinedText, { baseDate: new Date(), source: 'gcal' });
+          parsedResult = verification.scrubbed;
+        }
+
         return parsedResult;
 
     } catch (error) {

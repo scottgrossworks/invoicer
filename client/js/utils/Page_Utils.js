@@ -92,75 +92,11 @@ export class PageUtils {
   }
 
 
-  /**
-   * Validate and correct dates to ensure they're not in the past
-   * Uses smart year inference: if parsed date is past, bump to current/next year
-   *
-   * LOGIC:
-   * - If startDate > 1 day ago: no change (already valid)
-   * - If startDate < 1 day ago: apply smart year correction
-   *   - If parsed month >= current month: use current year
-   *   - If parsed month < current month: use next year
-   *
-   * EXAMPLE: Today is Nov 8, 2025
-   * - Email says "November 5" (no year) → parsed as 2024-11-05 (past)
-   * - Month 11 >= current month 11 → correct to 2025-11-05
-   * - Email says "January 15" (no year) → parsed as 2025-01-15 (past)
-   * - Month 1 < current month 11 → correct to 2026-01-15
-   *
-   * @param {Object} parsedData - LLM parsed data with startDate/endDate
-   * @returns {Object} Corrected data
-   */
-  static validateAndCorrectDates(parsedData) {
-    if (!parsedData || !parsedData.startDate) {
-      return parsedData;
-    }
-
-    const now = new Date();
-    const startDate = new Date(parsedData.startDate);
-
-    // If parsed date is in the past (more than 1 day ago)
-    const oneDayAgo = new Date(now);
-    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-
-    if (startDate < oneDayAgo) {
-      console.warn('=== PAST DATE DETECTED ===');
-      console.warn('Parsed date:', parsedData.startDate);
-      console.warn('Applying smart year correction...');
-
-      // Extract month/day from parsed date
-      const month = startDate.getMonth();
-      const day = startDate.getDate();
-      const currentMonth = now.getMonth();
-
-      // Smart year inference:
-      // - If month >= current month: use current year
-      // - If month < current month: use next year
-      const correctedYear = month >= currentMonth ? now.getFullYear() : now.getFullYear() + 1;
-
-      // Rebuild date with corrected year, preserving time if present
-      const corrected = new Date(startDate);
-      corrected.setFullYear(correctedYear);
-      parsedData.startDate = corrected.toISOString();
-
-      console.log('Corrected startDate:', parsedData.startDate);
-
-      // Also correct endDate if it exists and is in the past
-      if (parsedData.endDate) {
-        const endDate = new Date(parsedData.endDate);
-        if (endDate < oneDayAgo) {
-          const endMonth = endDate.getMonth();
-          const correctedEndYear = endMonth >= currentMonth ? now.getFullYear() : now.getFullYear() + 1;
-          const correctedEnd = new Date(endDate);
-          correctedEnd.setFullYear(correctedEndYear);
-          parsedData.endDate = correctedEnd.toISOString();
-          console.log('Corrected endDate:', parsedData.endDate);
-        }
-      }
-    }
-
-    return parsedData;
-  }
+  // validateAndCorrectDates() was removed (U11). It silently rolled "past" dates into a
+  // guessed year - exactly the hidden mutation that produced wrong bookings - and it was
+  // dead for the parser shape anyway (it read a flat parsedData.startDate, but parsers pass
+  // nested {Client, Booking:{...}}). Replaced by source-evidence verification in
+  // client/js/utils/DateEvidence.js (verifyBookingExtraction), wired into the parsers.
 
 
   /**
