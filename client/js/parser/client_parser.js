@@ -5,6 +5,7 @@
  */
 
 import { ProfileParser } from './profile_parser.js';
+import { filterClientsAgainstBusinessIdentity } from '../utils/IdentityFilter.js';
 
 // Global CONFIG variable
 let CONFIG = null;
@@ -271,10 +272,17 @@ class ClientParser extends ProfileParser {
         }
       }
 
+      // Filter the seller's own identity out (U9). ClientParser overrides parse(), so the
+      // base-class filter does not apply here - it must be called explicitly.
+      const businessIdentity = this.STATE.BusinessIdentity || (state && state.BusinessIdentity);
+      const filteredClients = filterClientsAgainstBusinessIdentity(clientsArray, businessIdentity);
+
       // Set primary client (first in array) and all clients
-      if (clientsArray && clientsArray.length > 0) {
-        Object.assign(this.STATE.Client, clientsArray[0]); // Primary client
-        this.STATE.setClients(clientsArray); // All clients
+      if (filteredClients && filteredClients.length > 0) {
+        Object.assign(this.STATE.Client, filteredClients[0]); // Primary client
+        this.STATE.setClients(filteredClients); // All clients
+      } else if (clientsArray && clientsArray.length > 0) {
+        this.STATE.setClients([]); // every candidate was the seller
       }
 
       return this.STATE;

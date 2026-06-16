@@ -5,6 +5,7 @@
  */
 
 import { Parser } from './parser.js';
+import { filterClientsAgainstBusinessIdentity } from '../utils/IdentityFilter.js';
 
 class EventParser extends Parser {
 
@@ -66,10 +67,19 @@ class EventParser extends Parser {
       const clientsArray = await this.extractClientData(); // Returns array
       const bookingData = await this.extractBookingData();
 
+      // Filter the seller's own identity out before setting the primary client (U9).
+      // Sourced from runtime BusinessIdentity (VALUE_PROP), which rides the state payload.
+      const businessIdentity = this.STATE.BusinessIdentity || (state && state.BusinessIdentity);
+      const filteredClients = filterClientsAgainstBusinessIdentity(clientsArray, businessIdentity);
+
       // Set primary client (first in array) and all clients
-      if (clientsArray && clientsArray.length > 0) {
-        Object.assign(this.STATE.Client, clientsArray[0]); // Primary client
-        this.STATE.setClients(clientsArray); // All clients
+      if (filteredClients && filteredClients.length > 0) {
+        Object.assign(this.STATE.Client, filteredClients[0]); // Primary client
+        this.STATE.setClients(filteredClients); // All clients
+      } else if (clientsArray && clientsArray.length > 0) {
+        // Every candidate matched the seller - keep clients empty rather than
+        // mislabel the seller as the client (Bug A).
+        this.STATE.setClients([]);
       }
 
       // Populate booking data
