@@ -64,6 +64,11 @@ KEY_FILE/
 client/LLM_KEY.json
 *.pem
 
+# Business identity - contains real contact info + bank details. Track
+# client/DOCS/VALUE_PROP.template.md instead (blank, section names only).
+client/DOCS/VALUE_PROP.md
+client/DOCS/VALUE_PROP.backup-*.md
+
 # Databases and data exports - never commit real client data
 *.sqlite
 *.sqlite-journal
