@@ -6,6 +6,7 @@
 
 import { ProfileParser } from './profile_parser.js';
 import { filterClientsAgainstBusinessIdentity } from '../utils/IdentityFilter.js';
+import { loadConfig } from '../utils/ConfigLoader.js';
 
 // Global CONFIG variable
 let CONFIG = null;
@@ -21,9 +22,9 @@ class ClientParser extends ProfileParser {
   async _initializeConfig() {
     if (CONFIG) return;
     try {
-      const configResponse = await fetch(chrome.runtime.getURL('leedz_config.json'));
-      if (!configResponse.ok) throw new Error(`Config file not found: ${configResponse.status}`);
-      CONFIG = await configResponse.json();
+      // ConfigLoader merges LLM_KEY.json into llm['api-key'] — a raw config
+      // fetch here shipped an EMPTY key and LLM calls 401'd. Fixed 2026-07-21.
+      CONFIG = await loadConfig();
       console.log('Client parser config loaded successfully');
     } catch (error) {
       console.error('FATAL: Unable to load leedz_config.json:', error);

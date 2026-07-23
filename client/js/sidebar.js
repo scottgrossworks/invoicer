@@ -131,6 +131,23 @@ async function initializeAppBackground() {
       console.error('Failed to load business identity:', error);
     }
 
+    // Hydrate runtime Config for the invoice/PDF renderer straight from
+    // VALUE_PROP (single source of truth — identity from ## THE PRODUCT,
+    // invoice/bank fields from ## INVOICE SETTINGS). Replaces the removed DB
+    // Config / GET /config. Runtime-only: never persisted anywhere.
+    if (STATE.BusinessIdentity) {
+      const bi = STATE.BusinessIdentity;
+      Object.assign(STATE.Config, {
+        companyName: bi.companyName || bi.sellerName,
+        companyEmail: bi.companyEmail,
+        companyPhone: bi.companyPhone,
+        contactHandle: bi.contactHandle,
+        ...bi.invoice,
+        includeTerms: !!(bi.invoice && bi.invoice.terms)
+      });
+      console.log('Invoice/config hydrated from VALUE_PROP:', STATE.Config.companyName || '(none)');
+    }
+
     // Listen for storage changes from settings page
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName === 'local' && changes.currentBookingState) {

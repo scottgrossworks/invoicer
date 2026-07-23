@@ -33,12 +33,87 @@ export class Startup extends Page {
     // All async tasks delayed to not block rendering
 
     // Delay background tasks by 100ms to let page render first
-    setTimeout(() => {
+    setTimeout(async () => {
+      await this.populateConfigDefaults();
       this.loadSavedConfig();
       this.checkServerStatus();
       this.checkMcpStatus();
       this.fetchJWTToken();
     }, 100);
+  }
+
+  /**
+   * Resolve the leedz server host/port from leedz_config.json (db.baseUrl).
+   * Single source of truth — no hardcoded ports.
+   */
+  _serverHostPort() {
+    try {
+      const u = new URL(this.leedzConfig?.db?.baseUrl || '');
+      return { host: u.hostname, port: u.port };
+    } catch { return { host: '', port: '' }; }
+  }
+
+  /**
+   * Resolve the MCP host/port from leedz_config.json (mcp.defaultHost/defaultPort).
+   */
+  _mcpHostPort() {
+    const m = this.leedzConfig?.mcp || {};
+    return { host: m.defaultHost || '', port: m.defaultPort || '' };
+  }
+
+  /**
+   * Proxy an MCP HTTP request through the background service worker.
+   * Chrome (Local Network Access) blocks the sidebar iframe from fetching
+   * 127.0.0.1 directly; the background worker (host_permissions) is allowed.
+   * Same pattern already used for LLM requests (leedz_llm_request).
+   */
+  async mcpRequest(path, { method = 'GET', body = null } = {}) {
+    const m = this._mcpHostPort();
+    const host = document.getElementById('mcp-host')?.value || m.host;
+    const port = document.getElementById('mcp-port')?.value || m.port;
+    const url = `http://${host}:${port}${path}`;
+    return await new Promise((resolve) => {
+      chrome.runtime.sendMessage(
+        { type: 'leedz_mcp_request', request: { url, method, body } },
+        (resp) => {
+          if (chrome.runtime.lastError) { resolve({ ok: false, error: chrome.runtime.lastError.message }); return; }
+          resolve(resp || { ok: false, error: 'no response from background' });
+        }
+      );
+    });
+  }
+
+  /**
+   * Populate connection fields from leedz_config.json. These are DEFAULTS;
+   * loadSavedConfig() may override them from saved state. No values are
+   * hardcoded in the HTML — they all originate here from config.
+   */
+  async populateConfigDefaults() {
+    let cfg = this.leedzConfig;
+    if (!cfg || !cfg.db || !cfg.mcp) {
+      try {
+        const r = await fetch(chrome.runtime.getURL('leedz_config.json'));
+        cfg = await r.json();
+        this.leedzConfig = cfg;
+      } catch (e) { cfg = cfg || {}; }
+    }
+    const set = (id, v) => {
+      if (v === undefined || v === null || v === '') return;
+      document.querySelectorAll('#' + id).forEach(el => { el.value = v; });
+    };
+    const srv = this._serverHostPort();
+    const mcp = this._mcpHostPort();
+    set('startup-serverHost', srv.host);
+    set('startup-serverPort', srv.port);
+    set('startup-mcpHost', mcp.host);
+    set('startup-mcpPort', mcp.port);
+    set('mcp-host', mcp.host);
+    set('mcp-port', mcp.port);
+    const llm = cfg.llm || {};
+    set('startup-llmProvider', llm.provider);
+    set('startup-llmBaseUrl', llm.baseUrl);
+    set('startup-llmAnthropicVersion', llm['anthropic-version']);
+    set('startup-llmMaxTokens', llm.max_tokens);
   }
 
   /**
@@ -105,8 +180,8 @@ export class Startup extends Page {
    * Check leedz_server status
    */
   async checkServerStatus() {
-    const host = document.getElementById('startup-serverHost')?.value || 'localhost';
-    const port = document.getElementById('startup-serverPort')?.value || '3000';
+    const host = document.getElementById('startup-serverHost')?.value || this._serverHostPort().host;
+    const port = document.getElementById('startup-serverPort')?.value || this._serverHostPort().port;
     const dbNameEl = document.getElementById('startup-dbName');
 
     if (!dbNameEl) return;
@@ -115,13 +190,15 @@ export class Startup extends Page {
       const controller = new AbortController();
       setTimeout(() => controller.abort(), 5000);
 
-      const response = await fetch(`http://${host}:${port}/config`, { signal: controller.signal });
+      // /health replaces the removed GET /config (SCHEMA unification 2026-07-21):
+      // returns { status, databaseName } — all this check ever needed.
+      const response = await fetch(`http://${host}:${port}/health`, { signal: controller.signal });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-      const config = await response.json();
+      const health = await response.json();
 
-      dbNameEl.textContent = config.databaseName || 'Unknown';
+      dbNameEl.textContent = health.databaseName || 'Unknown';
       dbNameEl.style.color = 'green';
     } catch (error) {
       dbNameEl.textContent = 'Not connected';
@@ -136,8 +213,8 @@ export class Startup extends Page {
   async reload() {
     // console.log('Retrying server connection...');
 
-    const host = document.getElementById('startup-serverHost')?.value || 'localhost';
-    const port = document.getElementById('startup-serverPort')?.value || '3000';
+    const host = document.getElementById('startup-serverHost')?.value || this._serverHostPort().host;
+    const port = document.getElementById('startup-serverPort')?.value || this._serverHostPort().port;
     const dbNameEl = document.getElementById('startup-dbName');
 
     if (!dbNameEl) return;
@@ -146,13 +223,14 @@ export class Startup extends Page {
       const controller = new AbortController();
       setTimeout(() => controller.abort(), 5000);
 
-      const response = await fetch(`http://${host}:${port}/config`, { signal: controller.signal });
+      // /health replaces the removed GET /config (SCHEMA unification 2026-07-21).
+      const response = await fetch(`http://${host}:${port}/health`, { signal: controller.signal });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-      const config = await response.json();
+      const health = await response.json();
 
-      dbNameEl.textContent = config.databaseName || 'Unknown';
+      dbNameEl.textContent = health.databaseName || 'Unknown';
       dbNameEl.style.color = 'green';
 
       // Show success toast when server is found
@@ -168,34 +246,25 @@ export class Startup extends Page {
    * Check MCP server status
    */
   async checkMcpStatus() {
-    const host = document.getElementById('mcp-host')?.value || '127.0.0.1';
-    const port = document.getElementById('mcp-port')?.value || '3001';
+    const host = document.getElementById('mcp-host')?.value || this._mcpHostPort().host;
+    const port = document.getElementById('mcp-port')?.value || this._mcpHostPort().port;
     const statusDiv = document.getElementById('mcp-status');
     const enableBtn = document.getElementById('enable-gmail-btn');
     const refreshBtn = document.getElementById('refresh-gmail-btn');
 
     if (!statusDiv) return;
 
-    try {
-      const controller = new AbortController();
-      setTimeout(() => controller.abort(), 2000);
-
-      const response = await fetch(`http://${host}:${port}/health`, {
-        signal: controller.signal,
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      const data = await response.json();
-
+    const resp = await this.mcpRequest('/health');
+    if (resp.ok && resp.data) {
+      const data = resp.data;
       enableBtn.disabled = false;
       refreshBtn.disabled = !data.tokenValid;
-
       statusDiv.innerHTML = `Connected to ${data.service || 'gmail-mcp'}<br>IP: ${host}:${port}<br>${data.tokenValid ? 'Authorized and ready' : 'Ready to authorize'}`;
       statusDiv.className = 'status-success';
-    } catch (error) {
+    } else {
       enableBtn.disabled = true;
       refreshBtn.disabled = true;
-      statusDiv.textContent = error.name === 'AbortError' ? `MCP server not responding at ${host}:${port}` : 'MCP server offline';
+      statusDiv.textContent = 'MCP server offline';
       statusDiv.className = 'status-warning';
     }
   }
@@ -205,8 +274,8 @@ export class Startup extends Page {
    * Starts auto-refresh timer to keep token alive for the full hour
    */
   async enableGmail() {
-    const host = document.getElementById('mcp-host')?.value || '127.0.0.1';
-    const port = document.getElementById('mcp-port')?.value || '3001';
+    const host = document.getElementById('mcp-host')?.value || this._mcpHostPort().host;
+    const port = document.getElementById('mcp-port')?.value || this._mcpHostPort().port;
     const statusDiv = document.getElementById('mcp-status');
 
     try {
@@ -220,16 +289,10 @@ export class Startup extends Page {
         });
       });
 
-      // Send token to MCP server
-      const response = await fetch(`http://${host}:${port}/gmail-authorize`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token })
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `MCP server returned ${response.status}`);
+      // Send token to MCP server (via background worker to bypass iframe network restrictions)
+      const resp = await this.mcpRequest('/gmail-authorize', { method: 'POST', body: { token } });
+      if (!resp.ok) {
+        throw new Error((resp.data && resp.data.error) || resp.error || `MCP server returned ${resp.status}`);
       }
 
       statusDiv.textContent = 'Gmail sending enabled (auto-refresh active, 1 hour session)';
@@ -284,8 +347,8 @@ export class Startup extends Page {
    * Silent token refresh - no UI feedback, used by auto-refresh timer
    */
   async refreshGmailSilent() {
-    const host = document.getElementById('mcp-host')?.value || '127.0.0.1';
-    const port = document.getElementById('mcp-port')?.value || '3001';
+    const host = document.getElementById('mcp-host')?.value || this._mcpHostPort().host;
+    const port = document.getElementById('mcp-port')?.value || this._mcpHostPort().port;
 
     // Revoke old cached token from Chrome
     await new Promise((resolve) => {
@@ -307,14 +370,9 @@ export class Startup extends Page {
 
     if (!token) throw new Error('No token returned from Chrome');
 
-    // Send fresh token to MCP server
-    const response = await fetch(`http://${host}:${port}/gmail-authorize`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token })
-    });
-
-    if (!response.ok) throw new Error(`MCP server returned ${response.status}`);
+    // Send fresh token to MCP server (via background worker)
+    const resp = await this.mcpRequest('/gmail-authorize', { method: 'POST', body: { token } });
+    if (!resp.ok) throw new Error((resp.data && resp.data.error) || resp.error || `MCP server returned ${resp.status}`);
   }
 
   /**
@@ -322,8 +380,8 @@ export class Startup extends Page {
    * Also restarts the auto-refresh timer
    */
   async refreshGmail() {
-    const host = document.getElementById('mcp-host')?.value || '127.0.0.1';
-    const port = document.getElementById('mcp-port')?.value || '3001';
+    const host = document.getElementById('mcp-host')?.value || this._mcpHostPort().host;
+    const port = document.getElementById('mcp-port')?.value || this._mcpHostPort().port;
     const statusDiv = document.getElementById('mcp-status');
 
     try {
@@ -348,16 +406,10 @@ export class Startup extends Page {
         });
       });
 
-      // Send to MCP server
-      const response = await fetch(`http://${host}:${port}/gmail-authorize`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token })
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `MCP server returned ${response.status}`);
+      // Send to MCP server (via background worker)
+      const resp = await this.mcpRequest('/gmail-authorize', { method: 'POST', body: { token } });
+      if (!resp.ok) {
+        throw new Error((resp.data && resp.data.error) || resp.error || `MCP server returned ${resp.status}`);
       }
 
       statusDiv.textContent = 'Token refreshed (auto-refresh active, 1 hour session)';
@@ -425,15 +477,9 @@ export class Startup extends Page {
    * Clear form to defaults
    */
   clear() {
-    document.getElementById('startup-serverHost').value = '127.0.0.1';
-    document.getElementById('startup-serverPort').value = '3000';
-    document.getElementById('startup-mcpHost').value = '127.0.0.1';
-    document.getElementById('startup-mcpPort').value = '3001';
+    // Reset to leedz_config.json defaults — no hardcoded values here.
+    this.populateConfigDefaults();
     document.getElementById('startup-llmApiKey').value = '';
-    document.getElementById('startup-llmProvider').value = 'claude-opus-4-1-20250805';
-    document.getElementById('startup-llmBaseUrl').value = 'https://api.anthropic.com';
-    document.getElementById('startup-llmAnthropicVersion').value = '2023-06-01';
-    document.getElementById('startup-llmMaxTokens').value = '1024';
     document.getElementById('startup-dbName').textContent = 'Not connected';
     document.getElementById('startup-dbName').style.color = '#666';
   }

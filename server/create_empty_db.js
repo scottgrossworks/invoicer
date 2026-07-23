@@ -1,15 +1,19 @@
 /**
  * Create canonical empty database for distribution
  * Run once to create server/dist/leedz.sqlite
+ *
+ * SCHEMA unification (2026-07-20, see C:\Users\Scott\Desktop\WKG\SCHEMA\PLAN.md):
+ * prisma/schema.prisma is a copy of the canonical schema — NO Config table.
+ * Business identity loads at runtime from VALUE_PROP.md; connection/LLM settings
+ * live in config files / chrome storage. The blank DB ships with zero rows.
  */
 
-const { PrismaClient } = require('@prisma/client');
 const fs = require('fs');
 const path = require('path');
 
 // Point to the canonical empty DB location (absolute path for Prisma)
 const dbPath = path.join(__dirname, 'dist', 'leedz.sqlite');
-const dbUrl = `file:${dbPath}`;
+const dbUrl = `file:${dbPath.replace(/\\/g, '/')}`;
 
 // Delete existing if present
 if (fs.existsSync(dbPath)) {
@@ -29,44 +33,19 @@ async function main() {
     stdio: 'inherit'
   });
 
+  const { PrismaClient } = require('@prisma/client');
   const prisma = new PrismaClient();
 
-  console.log('Inserting default config...');
-
-  const configData = {
-    companyName: 'Your Company Name',
-    companyAddress: null,
-    companyPhone: null,
-    companyEmail: null,
-    serverUrl: 'http://127.0.0.1',
-    serverPort: '3000',
-    dbProvider: 'local_prisma_sqlite',
-    dbPath: './data/leedz.sqlite',
-    mcpHost: '127.0.0.1',
-    mcpPort: '3001',
-    llmProvider: 'claude-opus-4-1-20250805',
-    llmBaseUrl: 'https://api.anthropic.com',
-    llmAnthropicVersion: '2023-06-01',
-    llmMaxTokens: 1024
-  };
-
-  const defaultConfig = await prisma.config.upsert({
-    where: { id: 'default_config_001' },
-    update: configData,
-    create: { id: 'default_config_001', ...configData }
-  });
-
-  console.log('Default config created:', defaultConfig.id);
-
-  // Verify counts
+  // Verify counts — a distribution DB ships EMPTY (no seeded Config: that
+  // table no longer exists in the canonical schema).
   const clientCount = await prisma.client.count();
   const bookingCount = await prisma.booking.count();
-  const configCount = await prisma.config.count();
+  const squareCount = await prisma.squareConnection.count();
 
   console.log(`\nCanonical DB created at: ${dbPath}`);
   console.log(`Clients: ${clientCount}`);
   console.log(`Bookings: ${bookingCount}`);
-  console.log(`Configs: ${configCount}`);
+  console.log(`SquareConnections: ${squareCount}`);
   console.log('\nThis file will be copied into every distribution build.');
 
   await prisma.$disconnect();

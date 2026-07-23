@@ -73,8 +73,11 @@ export async function getDbLayer() {
     if (storageResult.leedzStartupConfig) {
       const startupConfig = storageResult.leedzStartupConfig;
 
-      // Handle both old serverUrl format and new serverHost format
-      if (startupConfig.serverHost && startupConfig.serverPort) {
+      // Ignore stale port-3000 overrides (server moved to 4000) so the JSON default wins
+      if (String(startupConfig.serverPort) === '3000') {
+        console.warn('Ignoring stale leedzStartupConfig on port 3000; falling back to leedz_config.json');
+      } else if (startupConfig.serverHost && startupConfig.serverPort) {
+        // Handle both old serverUrl format and new serverHost format
         baseUrl = `http://${startupConfig.serverHost}:${startupConfig.serverPort}`;
         provider = startupConfig.dbProvider || 'local_prisma_sqlite';
         console.log('Using startup config from Chrome storage:', baseUrl);
@@ -92,7 +95,7 @@ export async function getDbLayer() {
   // Fall back to leedz_config.json if no startup config found
   if (!baseUrl) {
     const cfg = await loadConfig();
-    baseUrl = cfg?.db?.baseUrl || 'http://localhost:3000';
+    baseUrl = cfg?.db?.baseUrl || 'http://localhost:4000';
     provider = cfg?.db?.provider || 'local_prisma_sqlite';
     console.log('Using default config from leedz_config.json:', baseUrl);
   }

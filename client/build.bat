@@ -98,7 +98,9 @@ if not exist "%DIST_DIR%\manifest.json" (
 )
 
 :: Validate manifest.json is valid JSON and has required fields
-powershell -command "$m = Get-Content '%DIST_DIR%\manifest.json' -Raw | ConvertFrom-Json; if (-not $m.version -or -not $m.name) { exit 1 }" >nul 2>&1
+:: -NoProfile + absolute path: the user's PowerShell profile must never affect
+:: the build (a profile that errors or changes cwd made this fail spuriously).
+powershell -NoProfile -command "$m = Get-Content '%CD%\%DIST_DIR%\manifest.json' -Raw | ConvertFrom-Json; if (-not $m.version -or -not $m.name) { exit 1 }" >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] manifest.json is invalid or missing required fields!
     goto :ERROR
@@ -111,7 +113,8 @@ echo [6/6] Creating distribution ZIP package...
 if exist "%ZIP_NAME%" del "%ZIP_NAME%"
 
 :: Use PowerShell to zip the contents of DIST (not including the dist folder itself)
-powershell -command "Compress-Archive -Path '%DIST_DIR%\*' -DestinationPath '%ZIP_NAME%' -Force"
+:: -NoProfile + absolute paths: profile-proof (see validation note above).
+powershell -NoProfile -command "Compress-Archive -Path '%CD%\%DIST_DIR%\*' -DestinationPath '%CD%\%ZIP_NAME%' -Force"
 
 if exist "%ZIP_NAME%" (
     echo     - Distribution ZIP created: %ZIP_NAME%

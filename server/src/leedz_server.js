@@ -1155,7 +1155,10 @@ app.post("/api/shutdown", asyncRoute(async (req, res) => {
 // Export dump functions for MCP server
 module.exports.dumpClients = dumpClients;
 module.exports.dumpBookings = dumpBookings;
-module.exports.dumpConfig = dumpConfig;
+// dumpConfig removed with the Config table (KTD refactor) but this export line
+// was left behind, crashing the server at require time (ReferenceError).
+// Commented out 2026-07-20 during SCHEMA unification. Config is gone by design.
+// module.exports.dumpConfig = dumpConfig;
 
 /**
  * Server initialization and startup

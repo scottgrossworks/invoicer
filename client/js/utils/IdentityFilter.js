@@ -65,3 +65,58 @@ export function filterClientsAgainstBusinessIdentity(clients, businessIdentity) 
   if (!businessIdentity) return clients.slice();
   return clients.filter((c) => c && !isBusinessIdentity(c, businessIdentity));
 }
+
+// Generic/shared-inbox local-part words (mirrors PRECRIME's isGenericEmail concept):
+// an email like events4@csun.edu is a MAILBOX, not a person. Trailing digits allowed.
+const GENERIC_LOCALPART_RE = new RegExp(
+  '^(?:info|sales|contact|contacts|hello|admin|office|support|team|events?|booking|bookings|' +
+  'inquir(?:y|ies)|enquir(?:y|ies)|mail|marketing|hr|jobs|press|media|help|services?|' +
+  'reservations?|frontdesk|reception|no-?reply|donotreply)[-._]?\\d*$', 'i'
+);
+
+/**
+ * Is this header-derived identity WEAK — a shared/generic inbox rather than a person?
+ * Weak when the email local-part is a generic mailbox word (events4@, info@, ...) OR the
+ * display name is just the mailbox label restated ("USU Events4" ~ usuevents4@csun.edu).
+ * A weak identity may be OVERRIDDEN by an LLM-found person name from the signature block
+ * (the "USU Events4 vs John Pangan" failure, 2026-07-22).
+ * @param {string} name
+ * @param {string} email
+ * @returns {boolean}
+ */
+export function isWeakIdentity(name, email) {
+  const localPart = normEmail(email).split('@')[0] || '';
+  if (localPart && GENERIC_LOCALPART_RE.test(localPart)) return true;
+
+  // Name restates the mailbox label ("USU Events4" ~ usuevents4@) — but ONLY
+  // when the name is not a plausible person name: a personal first.last@ email
+  // naturally matches its owner's name ("Yasmine Perez" ~ yasmine.perez@) and
+  // must NOT be treated as weak.
+  if (isPlausiblePersonName(name)) return false;
+
+  const squashedName = normName(name).replace(/[^a-z0-9]/g, '');
+  const squashedLocal = localPart.replace(/[^a-z0-9]/g, '');
+  if (squashedName && squashedLocal && (
+    squashedName === squashedLocal ||
+    squashedLocal.includes(squashedName) ||
+    squashedName.includes(squashedLocal)
+  )) return true;
+
+  return false;
+}
+
+/**
+ * Does this look like a real PERSON's name (usable to override a weak identity)?
+ * Two+ alphabetic words, none of them generic mailbox words.
+ * @param {string} name
+ * @returns {boolean}
+ */
+export function isPlausiblePersonName(name) {
+  const n = normName(name);
+  if (!n) return false;
+  const words = n.split(' ');
+  if (words.length < 2 || words.length > 5) return false;
+  return words.every((w) =>
+    /^[a-z'’.-]+$/.test(w) && !GENERIC_LOCALPART_RE.test(w)
+  );
+}

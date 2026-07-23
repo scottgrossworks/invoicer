@@ -1,3 +1,33 @@
+// =========================================================================
+// GENERATED COPY — DO NOT EDIT.
+// Canonical schema: C:\Users\Scott\Desktop\WKG\SCHEMA\schema.prisma
+// This copy exists only so local prisma tooling in this repo keeps working.
+// Edit the canonical file and re-copy. See SCHEMA\PLAN.md (unification).
+// =========================================================================
+
+// ============================================================================
+// CANONICAL SCHEMA â€” single source of truth for the shared Leedz SQLite DB.
+//
+// Location: C:\Users\Scott\Desktop\WKG\SCHEMA\schema.prisma
+//
+// This ONE schema is used by BOTH systems:
+//   - PRECRIME  (C:\Users\Scott\Desktop\WKG\PRECRIME\server)  â€” lead-gen pipeline
+//   - INVOICER  (C:\Users\Scott\Desktop\WKG\INVOICER\server)  â€” Gmail chrome-extension local server
+// and by the MCP transport that lets Claude/an orchestrator explore the DB.
+//
+// RULES:
+//   1. Neither project keeps its own divergent schema.prisma. Their prisma
+//      generate steps point HERE (see PLAN.md Phase 4/5). If a copy step is
+//      used for packaging, the copy is generated FROM this file, never edited.
+//   2. Both processes open the SAME physical DB file in WAL mode
+//      (PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000) â€” set by the
+//      shared leedz-db core module at connect.
+//   3. Superset principle: PRECRIME-only columns are nullable and simply
+//      ignored by INVOICER; PRECRIME-only models (Factlet, Session,
+//      SessionEvent, Task) are invisible to the extension. INVOICER-only
+//      columns (squarePaymentUrl) are never written by PRECRIME.
+// ============================================================================
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,49 +38,99 @@ datasource db {
 }
 
 model Client {
-  id          String    @id @default(cuid())
-  name        String
-  email       String?   @unique
-  phone       String?
-  company     String?
-  website     String?
-  clientNotes String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  bookings    Booking[]
+  id             String    @id @default(cuid())
+  name           String
+  email          String?   // NOT unique: a valid shared inbox (e.g. inquiries@acme.com) may legitimately belong to two clients
+  phone          String?
+  company        String?
+  website        String?
+  clientNotes    String?
+  segment        String?   // audience segment: defined per deployment (PRECRIME)
+  dossier        String?   // accumulated intelligence â€” timestamped prose (PRECRIME)
+  targetUrls     String?   // JSON: [{url, type, label}] (PRECRIME)
+  draft          String?   // current best outreach draft (PRECRIME)
+  draftStatus    String?   // "brewing" | "ready" | "sent" (PRECRIME)
+  sentAt         DateTime? // when draft was actually sent via Gmail (PRECRIME)
+  warmthScore    Float?    // DEPRECATED â€” use dossierScore. Kept for backwards compat.
+  dossierScore   Int?      // continuous, unbounded â€” computed by score_client (PRECRIME)
+  contactGate    Boolean   @default(false) // binary: has real named contact + direct email (PRECRIME)
+  intelScore     Int?      // D2+D3 â€” set by enrichment agent after scraping (PRECRIME)
+  lastEnriched   DateTime?
+  lastQueueCheck DateTime? // DB cursor + factlet watermark (PRECRIME)
+  source         String?   // how this client entered the DB ("gmail_extension" for INVOICER saves)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  bookings       Booking[]
 }
 
 model Booking {
-  id          String    @id @default(cuid())
-  clientId    String
-  title       String?
-  description String?
-  notes       String?
-  location    String?
-  startDate   DateTime?
-  endDate     DateTime?
-  startTime   String?
-  endTime     String?
-  duration    Float?
-  hourlyRate  Float?
-  flatRate    Float?
-  totalAmount Float?
-  status           String    @default("new")
+  id               String    @id @default(cuid())
+  clientId         String
+  title            String?
+  description      String?
+  notes            String?
+  location         String?
+  startDate        DateTime?
+  endDate          DateTime?
+  startTime        String?   // human-readable verified time, e.g. "12:30 PM" (INVOICER UI-editable)
+  endTime          String?   // human-readable verified time, e.g. "1:45 PM"  (INVOICER UI-editable)
+  duration         Float?
+  hourlyRate       Float?
+  flatRate         Float?
+  totalAmount      Float?
+  // --------------------------------------------------------------------------
+  // STATUS LIFECYCLE (unified 2026-07-20):
+  //
+  //   cold -> brewing -> hot -> contacted -> booked
+  //
+  //   cold      dead / out-of-area / junk. Set by Judge or worker demotion.
+  //   brewing   default. In the funnel; enrichment/drill in progress.
+  //   hot       leed ready to act on. Set ONLY by the Judge
+  //             (computeBookingTargetScore) â€” workers may only demote to
+  //             cold/brewing. See PRECRIME DOCS/CLASSIFICATION.md.
+  //   contacted outreach went out to the client (extension respond/outreach,
+  //             or PRECRIME email-share path). No longer presented as hot.
+  //   booked    TERMINAL. The gig is WON: the extension created the booking,
+  //             saved it, and added it to Calendar. This is the ENDPOINT of
+  //             the whole PRECRIME funnel. The Judge must never re-score,
+  //             re-promote, or re-present a booked Booking, and enrichment
+  //             must skip it (same treatment as draftStatus="sent" clients).
+  //
+  //   expired   past-dated leed. Set by PRECRIME's expirePastBookings sweep,
+  //             which only expires cold/brewing/hot â€” a booked past gig stays
+  //             `booked` (it is history, not a dead leed).
+  //
+  //   The `shared` boolean still tracks acted-on (marketplace/email share);
+  //   `contacted`/`booked` are the client-outcome states layered above it.
+  //   Legacy INVOICER statuses are mapped at migration (PLAN.md Phase 3):
+  //   new/complete -> booked, pending -> contacted, cancelled -> cold.
+  // --------------------------------------------------------------------------
+  status           String    @default("brewing")
   source           String?
+  sourceUrl        String?   // (PRECRIME)
+  trade            String?   // (PRECRIME â€” always forced to VALUE_PROP trade on save)
+  zip              String?   // (PRECRIME â€” service-area gate)
   shared           Boolean   @default(false)
-  sharedTo         String?
+  sharedTo         String?   // "leedz_api" | "email_share" | "email_user"
   sharedAt         BigInt?
-  leedPrice        Int?
-  squarePaymentUrl String?
+  leedPrice        Int?      // price in cents for marketplace lead
+  leedId           String?   // returned by createLeed MCP tool (PRECRIME)
+  squarePaymentUrl String?   // INVOICER-only; PRECRIME never writes it
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
-  client           Client     @relation(fields: [clientId], references: [id])
+  client           Client    @relation(fields: [clientId], references: [id])
+
+  @@index([clientId])
+  @@index([status])
+  @@index([startDate])
+  @@index([createdAt])
 }
 
 // Durable Square OAuth integration state. Singleton row enforced by the
-// application (fixed sentinel id, see KTD14); business identity is NOT stored
-// here — it loads at runtime from VALUE_PROP.md (KTD1). Replaces the removed
-// Config model.
+// application (fixed sentinel id "default" â€” see INVOICER Prisma_Sqlite_DB
+// SQUARE_CONNECTION_ID). Owned by INVOICER; PRECRIME never reads or writes it.
+// Business identity is NOT stored anywhere in this DB â€” it loads at runtime
+// from each project's DOCS/VALUE_PROP.md.
 model SquareConnection {
   id           String   @id @default(cuid())
   accessToken  String?
@@ -62,3 +142,73 @@ model SquareConnection {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
+
+// ============================================================================
+// PRECRIME-ONLY MODELS BELOW. The INVOICER server and the chrome extension
+// never touch these; they exist in the shared DB so PRECRIME's pipeline,
+// conductor, and MCP tools operate on the same file.
+// ============================================================================
+
+model Factlet {
+  id        String   @id @default(cuid())
+  content   String
+  source    String
+  createdAt DateTime @default(now())
+}
+
+// SESSION + SESSIONEVENT â€” workflow accountability layer. The agent calls
+// pipeline.start_session, gets a server-issued id it cannot forge; the server
+// logs each save success/failure as a SessionEvent and report_session
+// aggregates the append-only log server-side. See PRECRIME DOCS/CLAUDE.md.
+model Session {
+  id          String         @id                // server-issued, e.g. "ses_<cuid>"
+  workflow    String                            // "convention-leeds" | "enrichment" | "drafting" | ad-hoc
+  status      String         @default("active") // "active" | "complete" | "abandoned"
+  targetCount Int?
+  startedAt   DateTime       @default(now())
+  finishedAt  DateTime?
+  metadata    String?                           // JSON blob for workflow-specific params
+  events      SessionEvent[]
+}
+
+model SessionEvent {
+  id        String   @id @default(cuid())
+  sessionId String
+  ts        DateTime @default(now())
+  action    String                              // "save_success" | "save_failed" | "report" | extensible
+  payload   String?                             // JSON
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([action])
+}
+
+// TASK â€” the unit of work for the Planner/Worker/Judge architecture.
+// Lifecycle: ready -> claimed -> done|failed|cancelled. Stale claimed Tasks
+// are reclaimable. See PRECRIME DOCS/WHAT_I_LEARNED.md.
+model Task {
+  id          String    @id @default(cuid())
+  type        String                            // DISCOVER_SOURCES | SCRAPE_SOURCE | ENRICH_CLIENT | ...
+  status      String    @default("ready")       // ready | claimed | done | failed | cancelled
+  sessionId   String?
+  targetType  String?                           // Source | Client | Booking | Factlet | none
+  targetId    String?
+  input       String?                           // JSON
+  output      String?                           // JSON
+  error       String?
+  claimedAt   DateTime?
+  claimedBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  finishedAt  DateTime?
+
+  @@index([status])
+  @@index([type])
+  @@index([sessionId])
+  @@index([targetType, targetId])
+}
+
+// NO Config MODEL â€” by design, in both systems. Runtime config comes from
+// VALUE_PROP.md + per-project config JSON; secrets from LLM_KEY.json /
+// leedz_config.json; connection settings from server_config.json / Chrome
+// storage. Do not add a Config table back.

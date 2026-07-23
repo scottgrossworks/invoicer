@@ -2,6 +2,7 @@
 
 import { EventParser } from './event_parser.js';
 import { verifyBookingExtraction } from '../utils/DateEvidence.js';
+import { loadConfig } from '../utils/ConfigLoader.js';
 
 // Global CONFIG variable - loaded once when parser initializes
 let CONFIG = null;
@@ -21,14 +22,13 @@ class GCalParser extends EventParser {
     if (CONFIG) return;
 
     try {
-      const configResponse = await fetch(chrome.runtime.getURL('invoicer_config.json'));
-      if (!configResponse.ok) {
-        throw new Error(`Config file not found: ${configResponse.status}`);
-      }
-      CONFIG = await configResponse.json();
-      // console.log('GCal parser config loaded successfully');
+      // ConfigLoader loads leedz_config.json + merges LLM_KEY.json into
+      // llm['api-key']. This ALSO fixes the long-standing bug where this
+      // parser fetched 'invoicer_config.json' (wrong file — documented in
+      // ShareEx.md as "GCalParser bug (must fix)"). Fixed 2026-07-21.
+      CONFIG = await loadConfig();
     } catch (error) {
-      console.error('FATAL: Unable to load invoicer_config.json:', error);
+      console.error('FATAL: Unable to load leedz_config.json:', error);
       throw new Error('GCal parser cannot initialize - config file missing or invalid');
     }
   }

@@ -46,6 +46,7 @@ export function emptyBusinessIdentity() {
     sampleOutreach: '',
     thankYouTemplate: '',
     forbiddenPhrases: [],
+    invoice: {},   // ## INVOICE SETTINGS fields (bank, address, logo, terms)
     sourcePath: SOURCE_PATH,
     loadedAt: null,
     tradeUnverified: false,
@@ -238,6 +239,22 @@ export function parseValueProp(markdown) {
   // Service-area zips: any 5-digit token in the SERVICE AREA DETAILS block.
   const areaText = (blocks['service area details'] || []).join('\n');
   bi.serviceAreaZips = [...new Set((areaText.match(/\b\d{5}\b/g) || []))];
+
+  // ## INVOICE SETTINGS — invoice-only presentation fields (PDF header, bank
+  // block, terms). VALUE_PROP.md is the single source of truth for these; the
+  // removed DB Config table is NOT coming back.
+  bi.invoice = {
+    companyAddress: fields['Address'] || null,
+    logoUrl: fields['Logo'] || null,
+    servicesPerformed: fields['Services Performed'] || null,
+    bankName: fields['Bank Name'] || null,
+    bankAddress: fields['Bank Address'] || null,
+    bankPhone: fields['Bank Phone'] || null,
+    bankAccount: fields['Bank Account'] || null,
+    bankRouting: fields['ABA Routing'] || null,
+    bankWire: fields['Wire Routing'] || null,
+    terms: fields['Terms'] || null
+  };
 
   return bi;
 }

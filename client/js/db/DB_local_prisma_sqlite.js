@@ -7,7 +7,7 @@ import { logValidation } from '../logging.js';
 
 
 const CONFIG_JSON = 'leedz_config.json';
-const URL_DEFAULT = 'http://127.0.0.1:3000';
+const URL_DEFAULT = 'http://127.0.0.1:4000';
 
 
 export class DB_Local_PrismaSqlite extends DB_Layer {
@@ -188,58 +188,20 @@ cleanFloat(value) {
       }  // End loop through clients
 
 
-      // CONFIG (optional - only save if config data exists)
+      // CONFIG SAVE REMOVED (SCHEMA unification 2026-07-21, PLAN.md Phase 2 /
+      // client refactor KTD1): the server no longer has a Config table or a
+      // POST /config route. Business identity loads at runtime from
+      // VALUE_PROP.md; connection/LLM settings live in chrome.storage /
+      // leedz_config.json. Posting here made every save() throw against the
+      // refactored server even after clients/bookings saved successfully.
+      // Block retained (commented) for reference during the refactor:
       //
-      if (state.Config && Object.keys(state.Config).length > 0) {
-        const data = state.Config;
-        const check = Config.validate(data);
-        if (!check.isValid) {
-          logValidation('Config data validation failed:', check.errors);
-          throw new Error('Config data validation failed: ' + check.errors.join(', '));
-        }
-
-        const configPayload = {
-          companyName: data.companyName || null,
-          companyAddress: data.companyAddress || null,
-          companyPhone: data.companyPhone || null,
-          companyEmail: data.companyEmail || null,
-          logoUrl: data.logoUrl || null,
-          bankName: data.bankName || null,
-          bankAddress: data.bankAddress || null,
-          bankPhone: data.bankPhone || null,
-          bankAccount: data.bankAccount || null,
-          bankRouting: data.bankRouting || null,
-          bankWire: data.bankWire || null,
-          servicesPerformed: data.servicesPerformed || null,
-          contactHandle: data.contactHandle || null,
-          includeTerms: data.includeTerms || null,
-          terms: data.terms || null,
-          serverUrl: data.serverUrl || null,
-          serverPort: data.serverPort || null,
-          dbProvider: data.dbProvider || null,
-          dbPath: data.dbPath || null,
-          mcpHost: data.mcpHost || null,
-          mcpPort: data.mcpPort || null,
-          llmApiKey: data.llmApiKey || null,
-          llmProvider: data.llmProvider || null,
-          llmBaseUrl: data.llmBaseUrl || null,
-          llmAnthropicVersion: data.llmAnthropicVersion || null,
-          llmMaxTokens: data.llmMaxTokens || null
-        };
-
-        let configRes = await fetch(`${this.baseUrl}/config`, {
-          method: 'POST',
-          headers: await this.getAuthHeaders(),
-          body: JSON.stringify(configPayload)
-        });
-
-        if (!configRes.ok) {
-          const errorText = await configRes.text();
-          console.log('Config save failed:', errorText);
-          throw new Error(`Config save failed: ${configRes.status} ${errorText}`);
-        }
-        // console.log('Config saved to database');
-      }  // End if (state.Config exists)
+      // if (state.Config && Object.keys(state.Config).length > 0) {
+      //   const data = state.Config;
+      //   const check = Config.validate(data);
+      //   ... build configPayload { companyName, ..., llmMaxTokens } ...
+      //   await fetch(`${this.baseUrl}/config`, { method: 'POST', ... });
+      // }
 
 
       // SUCCESS!
@@ -280,8 +242,11 @@ async load() {
         if (storageResult.leedzStartupConfig) {
           const startupConfig = storageResult.leedzStartupConfig;
 
-          // Handle both old serverUrl format and new serverHost format
-          if (startupConfig.serverHost && startupConfig.serverPort) {
+          // Ignore stale port-3000 overrides (server moved to 4000) so the JSON default wins
+          if (String(startupConfig.serverPort) === '3000') {
+            console.warn('Ignoring stale leedzStartupConfig on port 3000 for load(); falling back to leedz_config.json');
+          } else if (startupConfig.serverHost && startupConfig.serverPort) {
+            // Handle both old serverUrl format and new serverHost format
             serverUrl = `http://${startupConfig.serverHost}:${startupConfig.serverPort}`;
             // console.log('Using startup config from Chrome storage for load():', serverUrl);
           } else if (startupConfig.serverUrl && startupConfig.serverPort) {
@@ -307,17 +272,21 @@ async load() {
         console.log('Using default config from leedz_config.json for load():', serverUrl);
       }
 
-      console.log(`Fetching config from: ${serverUrl}/config`);
-      const dbResponse = await fetch(`${serverUrl}/config`);
-      // console.log('Config fetch response status:', dbResponse.status, dbResponse.statusText);
+      // SCHEMA unification (2026-07-21): GET /config no longer exists — the DB
+      // stores no business Config (identity comes from VALUE_PROP.md at runtime).
+      // /health returns { status, databaseName }: liveness + db name only.
+      // Returning null tells callers "no DB-backed Config", which every caller
+      // already handles (state.loadConfigFromDB warns and continues).
+      console.log(`Checking server health: ${serverUrl}/health`);
+      const dbResponse = await fetch(`${serverUrl}/health`);
 
       if (dbResponse.ok) {
-        const dbConfig = await dbResponse.json();
-        return dbConfig;
+        const health = await dbResponse.json();
+        console.log(`Leedz server ok — database: ${health.databaseName || 'unknown'}`);
+        return null;
 
       } else {
-        console.warn(`Config fetch failed with status ${dbResponse.status}`);
-        console.log("No DB Config found - server returned error");
+        console.warn(`Health check failed with status ${dbResponse.status}`);
         return null;
       }
 

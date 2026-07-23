@@ -90,9 +90,19 @@ class EventParser extends Parser {
       if (content && content.trim()) {
         const llmResult = await this._sendToLLM(content);
         if (llmResult) {
-          // Merge LLM results conservatively (fills nulls only)
+          // Merge LLM results conservatively (fills nulls only)...
           this._conservativeUpdate(llmResult);
+          // ...EXCEPT when the header identity was a shared/generic inbox: the
+          // signature person found by the LLM may replace the mailbox label
+          // (the "USU Events4 vs John Pangan" fix, 2026-07-22).
+          this._applyWeakIdentityOverride(llmResult, content);
+        } else {
+          // No LLM result: still clear the internal marker so it never persists.
+          if (this.STATE.Client) delete this.STATE.Client._identityWeak;
         }
+      } else {
+        console.warn(`${this.name}: no content extracted for LLM — parse is header-data only.`);
+        if (this.STATE.Client) delete this.STATE.Client._identityWeak;
       }
 
       return this.STATE;

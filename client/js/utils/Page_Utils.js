@@ -6,6 +6,7 @@
 
 import { ValidationUtils } from './ValidationUtils.js';
 import { DateTimeUtils } from './DateTimeUtils.js';
+import { loadConfig } from './ConfigLoader.js';
 
 export class PageUtils {
 
@@ -16,9 +17,9 @@ export class PageUtils {
    */
   static async sendLLMRequest(prompt) {
     try {
-      // Load config
-      const configResponse = await fetch(chrome.runtime.getURL('leedz_config.json'));
-      const config = await configResponse.json();
+      // ConfigLoader merges LLM_KEY.json into llm['api-key'] — a raw fetch of
+      // leedz_config.json here shipped an EMPTY key and the request 401'd.
+      const config = await loadConfig();
 
       if (!config.llm || !config.llm.baseUrl) {
         console.error('LLM configuration missing or invalid');

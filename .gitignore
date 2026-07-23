@@ -52,3 +52,22 @@ pids
 dist/
 build/
 .fake
+client/leedz-chrome-ext.zip
+server/leedz-server-win-x64.zip
+server/tray/bin/
+server/tray/obj/
+server/dist-pkg/**/*.exe
+server/dist-pkg/**/*.dll
+
+# Private keys / secrets not caught by the patterns above
+KEY_FILE/
+client/LLM_KEY.json
+*.pem
+
+# Databases and data exports - never commit real client data
+*.sqlite
+*.sqlite-journal
+*.sqlite.backup*
+*.sqlite.migrating.tmp*
+server/data/
+server/exports/

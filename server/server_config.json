@@ -1,8 +1,8 @@
 {
-  "port": 3000,
+  "port": 4000,
   "database": {
     "type": "prisma_sqlite",
-    "url": "file:./data/leedz.sqlite"
+    "url": "file:C:/Users/Scott/Desktop/WKG/SCHEMA/data/leedz.sqlite"
   },
   "logging": {
     "level": "debug",

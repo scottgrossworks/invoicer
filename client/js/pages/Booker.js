@@ -606,11 +606,16 @@ export class Booker extends DataPage {
     const calculated = this.state.calculateDuration();
 
     if (calculated) {
-      // Page handles UI updates only
-      Calculator.calculateAndUpdateTotal(
-        this.state.Booking,
-        () => this.updateFromState(this.state)
-      );
+      // Compute the total directly (no conditional callback): the old
+      // calculateAndUpdateTotal path only refreshed the UI when a rate was
+      // already entered, so times-first entry computed the duration into state
+      // but NEVER displayed it — the "calculator disconnected" bug (2026-07-22).
+      const total = Calculator.calculateTotal(this.state.Booking);
+      if (total !== null) {
+        this.state.Booking.totalAmount = total;
+      }
+      // ALWAYS refresh so the duration cell appears immediately, rate or no rate.
+      this.updateFromState(this.state);
     }
   }
 

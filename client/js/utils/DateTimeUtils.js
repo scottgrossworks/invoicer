@@ -120,9 +120,22 @@ export class DateTimeUtils {
     if (/(January|February|March|April|May|June|July|August|September|October|November|December)/i.test(s)) {
       return s;
     }
-    // For ISO date-only strings, append noon to avoid UTC midnight off-by-one in local timezones
-    const dateStr = /^\d{4}-\d{2}-\d{2}$/.test(s) ? s + 'T12:00:00' : s;
-    const d = new Date(dateStr);
+    // PROCEDURAL date-part extraction — a calendar date must NEVER round-trip
+    // through new Date(): DB DATETIMEs arrive as UTC strings ("2026-08-01T00:00:00.000Z")
+    // and new Date().toLocaleDateString() shifted them a day in local time
+    // ("August 1st" displayed as "July 31" — seen live 2026-07-22). The leading
+    // YYYY-MM-DD IS the wall-clock date; format it directly.
+    const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) {
+      const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
+      const month = parseInt(m[2], 10), day = parseInt(m[3], 10);
+      if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        return `${MONTH_NAMES[month - 1]} ${day}, ${m[1]}`;
+      }
+    }
+    // Non-ISO fallback (e.g. "8/1/2026"): parse at noon so no timezone can shift the day.
+    const d = new Date(s + ' 12:00:00');
     if (isNaN(d.getTime())) return s;
     return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   }

@@ -185,7 +185,7 @@ for %%A in (%ARCHITECTURES%) do (
     echo :: Leedz Server Launcher >> "!PKG_DIR!\launch_leedz.bat"
     echo echo Starting Leedz... >> "!PKG_DIR!\launch_leedz.bat"
     echo start "" "TheLeedz.exe" >> "!PKG_DIR!\launch_leedz.bat"
-    echo echo Server starting on port 3000... >> "!PKG_DIR!\launch_leedz.bat"
+    echo echo Server starting on port 4000... >> "!PKG_DIR!\launch_leedz.bat"
     echo leedz-server.exe >> "!PKG_DIR!\launch_leedz.bat"
 
     echo       Files assembled successfully
@@ -207,7 +207,7 @@ for %%A in (%ARCHITECTURES%) do (
 
     if exist "!ZIP_NAME!" del "!ZIP_NAME!"
 
-    powershell -command "Compress-Archive -Path '!PKG_DIR!\*' -DestinationPath '!ZIP_NAME!' -Force"
+    powershell -NoProfile -command "Compress-Archive -Path '%CD%\!PKG_DIR!\*' -DestinationPath '%CD%\!ZIP_NAME!' -Force"
 
     if exist "!ZIP_NAME!" (
         echo     - Created !ZIP_NAME!
@@ -232,7 +232,7 @@ echo.
 echo   Contents:
 echo     leedz-server.exe     (Backend server)
 echo     TheLeedz.exe         (System tray UI)
-echo     data\leedz.sqlite    (Empty DB: 0 clients, 0 bookings, 1 config)
+echo     data\leedz.sqlite    (Empty canonical DB: 0 rows, no Config table)
 echo     prisma\schema.prisma
 echo     server_config.json
 echo     img\icon.ico

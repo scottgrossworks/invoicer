@@ -75,7 +75,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       console.error('Fetch failed:', error.message);
       sendResponse({ ok: false, error: error.message });
     });
-    
+
+    return true;
+  }
+
+  //
+  // Handle MCP (gmail) requests to bypass Local Network Access restrictions
+  // on the sidebar iframe. The background worker is allowed to reach 127.0.0.1.
+  //
+  if (message.type === 'leedz_mcp_request') {
+    const { url, method, body } = message.request;
+    fetch(url, {
+      method: method || 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      body: body != null ? JSON.stringify(body) : undefined
+    })
+    .then(async (response) => {
+      let data = null;
+      try { data = await response.json(); } catch (e) { data = null; }
+      sendResponse({ ok: response.ok, status: response.status, data });
+    })
+    .catch((error) => {
+      sendResponse({ ok: false, error: error.message });
+    });
+
     return true;
   }
 

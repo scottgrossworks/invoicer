@@ -248,12 +248,12 @@ class State {
         console.log("Config loaded from database successfully");
 
       } else {
-        // Only warn if we don't have Config.friends already loaded from local storage
-        if (!this.Config.friends || this.Config.friends.length === 0) {
-          console.log("WARNING: leedz_server is not running, or missing user Config.");
-        } else {
-          console.log("Server not available - using locally cached Config");
-        }
+        // SCHEMA unification (2026-07-22): dbLayer.load() returning null is the
+        // NORMAL case now — the server intentionally has no Config table, and
+        // business identity comes from VALUE_PROP.md at runtime. This branch is
+        // NOT a server-down signal (load() already logged the /health result).
+        // The old "WARNING: leedz_server is not running" here was a false alarm.
+        console.log("No DB-backed Config (by design) - identity comes from VALUE_PROP.md");
         return;
       }
     } else {

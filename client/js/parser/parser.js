@@ -4,6 +4,7 @@
 
 import Client from '../db/Client.js';
 import Booking from '../db/Booking.js';
+import { isPlausiblePersonName, isWeakIdentity } from '../utils/IdentityFilter.js';
 
 // Parser - Abstract base class for all content parsers
 class Parser {
@@ -238,6 +239,45 @@ class Parser {
       Object.keys(llmResult.Booking).forEach(key => {
         updateIfEmpty(this.STATE.Booking, key, llmResult.Booking[key]);
       });
+    }
+  }
+
+  /**
+   * WEAK-IDENTITY OVERRIDE (2026-07-22, the "USU Events4 vs John Pangan" fix).
+   *
+   * When the procedurally-extracted identity is a shared/generic inbox
+   * (Client._identityWeak, set by gmail_parser via IdentityFilter.isWeakIdentity),
+   * the conservative merge above would lock the mailbox label in forever — the
+   * real person only exists in the signature block, which only the LLM can read.
+   * Here, and ONLY here, the LLM may replace name/email:
+   *   - name:  must look like a real person (IdentityFilter.isPlausiblePersonName)
+   *   - email: must appear VERBATIM in the source text (never trust an invented one)
+   * The _identityWeak marker is always removed so it never persists into saves/UI.
+   *
+   * @param {Object} llmResult - Parsed LLM response with Client/Booking data
+   * @param {string} sourceText - The thread/page text the LLM read
+   */
+  _applyWeakIdentityOverride(llmResult, sourceText) {
+    const client = this.STATE && this.STATE.Client;
+    if (!client) return;
+    const weak = client._identityWeak === true;
+    delete client._identityWeak;
+    if (!weak || !llmResult || !llmResult.Client) return;
+
+    const llmName = llmResult.Client.name;
+    if (llmName && isPlausiblePersonName(llmName) &&
+        String(llmName).trim().toLowerCase() !== String(client.name || '').trim().toLowerCase()) {
+      console.log(`[Parser] weak-identity override: name "${client.name}" -> "${llmName}" (signature person)`);
+      client.name = String(llmName).trim();
+    }
+
+    const llmEmail = llmResult.Client.email;
+    if (llmEmail && sourceText &&
+        String(sourceText).toLowerCase().includes(String(llmEmail).toLowerCase()) &&
+        String(llmEmail).toLowerCase() !== String(client.email || '').toLowerCase() &&
+        !isWeakIdentity(null, llmEmail)) {
+      console.log(`[Parser] weak-identity override: email "${client.email}" -> "${llmEmail}" (verbatim in source)`);
+      client.email = String(llmEmail).trim();
     }
   }
 

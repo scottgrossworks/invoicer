@@ -9,6 +9,8 @@
  */
 import { EventParser } from './event_parser.js';
 import { verifyBookingExtraction } from '../utils/DateEvidence.js';
+import { loadConfig } from '../utils/ConfigLoader.js';
+import { isWeakIdentity } from '../utils/IdentityFilter.js';
 import Client from '../db/Client.js';
 import Booking from '../db/Booking.js';
 
@@ -26,10 +28,10 @@ class GmailParser extends EventParser {
   async _initializeConfig() {
     if (CONFIG) return;
     try {
-      const configResponse = await fetch(chrome.runtime.getURL('leedz_config.json'));
-      if (!configResponse.ok) throw new Error(`Config file not found: ${configResponse.status}`);
-      CONFIG = await configResponse.json();
-      // console.log('Gmail parser config loaded successfully');
+      // ConfigLoader merges LLM_KEY.json into llm['api-key'] — a raw fetch of
+      // leedz_config.json here shipped an EMPTY key and every LLM call 401'd
+      // ("x-api-key header is required"). Fixed 2026-07-21.
+      CONFIG = await loadConfig();
     } catch (error) {
       console.error('FATAL: Unable to load leedz_config.json:', error);
       throw new Error('Gmail parser cannot initialize - config file missing or invalid');
@@ -72,7 +74,12 @@ class GmailParser extends EventParser {
     if (senderData && (senderData.email || senderData.name)) {
       clients.push({
         email: senderData.email || null,
-        name: senderData.name || null
+        name: senderData.name || null,
+        // Shared/generic inbox ("USU Events4" <usuevents4@...>)? Then this header
+        // identity is TENTATIVE: the real person is usually in the signature block,
+        // which only the LLM can read. The flag lets the LLM override name/email
+        // (see Parser._applyWeakIdentityOverride). 2026-07-22 fix.
+        _identityWeak: isWeakIdentity(senderData.name, senderData.email)
       });
     }
 
@@ -138,10 +145,13 @@ class GmailParser extends EventParser {
         email: this.STATE.Client?.email
       };
       const prompt = this._buildLLMPrompt(emailData, content, CONFIG.gmailParser);
+      console.log(`[GmailParser] sending to LLM: ${content.length} chars of thread content`);
       const response = await this._sendLLMRequest(llmConfig, prompt);
 
       if (!response?.ok) {
-        console.error('LLM request failed:', response?.error || 'Request failed');
+        // Log the FULL error object — silent LLM failures produced blank parses
+        // that looked like extraction bugs (2026-07-22).
+        console.error('[GmailParser] LLM request FAILED:', JSON.stringify(response?.error || response || 'no response').slice(0, 500));
         return null;
       }
 
@@ -150,7 +160,11 @@ class GmailParser extends EventParser {
       const textContent = firstContent?.text || firstContent;
 
       const parsedResult = textContent ? this._parseLLMResponse(textContent) : null;
-      if (!parsedResult) return null;
+      if (!parsedResult) {
+        console.error('[GmailParser] LLM responded but JSON parse produced null. Raw head:', String(textContent).slice(0, 300));
+        return null;
+      }
+      console.log('[GmailParser] LLM extracted:', JSON.stringify({ Client: parsedResult.Client, Booking: parsedResult.Booking }).slice(0, 400));
 
       // Source-evidence verification (U11): scrub any date/time the LLM returned that is
       // not supported by the email text. One repair pass on the failed fields, then
@@ -159,9 +173,21 @@ class GmailParser extends EventParser {
       let verification = verifyBookingExtraction(parsedResult, content, opts);
 
       if (!verification.ok) {
+        console.log('[GmailParser] verification failed for:', verification.errors.join(', '), '— running repair pass');
         const repaired = await this._repairLLMExtraction(verification.scrubbed, content, verification.errors);
-        if (repaired) {
+        // GUARD (2026-07-22, the data-destroyer bug): only accept a repair result
+        // that actually contains data. The old code re-verified whatever came back —
+        // an empty parse re-verified "ok" and silently REPLACED the entire first-pass
+        // extraction with nothing. Better a first-pass result with a nulled field
+        // than a wiped one.
+        const usable = repaired && (
+          (repaired.Client && Object.keys(repaired.Client).length > 0) ||
+          (repaired.Booking && Object.keys(repaired.Booking).length > 0)
+        );
+        if (usable) {
           verification = verifyBookingExtraction(repaired, content, opts);
+        } else if (repaired) {
+          console.warn('[GmailParser] repair returned an EMPTY result — keeping first-pass data (failed fields stay null)');
         }
       }
 
@@ -198,7 +224,37 @@ class GmailParser extends EventParser {
 
       const firstContent = response.data?.content?.[0];
       const textContent = firstContent?.text || firstContent;
-      return textContent ? this._parseLLMResponse(textContent) : null;
+      // The repair prompt demands NESTED {Client, Booking, Config} JSON, but
+      // _parseLLMResponse only maps FLAT keys — it turned every nested repair
+      // response into {Client:{},Booking:{}} and wiped the extraction (2026-07-22).
+      return textContent ? this._parseRepairResponse(textContent) : null;
+    } catch (error) {
+      console.error('Date/time repair pass failed:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Parse the repair-pass response. Accepts the NESTED {Client, Booking, Config}
+   * shape the repair prompt demands; falls back to the flat-field parser when the
+   * model returned flat keys anyway.
+   * @param {string} content - Raw LLM response text
+   * @returns {Object|null} nested {Client, Booking, Config} or null
+   */
+  _parseRepairResponse(content) {
+    try {
+      const jsonText = String(content).replace(/```json\s*/g, '').replace(/```\s*$/g, '');
+      const match = jsonText.match(/\{[\s\S]*\}/);
+      if (!match) return null;
+      const parsed = JSON.parse(match[0]);
+      if (parsed && (parsed.Client || parsed.Booking)) {
+        return {
+          Client: parsed.Client || {},
+          Booking: parsed.Booking || {},
+          Config: parsed.Config || {}
+        };
+      }
+      return this._parseLLMResponse(content);
     } catch (error) {
       console.error('Date/time repair pass failed:', error);
       return null;
@@ -397,13 +453,34 @@ class GmailParser extends EventParser {
 
 
 
-  // _conservativeUpdate() is inherited from Parser base class
-  // Note: Gmail procedurally extracts name/email first, so LLM won't overwrite them
+  // _conservativeUpdate() is inherited from Parser base class.
+  // Gmail procedurally extracts name/email from headers first; the LLM normally
+  // only fills blanks — EXCEPT when the header identity is a shared/generic inbox
+  // (_identityWeak), where Parser._applyWeakIdentityOverride lets a signature-block
+  // person name (and a verbatim-in-thread email) replace the mailbox label.
 
 
 
   _buildLLMPrompt(emailData, threadContent, parserConfig) {
-    const knownInfo = `Sender Name: ${emailData.name || 'N/A'}\nSender Email: ${emailData.email || 'N/A'}`;
+    // Header identity is METADATA, not ground truth — a shared inbox
+    // ("USU Events4" <usuevents4@csun.edu>) is a mailbox, not a person. The
+    // real client is usually the human in the SIGNATURE BLOCK (name, title,
+    // direct phone). The old wording ("Sender Name: ...") anchored the LLM on
+    // the mailbox label and suppressed signature detection. 2026-07-22 fix.
+    const weakNote = this.STATE?.Client?._identityWeak
+      ? `\nNOTE: the header identity above looks like a SHARED/GENERIC inbox, not a person. ` +
+        `Find the actual PERSON who wrote the message — check the signature block for their ` +
+        `name, title, and direct phone, and return THAT as the client name/phone.`
+      : '';
+    const knownInfo =
+      `EMAIL HEADER METADATA (may be a shared mailbox — verify against the message text):\n` +
+      `Header Name: ${emailData.name || 'N/A'}\nHeader Email: ${emailData.email || 'N/A'}` +
+      weakNote +
+      `\n\nCLIENT IDENTITY RULES:\n` +
+      `1. The client is the PERSON who wrote the inquiry — prefer the signature block ` +
+      `(name / title / direct phone) over the mailbox display name.\n` +
+      `2. Only return an email address that literally appears in the headers or message text.\n` +
+      `3. Extract the client's phone from the signature when present.`;
 
     // Runtime seller-identity block (U9) - replaces the hardcoded seller exclusions that
     // used to live in leedz_config.json prompts. Built from STATE.BusinessIdentity.
