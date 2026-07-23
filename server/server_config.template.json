@@ -1,0 +1,18 @@
+{
+  "_comment": "Copy this file to server_config.json and fill in database.url + square.appSecret before first run. server_config.json is gitignored - never commit your real values.",
+  "port": 4000,
+  "database": {
+    "type": "prisma_sqlite",
+    "url": "file:./data/leedz.sqlite"
+  },
+  "logging": {
+    "level": "debug",
+    "file": "./server.log"
+  },
+  "square": {
+    "url": "https://connect.squareup.com",
+    "appId": "sq0idp-fGPn-QZvqEnvGeWHA9sHMw",
+    "appSecret": "REPLACE_WITH_YOUR_SQUARE_APP_SECRET",
+    "environment": "production"
+  }
+}

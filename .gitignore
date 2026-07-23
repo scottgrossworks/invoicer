@@ -69,6 +69,12 @@ client/LLM_KEY.json
 client/DOCS/VALUE_PROP.md
 client/DOCS/VALUE_PROP.backup-*.md
 
+# Server config - contains an absolute local DB path + the Square appSecret.
+# Track server/server_config.template.json instead (placeholders only).
+server/server_config.json
+server/server_config.backup-*.json
+server/dist-pkg/**/server_config.json
+
 # Databases and data exports - never commit real client data
 *.sqlite
 *.sqlite-journal
