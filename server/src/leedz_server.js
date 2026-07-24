@@ -1138,17 +1138,24 @@ app.post("/api/shutdown", asyncRoute(async (req, res) => {
 
   // Give response time to send, then shutdown
   setTimeout(async () => {
+    // FAILSAFE: a hung db.disconnect() must never block death - we already
+    // promised 200 to the tray, so a zombie here shows "stopped" in the UI
+    // while leedz-server.exe lives on (2026-07-24 bug).
+    const failsafe = setTimeout(() => {
+      log('[SHUTDOWN] Disconnect timed out - forcing exit');
+      process.exit(0);
+    }, 3000);
+
     try {
       log('[SHUTDOWN] Disconnecting database...');
       await db.disconnect();
       log('[SHUTDOWN] Database disconnected');
-
-      log('[SHUTDOWN] Exiting process...');
-      process.exit(0);
     } catch (err) {
       log(`[SHUTDOWN] Error during shutdown: ${err.message}`);
-      process.exit(1);
     }
+    clearTimeout(failsafe);
+    log('[SHUTDOWN] Exiting process...');
+    process.exit(0);
   }, 500);
 }, "POST /api/shutdown"));
 

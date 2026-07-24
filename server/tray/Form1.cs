@@ -585,7 +585,22 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
                         bool exited = nodeProcess.WaitForExit(5000);
                         return exited;
                     }
-                    return true;
+
+                    // External server (launch_leedz.bat) - we have no process
+                    // handle. A 200 reply is a promise, not proof of death:
+                    // verify the exe is actually gone, else report failure so
+                    // StopNodeServer falls through to kill-by-name (STEP 3).
+                    // (2026-07-24: tray showed "stopped" while the exe lived on)
+                    for (int i = 0; i < 10; i++)
+                    {
+                        if (Process.GetProcessesByName("leedz-server").Length == 0)
+                        {
+                            return true;
+                        }
+                        System.Threading.Thread.Sleep(500);
+                    }
+                    DebugWrite("[TRAY] Server still alive after shutdown reply - forcing kill");
+                    return false;
                 }
             }
         }
