@@ -1,25 +1,46 @@
 /**
- * Outreach - Page class for proactive outreach email generation
- * Generates professional outreach emails to potential clients BEFORE booking
- * Parses page to extract multiple clients, cycles through them with reload button
+ * Outreach - THE consolidated email page (Outreach + Respond + Thank You).
+ *
+ * Extends DataPage: parses the open email thread in the background
+ * (non-blocking) and shows a compact client/booking table.
+ *
+ * Workflow:
+ *   1. User types a HINT into the Draft box:
+ *        "Thank you, Cindy for the fun birthday party"
+ *        "Respond that I'm available"
+ *        "Not available - offer to find another artist"
+ *   2. WRITE sends hint + parsed Client/Booking + VALUE_PROP business
+ *      identity to the LLM; the finished draft replaces the hint in the
+ *      Draft box. User can edit it, or press Write again (with tweaks)
+ *      to refine.
+ *   3. EMAIL sends the Draft box contents to Gmail compose on the
+ *      current thread.
+ *
+ * If VALUE_PROP identity is missing/insufficient, the LLM is instructed
+ * to say so in the returned text rather than inventing details.
  */
 
-import { Page } from './Page.js';
+import { DataPage } from './DataPage.js';
+import { DateTimeUtils } from '../utils/DateTimeUtils.js';
 import { log, logError, showToast } from '../logging.js';
 import { PageUtils } from '../utils/Page_Utils.js';
-import { Calculator } from '../utils/Calculator.js';
 
-export class Outreach extends Page {
+export class Outreach extends DataPage {
 
   constructor(state) {
     super('outreach', state);
 
-    // Store special info for LLM prompt
-    this.specialInfo = '';
+    // Compact display: who + what + when + where
+    this.displayFields = [
+      'name',      // Client name
+      'email',     // Client email
+      'title',     // Booking title
+      'startDate', // Booking date
+      'location'   // Booking location
+    ];
 
-    // Client cycling (like Client Capture but displays one at a time)
-    this.clients = [];           // Array of parsed clients from page
-    this.currentClientIndex = 0; // Index of currently displayed client
+    // Draft box contents (hint before Write, generated draft after)
+    this.draft = '';
 
     // Track if client was loaded from database (persistent flag)
     this.clientFromDB = false;
@@ -27,204 +48,80 @@ export class Outreach extends Page {
 
   /**
    * Initialize outreach page (called once on app startup)
+   * Note: Settings/reload button handlers are in sidebar.js:setupHeaderButtons()
    */
   async initialize() {
-    // Wire up button handlers
     const clearBtn = document.getElementById('clearOutreachBtn');
     const writeBtn = document.getElementById('writeOutreachBtn');
+    const emailBtn = document.getElementById('emailOutreachBtn');
 
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => this.clear());
-    }
-    if (writeBtn) {
-      writeBtn.addEventListener('click', () => this.onWrite());
-    }
-
-    // Note: Settings button handler is in sidebar.js:setupHeaderButtons()
-
-    // Setup reload button handler - CYCLES through clients
-    const reloadBtn = document.getElementById('reloadBtnOutreach');
-    if (reloadBtn && !reloadBtn.dataset.listenerBound) {
-      reloadBtn.dataset.listenerBound = 'true';
-      reloadBtn.addEventListener('click', async () => {
-        await this.cycleToNextClient();
-      });
-    }
+    if (clearBtn) clearBtn.addEventListener('click', () => this.clear());
+    if (writeBtn) writeBtn.addEventListener('click', () => this.onWrite());
+    if (emailBtn) emailBtn.addEventListener('click', () => this.onEmail());
   }
 
   /**
-   * Called when outreach page becomes visible
-   * Base class handles smart parsing logic
+   * DataPage hook: Run full parse (LLM extraction)
    */
-  async onShowImpl() {
-    // Load Config data from DB if not already loaded
+  async fullParse() {
+    await this.reloadParser({ forceFullParse: true });
+    return { success: true, data: this.state.toObject() };
+  }
+
+  /**
+   * DataPage hook: Render data from STATE cache
+   */
+  async renderFromState(stateData) {
+    await this.state.loadConfigFromDB();
+    if (stateData) {
+      Object.assign(this.state.Client, stateData.Client || {});
+      Object.assign(this.state.Booking, stateData.Booking || {});
+    }
+    this.populateOutreachTable();
+  }
+
+  /**
+   * DataPage hook: Render data from database (with green styling)
+   */
+  async renderFromDB(dbData) {
     await this.state.loadConfigFromDB();
 
-    const hasConfigData = this.state.Config && (
-      this.state.Config.companyName ||
-      this.state.Config.companyEmail ||
-      this.state.Config.companyAddress
-    );
+    this.clientFromDB = true;
 
-    if (!hasConfigData) {
-      console.log('Config exists but is empty - no business data configured');
-      showToast('No business configuration found - please configure in Settings', 'warning');
-    }
+    Object.assign(this.state.Client, {
+      name: dbData.name || '',
+      email: dbData.email || '',
+      phone: dbData.phone || '',
+      company: dbData.company || '',
+      website: dbData.website || '',
+      clientNotes: dbData.clientNotes || '',
+      _fromDB: true
+    });
 
-    // Check if we have clients array or single client in state
-    const hasClientsArray = this.state.Clients && this.state.Clients.length > 0;
-    const hasClientData = this.state.Client.name || this.state.Client.email;
-
-    if (hasClientsArray) {
-      // Load clients array from state
-      this.clients = this.state.Clients.map(c => ({ ...c }));
-      this.currentClientIndex = 0;
-      this.loadCurrentClient();
-    } else if (hasClientData) {
-      // Single client in state - convert to array
-      this.clients = [{ ...this.state.Client }];
-      this.currentClientIndex = 0;
-      this.loadCurrentClient();
-    }
-
-    this.updateFromState(this.state);
-  }
-
-  /**
-   * Load current client from clients array into state
-   */
-  loadCurrentClient() {
-    if (this.clients.length === 0) return;
-
-    // Wrap around if index exceeds array bounds
-    if (this.currentClientIndex >= this.clients.length) {
-      this.currentClientIndex = 0;
-    }
-
-    const currentClient = this.clients[this.currentClientIndex];
-
-    // Copy current client to state.Client
-    Object.assign(this.state.Client, currentClient);
-
-    // Check if client is from DB
-    if (window.DB_LAYER && currentClient.email) {
-      window.DB_LAYER.searchClient(currentClient.email, currentClient.name)
-        .then(dbClient => {
-          this.state.Client._fromDB = !!dbClient;
-          this.clientFromDB = !!dbClient; // Set persistent flag
-          this.updateFromState(this.state);
-        });
-    }
-
-    console.log(`Loaded client ${this.currentClientIndex + 1}/${this.clients.length}:`, currentClient.name);
-
-    // Show toast if cycling through multiple clients
-    if (this.clients.length > 1) {
-      showToast(`Client ${this.currentClientIndex + 1} of ${this.clients.length}`, 'info');
-    }
-  }
-
-  /**
-   * Cycle to next client in array (called by reload button)
-   */
-  async cycleToNextClient() {
-    if (this.clients.length === 0) {
-      // No clients - run parser
-      await this.reloadParser();
-      return;
-    }
-
-    if (this.clients.length === 1) {
-      // Only one client - re-parse page
-      await this.reloadParser();
-      return;
-    }
-
-    // Multiple clients - cycle to next
-    this.currentClientIndex++;
-    if (this.currentClientIndex >= this.clients.length) {
-      this.currentClientIndex = 0;
-    }
-
-    this.loadCurrentClient();
-  }
-
-  /**
-   * Parse page to extract clients (like Client Capture)
-   */
-  async reloadParser() {
-    console.log('=== Outreach.reloadParser() called ===');
-    try {
-      this.showLoadingSpinner();
-      log('Running client parser...');
-
-      // Get current tab URL and tabId
-      const { url, tabId } = await new Promise(resolve => {
-        chrome.runtime.sendMessage({ type: 'leedz_get_tab_url' }, resolve);
+    if (dbData.bookings?.length > 0) {
+      Object.assign(this.state.Booking, {
+        ...dbData.bookings[0],
+        _fromDB: true
       });
-
-      if (!url || !tabId) {
-        log('Cannot auto-detect page data');
-        this.hideLoadingSpinner();
-        return;
-      }
-
-      // Send message to content script to run client parser
-      await new Promise((resolve, reject) => {
-        chrome.tabs.sendMessage(tabId, {
-          type: 'leedz_extract_client',
-          state: this.state.toObject()
-        }, (response) => {
-          if (response?.ok && response?.data) {
-            log(`Parser completed successfully`);
-
-            // Extract clients array from response
-            const clientsArray = response.data.Clients;
-
-            if (clientsArray && Array.isArray(clientsArray) && clientsArray.length > 0) {
-              // Store clients array
-              this.clients = clientsArray.map(client => ({
-                name: client.name || '',
-                email: client.email || '',
-                phone: client.phone || '',
-                company: client.company || '',
-                website: client.website || '',
-                clientNotes: client.clientNotes || '',
-                _fromDB: client._fromDB || false
-              }));
-
-              // Reset to first client
-              this.currentClientIndex = 0;
-              this.loadCurrentClient();
-
-              // Show toast
-              const count = this.clients.length;
-              if (count > 1) {
-                showToast(`Extracted ${count} clients - click reload to cycle`, 'success');
-              } else {
-                showToast('Extracted 1 client', 'success');
-              }
-            } else {
-              log('No client data found on page');
-              showToast('No client data found on this page', 'info');
-            }
-
-            resolve();
-          } else {
-            logError(`Parser failed:`, response?.error || 'Unknown error');
-            log('Parse failed');
-            resolve();
-          }
-        });
-      });
-
-    } catch (error) {
-      console.error('Parser initialization error:', error);
-      log('Parser unavailable');
-      showToast('Parser error - see console', 'error');
-    } finally {
-      this.hideLoadingSpinner();
     }
+
+    this.populateOutreachTable();
+  }
+
+  /**
+   * DataPage hook: Render data from fresh parse
+   */
+  async renderFromParse(parseResult) {
+    await this.state.loadConfigFromDB();
+
+    if (parseResult.data?.Client) {
+      Object.assign(this.state.Client, parseResult.data.Client);
+    }
+    if (parseResult.data?.Booking) {
+      Object.assign(this.state.Booking, parseResult.data.Booking);
+    }
+
+    this.populateOutreachTable();
   }
 
   /**
@@ -240,23 +137,23 @@ export class Outreach extends Page {
    */
   clear() {
     this.state.clear();
-    this.clients = [];
-    this.currentClientIndex = 0;
-    this.specialInfo = '';
-    this.clientFromDB = false; // Clear DB flag
+    this.draft = '';
+    this.clientFromDB = false;
+    const box = document.getElementById('draftTextarea-outreach');
+    if (box) box.value = '';
     this.updateFromState(this.state);
     log('Cleared');
   }
 
   /**
-   * Get action buttons for outreach page
+   * Buttons are statically defined in HTML and wired in initialize()
    */
   getActionButtons() {
-    return null; // Buttons are statically defined in HTML
+    return null;
   }
 
   /**
-   * Show loading spinner
+   * Show loading spinner - hide table, draft section, buttons
    */
   showLoadingSpinner() {
     super.showLoadingSpinner();
@@ -264,15 +161,15 @@ export class Outreach extends Page {
     const table = document.getElementById('outreach_table');
     if (table) table.style.display = 'none';
 
-    const specialInfoSection = document.getElementById('special-info-section-outreach');
-    if (specialInfoSection) specialInfoSection.style.display = 'none';
+    const draftSection = document.getElementById('draft-section-outreach');
+    if (draftSection) draftSection.style.display = 'none';
 
     const buttonWrapper = document.getElementById('outreach-buttons');
     if (buttonWrapper) buttonWrapper.style.display = 'none';
   }
 
   /**
-   * Hide loading spinner
+   * Hide loading spinner - show table, draft section, buttons
    */
   hideLoadingSpinner() {
     super.hideLoadingSpinner();
@@ -280,43 +177,37 @@ export class Outreach extends Page {
     const table = document.getElementById('outreach_table');
     if (table) table.style.display = 'table';
 
-    const specialInfoSection = document.getElementById('special-info-section-outreach');
-    if (specialInfoSection) specialInfoSection.style.display = 'block';
+    const draftSection = document.getElementById('draft-section-outreach');
+    if (draftSection) draftSection.style.display = 'block';
 
     const buttonWrapper = document.getElementById('outreach-buttons');
     if (buttonWrapper) buttonWrapper.style.display = 'flex';
   }
 
   /**
-   * Populate the outreach table with client info + rate fields
+   * Populate the compact client/booking table + Draft box
    */
   populateOutreachTable() {
     const tbody = document.getElementById('outreach_tbody');
     const table = document.getElementById('outreach_table');
     if (!tbody || !table) return;
 
-    // Clear existing rows
     tbody.innerHTML = '';
 
-    // Apply green styling if client from DB
-    // Use persistent flag OR transient state flag (for backward compatibility)
+    // Green styling if client from DB
     if (this.clientFromDB || this.state.Client._fromDB) {
       table.classList.add('outreach-table-from-db');
     } else {
       table.classList.remove('outreach-table-from-db');
     }
 
-    // Populate Client fields (name, email)
-    const clientFields = ['name', 'email'];
-    clientFields.forEach(field => {
+    this.displayFields.forEach(field => {
       const row = document.createElement('tr');
 
-      // Field name cell
       const nameCell = document.createElement('td');
       nameCell.className = 'field-name';
-      nameCell.textContent = field;
+      nameCell.textContent = (field === 'startDate') ? 'date' : field;
 
-      // Field value cell
       const valueCell = document.createElement('td');
       valueCell.className = 'field-value';
 
@@ -324,15 +215,39 @@ export class Outreach extends Page {
       input.type = 'text';
       input.className = 'editable-field';
       input.dataset.fieldName = field;
-      input.dataset.source = 'Client';
-      input.value = this.state.Client[field] || '';
 
-      // Change handler
+      // Determine source (Client or Booking) and get value
+      let displayValue = '';
+      let source = '';
+      if (this.state.Client[field] !== undefined) {
+        displayValue = this.state.Client[field] || '';
+        source = 'Client';
+      } else if (this.state.Booking[field] !== undefined) {
+        displayValue = this.state.Booking[field] || '';
+        source = 'Booking';
+      } else {
+        source = (field === 'name' || field === 'email') ? 'Client' : 'Booking';
+      }
+      input.dataset.source = source;
+
+      if (field === 'startDate' && displayValue) {
+        displayValue = DateTimeUtils.formatDateForDisplay(displayValue);
+      }
+
+      input.value = displayValue;
+
       input.addEventListener('blur', () => {
-        this.state.Client[field] = input.value.trim();
+        let rawValue = input.value.trim();
+        if (field === 'startDate') {
+          rawValue = DateTimeUtils.parseDisplayDateToISO(rawValue);
+        }
+        if (source === 'Client') {
+          this.state.Client[field] = rawValue;
+        } else {
+          this.state.Booking[field] = rawValue;
+        }
       });
 
-      // Enter key handler
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
@@ -346,155 +261,174 @@ export class Outreach extends Page {
       tbody.appendChild(row);
     });
 
-    // Populate Booking rate fields using Calculator
-    // No duration field for Outreach - defaults to 1 internally
-    Calculator.renderFields(
-      tbody,
-      this.state.Booking,
-      () => this.updateFromState(this.state),
-      { includeDuration: false }
-    );
-
-    // Populate special info textarea
-    this.populateSpecialInfoSection();
+    // Draft box - keep whatever the user typed / LLM generated
+    const box = document.getElementById('draftTextarea-outreach');
+    if (box) {
+      box.value = this.draft || '';
+      if (!box.dataset.handlerWired) {
+        box.addEventListener('input', (e) => {
+          this.draft = e.target.value;
+        });
+        box.dataset.handlerWired = 'true';
+      }
+    }
   }
 
   /**
-   * Populate special info textarea
-   */
-  populateSpecialInfoSection() {
-    super.populateSpecialInfoSection('specialInfoTextarea-outreach');
-  }
-
-  /**
-   * Generate and send outreach email
+   * WRITE: send hint/draft + Client/Booking + VALUE_PROP to the LLM,
+   * display the finished draft back in the Draft box for editing.
    */
   async onWrite() {
     try {
-      // Validate required fields
-      if (!this.state.Client.name || !this.state.Client.email) {
-        console.log('ERROR: Validation failed: Missing client name or email');
-        showToast('Missing client name or email', 'error');
-        return;
-      }
+      const box = document.getElementById('draftTextarea-outreach');
+      const hint = (box ? box.value : this.draft || '').trim();
 
-      // Validate rate fields using Calculator
-      const validation = Calculator.validateRates(this.state.Booking);
-      if (!validation.valid) {
-        showToast(validation.message, 'error');
-        return;
-      }
-
-      // Show loading state
       this.showLoadingSpinner();
-      log('Generating outreach email...');
+      log('Writing draft...');
 
-      // Generate outreach text using LLM
-      const outreachText = await this.generateOutreachEmail();
+      const prompt = this.buildWritePrompt(hint);
+      const text = await PageUtils.sendLLMRequest(prompt);
 
-      if (!outreachText) {
-        console.log('ERROR: LLM returned null or empty text');
-        showToast('Failed to generate outreach email', 'error');
-        this.hideLoadingSpinner();
+      if (!text) {
+        showToast('Failed to generate draft', 'error');
         return;
       }
 
-      log('Outreach email generated successfully');
+      // Generated draft replaces the hint - user can edit or re-Write
+      this.draft = text.trim();
+      if (box) box.value = this.draft;
 
-      // Send to content script to open Gmail compose
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (tabs && tabs.length > 0) {
-          const messagePayload = {
-            action: 'openOutreach',
-            clientEmail: this.state.Client.email,
-            clientName: this.state.Client.name,
-            subject: `Services for ${this.state.Client.name}`,
-            body: outreachText
-          };
-
-          chrome.tabs.sendMessage(tabs[0].id, messagePayload, (response) => {
-            if (chrome.runtime.lastError) {
-              console.log('ERROR: Error sending message to content script:', chrome.runtime.lastError);
-              showToast('Failed to open compose window', 'error');
-              this.hideLoadingSpinner();
-            } else {
-              this.hideLoadingSpinner();
-
-              // Close sidebar
-              chrome.tabs.sendMessage(tabs[0].id, { action: 'toggleSidebar' }, () => {
-                console.log('Leedz sidebar closed');
-              });
-            }
-          });
-        } else {
-          console.log('ERROR: No active tab found');
-          showToast('No active tab found', 'error');
-          this.hideLoadingSpinner();
-        }
-      });
-
+      log('Draft ready - edit it, press Write to refine, or Email to send');
     } catch (error) {
-      logError('Outreach email generation failed:', error);
-      showToast('Error generating outreach', 'error');
+      logError('Draft generation failed:', error);
+      showToast('Error generating draft', 'error');
+    } finally {
       this.hideLoadingSpinner();
     }
   }
 
   /**
-   * Generate outreach email text using LLM
+   * EMAIL: send the Draft box contents to Gmail compose on this thread
    */
-  async generateOutreachEmail() {
-    const prompt = this.buildOutreachPrompt();
-    return await PageUtils.sendLLMRequest(prompt);
+  async onEmail() {
+    const box = document.getElementById('draftTextarea-outreach');
+    const body = (box ? box.value : this.draft || '').trim();
+
+    if (!body) {
+      showToast('Draft is empty - press Write first', 'warning');
+      return;
+    }
+    if (!this.state.Client.email) {
+      showToast('Missing client email', 'error');
+      return;
+    }
+
+    const clientName = this.state.Client.name || this.state.Client.email;
+    const subject = this.state.Booking.title
+      ? `Re: ${this.state.Booking.title}`
+      : `For ${clientName}`;
+
+    this.showLoadingSpinner();
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (!tabs || tabs.length === 0) {
+        showToast('No active tab found', 'error');
+        this.hideLoadingSpinner();
+        return;
+      }
+
+      chrome.tabs.sendMessage(tabs[0].id, {
+        action: 'openOutreach',
+        clientEmail: this.state.Client.email,
+        clientName: clientName,
+        subject: subject,
+        body: body
+      }, () => {
+        if (chrome.runtime.lastError) {
+          logError('Error opening compose window:', chrome.runtime.lastError);
+          showToast('Failed to open compose window', 'error');
+          this.hideLoadingSpinner();
+          return;
+        }
+        this.hideLoadingSpinner();
+
+        // Close the sidebar to make room for email composition
+        chrome.tabs.sendMessage(tabs[0].id, { action: 'toggleSidebar' }, () => {
+          console.log('Leedz sidebar closed');
+        });
+      });
+    });
   }
 
   /**
-   * Build LLM prompt for outreach email generation
+   * Build the Write prompt: user hint + known Client/Booking facts +
+   * VALUE_PROP business identity, synthesized into one email draft.
+   * @param {string} hint - Draft box contents (may be empty)
    */
-  buildOutreachPrompt() {
+  buildWritePrompt(hint) {
     const businessInfo = PageUtils.extractBusinessInfo(this.state.Config);
+    const identityBlocked = this.state.isIdentityBlocked();
 
-    const clientFirstName = this.state.Client.name?.split(' ')[0] || 'Client';
-    const hourlyRate = this.state.Booking.hourlyRate || 0;
-    const flatRate = this.state.Booking.flatRate || 0;
-    const totalAmount = this.state.Booking.totalAmount || 0;
-    const specialInfo = this.specialInfo || '';
+    const c = this.state.Client;
+    const b = this.state.Booking;
 
-    // Generate rate text
-    let rateText = '';
-    if (totalAmount > 0) {
-      rateText = `My rate would be $${totalAmount} total`;
-    } else if (hourlyRate > 0) {
-      rateText = `My rate is $${hourlyRate}/hr`;
-    } else if (flatRate > 0) {
-      rateText = `My flat rate would be $${flatRate}`;
-    }
+    // Only include facts we actually have - never invite invention
+    const clientLines = [
+      c.name ? `- Name: ${c.name}` : null,
+      c.email ? `- Email: ${c.email}` : null,
+      c.company ? `- Company: ${c.company}` : null
+    ].filter(Boolean).join('\n') || '- (none known)';
 
-    // Get outreach example from config
-    const outreachExample = this.leedzConfig?.outreachEmail?.responseExample || '';
+    const rate = b.totalAmount ? `$${b.totalAmount} total`
+      : b.hourlyRate ? `$${b.hourlyRate}/hr`
+      : b.flatRate ? `$${b.flatRate} flat`
+      : null;
 
-    // Build signature
-    const signatureExample = PageUtils.buildSignatureBlock(businessInfo, 'Scott');
+    const bookingLines = [
+      b.title ? `- Event: ${b.title}` : null,
+      b.startDate ? `- Date: ${b.startDate}` : null,
+      b.startTime ? `- Time: ${b.startTime}${b.endTime ? ' - ' + b.endTime : ''}` : null,
+      b.location ? `- Location: ${b.location}` : null,
+      b.description ? `- Description: ${b.description}` : null,
+      rate ? `- Rate: ${rate}` : null,
+      b.notes ? `- Notes: ${b.notes}` : null
+    ].filter(Boolean).join('\n') || '- (none known)';
 
-    return `Generate a professional outreach email to attract a potential client.
-
-CLIENT: ${clientFirstName}
-RATE: ${rateText}
-${specialInfo ? `SPECIAL INSTRUCTIONS: ${specialInfo}` : ''}
-
-BUSINESS INFO:
-${businessInfo.businessName} - ${businessInfo.servicesPerformed}
+    const businessBlock = identityBlocked
+      ? '(VALUE_PROP business identity is NOT loaded)'
+      : `${businessInfo.businessName} - ${businessInfo.servicesPerformed}
 ${businessInfo.businessDescription}
 ${businessInfo.businessEmail} | ${businessInfo.businessPhone}
-${businessInfo.businessWebsite ? businessInfo.businessWebsite : ''}
-${businessInfo.contactHandle ? businessInfo.contactHandle : ''}
+${businessInfo.businessWebsite || ''}
+${businessInfo.contactHandle || ''}`;
 
-EXAMPLE (match this tone, length, and style):
-${outreachExample}
+    const signatureExample = PageUtils.buildSignatureBlock(businessInfo, 'Scott');
+
+    return `ROLE: Draft one client email for a service business, following the user's instruction below.
+
+USER INSTRUCTION (a hint like "thank Cindy for the party", "say I'm available", "decline but offer to find another provider" - OR a full draft to refine):
+${hint || '(none given - write a brief professional outreach introducing the business to this client)'}
+
+KNOWN CLIENT:
+${clientLines}
+
+KNOWN BOOKING:
+${bookingLines}
+
+BUSINESS IDENTITY (from VALUE_PROP):
+${businessBlock}
+
+INSTRUCTIONS:
+1. Synthesize the user instruction with the known client/booking facts into one plausible, warm, professional email (3-6 concise sentences).
+2. Use ONLY facts listed above - NEVER invent names, dates, rates, or services.
+3. If the business identity is missing or lacks information needed to follow the instruction, SAY SO plainly at the top of your reply instead of inventing details.
+4. If the instruction is to decline and offer to find another provider, politely decline and ask for any event details still unknown above (date, time, location, budget) so a referral can be arranged.
+5. If the user gave a full draft, refine it - keep their voice and intent.
+6. ${PageUtils.getEmailFormattingInstructions()}
+7. DO NOT include a subject line.
+8. Return ONLY the email body text, no explanations.
 
 End the email with this signature block:
-${signatureExample}
-
-Write the email body only (no subject line). Return plain text.`;
+${signatureExample}`;
   }
 }
