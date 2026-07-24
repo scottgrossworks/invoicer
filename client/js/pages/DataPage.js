@@ -199,7 +199,7 @@ export class DataPage extends Page {
     }
 
     // Hide all page-specific button wrappers (DataPage owns button lifecycle)
-    const wrapperIds = ['booker-buttons', 'thankyou-buttons', 'responder-buttons', 'share-buttons'];
+    const wrapperIds = ['booker-buttons', 'outreach-buttons', 'share-buttons'];
     wrapperIds.forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = 'none';

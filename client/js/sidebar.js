@@ -309,15 +309,11 @@ function saveLastActivePage(pageName) {
 function hideAllButtons() {
   const startupButtons = document.getElementById('startup-buttons');
   const bookerButtons = document.getElementById('booker-buttons');
-  const thankyouButtons = document.getElementById('thankyou-buttons');
-  const responderButtons = document.getElementById('responder-buttons');
   const outreachButtons = document.getElementById('outreach-buttons');
   const shareButtons = document.getElementById('share-buttons');
 
   if (startupButtons) startupButtons.style.display = 'none';
   if (bookerButtons) bookerButtons.style.display = 'none';
-  if (thankyouButtons) thankyouButtons.style.display = 'none';
-  if (responderButtons) responderButtons.style.display = 'none';
   if (outreachButtons) outreachButtons.style.display = 'none';
   if (shareButtons) shareButtons.style.display = 'none';
 }
@@ -408,16 +404,12 @@ function updateActionButtons(page) {
   // Get all button wrappers
   const startupButtons = document.getElementById('startup-buttons');
   const bookerButtons = document.getElementById('booker-buttons');
-  const thankyouButtons = document.getElementById('thankyou-buttons');
-  const responderButtons = document.getElementById('responder-buttons');
   const outreachButtons = document.getElementById('outreach-buttons');
   const shareButtons = document.getElementById('share-buttons');
 
   // Hide all button wrappers by default
   if (startupButtons) startupButtons.style.display = 'none';
   if (bookerButtons) bookerButtons.style.display = 'none';
-  if (thankyouButtons) thankyouButtons.style.display = 'none';
-  if (responderButtons) responderButtons.style.display = 'none';
   if (outreachButtons) outreachButtons.style.display = 'none';
   if (shareButtons) shareButtons.style.display = 'none';
 
@@ -426,10 +418,6 @@ function updateActionButtons(page) {
     startupButtons.style.display = 'flex';
   } else if (page.pageName === 'booker' && bookerButtons) {
     bookerButtons.style.display = 'flex';
-  } else if (page.pageName === 'thankyou' && thankyouButtons) {
-    thankyouButtons.style.display = 'flex';
-  } else if (page.pageName === 'responder' && responderButtons) {
-    responderButtons.style.display = 'flex';
   } else if (page.pageName === 'outreach' && outreachButtons) {
     outreachButtons.style.display = 'flex';
   } else if (page.pageName === 'share' && shareButtons) {
@@ -485,7 +473,7 @@ function setupHeaderButtons() {
   const logo = document.querySelector('.logo-container');
   if (logo) logo.addEventListener('click', openDashboard);
   // Consolidate reload button handlers
-  const reloadButtons = ['reloadBtn', 'reloadBtnClients', 'reloadBtnThankYou', 'reloadBtnResponder', 'reloadBtnShare'];
+  const reloadButtons = ['reloadBtn', 'reloadBtnOutreach', 'reloadBtnShare'];
   reloadButtons.forEach(btnId => {
     const btn = document.getElementById(btnId);
     if (btn) {
@@ -498,7 +486,7 @@ function setupHeaderButtons() {
   });
 
   // Consolidate settings button handlers - single source of truth for all pages
-  const settingsButtons = ['settingsBtn', 'settingsBtnThankYou', 'settingsBtnResponder', 'settingsBtnOutreach', 'settingsBtnShare'];
+  const settingsButtons = ['settingsBtn', 'settingsBtnOutreach', 'settingsBtnShare'];
   settingsButtons.forEach(btnId => {
     const btn = document.getElementById(btnId);
     if (btn) {

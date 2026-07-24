@@ -52,50 +52,49 @@
       </div>
 
       <div id="display_win_startup" class="display-win">
-        <table id="startup_table" class="booking-table">
-          <thead>
-            <tr>
-              <th>Field</th>
-              <th>Value</th>
-            </tr>
-          </thead>
-          <tbody id="startup_tbody">
-            <tr>
-              <td>Server Host</td>
-              <td><input type="text" id="startup-serverHost" class="table-input" placeholder="localhost" /></td>
-            </tr>
-            <tr>
-              <td>Server Port</td>
-              <td><input type="text" id="startup-serverPort" class="table-input" placeholder="4000" /></td>
-            </tr>
-            <tr>
-              <td>Database Name</td>
-              <td><span id="startup-dbName" style="color: #666;">Not connected</span></td>
-            </tr>
-            <tr>
-              <td>MCP Host</td>
-              <td><input type="text" id="startup-mcpHost" class="table-input" placeholder="127.0.0.1" /></td>
-            </tr>
-            <tr>
-              <td>MCP Port</td>
-              <td><input type="text" id="startup-mcpPort" class="table-input" placeholder="3001" /></td>
-            </tr>
-          </tbody>
-        </table>
-
         <!-- Business Identity (runtime, parsed from DOCS/VALUE_PROP.md) -->
-        <table id="business-identity-table" class="booking-table" style="margin-top: 20px;">
+        <table id="business-identity-table" class="booking-table">
           <thead>
             <tr>
-              <th>Business Identity</th>
-              <th>Value</th>
+              <th colspan="2">Business Identity</th>
             </tr>
           </thead>
           <tbody id="business-identity-tbody">
             <tr><td colspan="2" id="business-identity-loading">Loading identity&hellip;</td></tr>
           </tbody>
         </table>
-        <div id="business-identity-status" style="margin-top: 8px; font-size: 0.9em;"></div>
+        <div id="business-identity-status" style="margin-top: 8px; padding:6px; font-size: 1.1em;"></div>
+
+        <!-- Leedz Config Collapsible Section (immutable - from leedz_config.json) -->
+        <details id="leedz-config-details" style="margin-top: 20px;">
+          <summary style="cursor: pointer; font-weight: bold; padding: 8px; background-color: #f0f0f0; border-radius: 4px;">
+            Leedz Config
+          </summary>
+          <table id="startup_table" class="booking-table" style="margin-top: 10px;">
+            <tbody id="startup_tbody">
+              <tr>
+                <td>Server Host</td>
+                <td><input type="text" id="startup-serverHost" class="table-input" placeholder="localhost" /></td>
+              </tr>
+              <tr>
+                <td>Server Port</td>
+                <td><input type="text" id="startup-serverPort" class="table-input" placeholder="4000" /></td>
+              </tr>
+              <tr>
+                <td>Database Name</td>
+                <td><span id="startup-dbName" style="color: #666;">Not connected</span></td>
+              </tr>
+              <tr>
+                <td>MCP Host</td>
+                <td><input type="text" id="startup-mcpHost" class="table-input" placeholder="127.0.0.1" /></td>
+              </tr>
+              <tr>
+                <td>MCP Port</td>
+                <td><input type="text" id="startup-mcpPort" class="table-input" placeholder="3001" /></td>
+              </tr>
+            </tbody>
+          </table>
+        </details>
 
         <!-- LLM Settings Collapsible Section -->
         <details id="llm-settings-details" style="margin-top: 20px;">
@@ -159,12 +158,13 @@
     </div><!-- END page-startup -->
 
     <!-- ========================================== -->
-    <!-- BOOKER PAGE (default/existing content)  -->
+    <!-- BOOKER PAGE (Save Clients and Bookings)    -->
+    <!-- Client carousel + one booking, one owner   -->
     <!-- ========================================== -->
     <div id="page-booker" class="page-content">
 
       <div class="section-header">
-        <label for="display_win">Book</label>
+        <label for="display_win">Booker</label>
         <div class="header-buttons">
           <button id="reloadBtn" class="reload-button" title="Reload the parser">
             <span>
@@ -183,10 +183,38 @@
                 <img src="icons/wait_spinner.gif" alt="Loading..." />
                 <span>Processing...</span>
               </div>
+
+              <!-- CLIENT CAROUSEL: page through all clients parsed from the page -->
+              <div id="client_carousel" class="client-carousel">
+                <button id="clientPrevBtn" class="carousel-btn" title="Previous client">&#9664;</button>
+                <span id="clientCarouselLabel">Client 1 of 1</span>
+                <button id="clientNextBtn" class="carousel-btn" title="Next client">&#9654;</button>
+              </div>
+
+              <!-- CLIENT section (tinted to distinguish from booking) -->
+              <table id="client_table_booker" class="booking-table client-section">
+                <thead>
+                  <tr>
+                    <th>Client</th>
+                    <th>Value</th>
+                  </tr>
+                </thead>
+                <tbody id="client_tbody_booker">
+                  <!-- Dynamic rows will be inserted here -->
+                </tbody>
+              </table>
+
+              <!-- OWNER ATTACHMENT: exactly one client owns the one booking -->
+              <div id="owner_attach_row" class="owner-attach-row">
+                <input type="checkbox" id="ownerAttachCheckbox" />
+                <label for="ownerAttachCheckbox">Booking attached to this client</label>
+              </div>
+
+              <!-- BOOKING section: live for the owner, greyed for everyone else -->
               <table id="booking_table" class="booking-table">
                 <thead>
                   <tr>
-                    <th>Field</th>
+                    <th>Booking</th>
                     <th>Value</th>
                   </tr>
                 </thead>
@@ -348,171 +376,8 @@
 
 
     <!-- ========================================== -->
-    <!-- CLIENTS PAGE (Client capture)             -->
-    <!-- ========================================== -->
-    <div id="page-clients" class="page-content">
-
-      <div class="section-header">
-        <label for="display_win_clients">Capture</label>
-        <div class="header-buttons">
-          <button id="reloadBtnClients" class="reload-button" title="Reload the parser">
-            <span>
-              <img src="icons/arrows_white.png" class="button-icon" alt="reload parser"/>
-            </span>
-          </button>
-          <button id="addClientBtnHeader" class="add-client-button" title="Add another client">+</button>
-        </div>
-      </div>
-
-      <div id="display_win_clients" class="display-win">
-        <div id="loading_spinner_clients" class="loading-spinner" style="display: none;">
-          <img src="icons/wait_spinner.gif" alt="Loading..." />
-          <span>Processing...</span>
-        </div>
-        <table id="client_table" class="booking-table">
-          <thead>
-            <tr>
-              <th>Field</th>
-              <th>Value</th>
-            </tr>
-          </thead>
-          <tbody id="client_tbody">
-            <!-- Dynamic rows will be inserted here -->
-          </tbody>
-        </table>
-      </div>
-
-    </div><!-- END page-clients -->
-
-
-    <!-- ========================================== -->
-    <!-- THANKYOU PAGE (Thank You Note Generator)  -->
-    <!-- ========================================== -->
-    <div id="page-thankyou" class="page-content">
-
-      <div class="section-header">
-        <label for="display_win_thankyou">Thank You</label>
-        <div class="header-buttons">
-          <button id="reloadBtnThankYou" class="reload-button" title="Reload the parser">
-            <span>
-              <img src="icons/arrows_white.png" class="button-icon" alt="reload parser"/>
-            </span>
-          </button>
-          <button id="settingsBtnThankYou" class="settings-button" title="Open settings">
-            <span>
-              <img src="icons/settings.png" class="button-icon" alt="settings"/>
-            </span>
-          </button>
-        </div>
-      </div>
-
-      <div id="display_win_thankyou" class="display-win">
-        <div id="loading_spinner_thankyou" class="loading-spinner" style="display: none;">
-          <img src="icons/wait_spinner.gif" alt="Loading..." />
-          <span>Generating...</span>
-        </div>
-        <table id="thankyou_table" class="booking-table">
-          <thead>
-            <tr>
-              <th>Field</th>
-              <th>Value</th>
-            </tr>
-          </thead>
-          <tbody id="thankyou_tbody">
-            <!-- Dynamic rows will be inserted here -->
-          </tbody>
-        </table>
-
-        <!-- Special Information Section -->
-        <div id="special-info-section" class="special-info-section">
-          <div class="special-info-label">
-            Special Information
-          </div>
-          <textarea
-            id="specialInfoTextarea"
-            class="special-info-textarea"
-            placeholder="Add personal notes, recollections, or special details to include in the thank you note..."
-          ></textarea>
-        </div>
-      </div>
-
-    </div><!-- END page-thankyou -->
-
-
-    <!-- ========================================== -->
-    <!-- RESPONDER PAGE (First Response Generator) -->
-    <!-- ========================================== -->
-    <div id="page-responder" class="page-content">
-
-      <div class="section-header">
-        <label for="display_win_responder">Respond</label>
-        <div class="header-buttons">
-          <button id="reloadBtnResponder" class="reload-button" title="Reload the parser">
-            <span>
-              <img src="icons/arrows_white.png" class="button-icon" alt="reload parser"/>
-            </span>
-          </button>
-          <button id="settingsBtnResponder" class="settings-button" title="Open settings">
-            <span>
-              <img src="icons/settings.png" class="button-icon" alt="settings"/>
-            </span>
-          </button>
-        </div>
-      </div>
-
-      <div id="display_win_responder" class="display-win">
-        <div id="loading_spinner_responder" class="loading-spinner" style="display: none;">
-          <img src="icons/wait_spinner.gif" alt="Loading..." />
-          <span>Generating...</span>
-        </div>
-        <table id="responder_table" class="booking-table">
-          <thead>
-            <tr>
-              <th>Field</th>
-              <th>Value</th>
-            </tr>
-          </thead>
-          <tbody id="responder_tbody">
-            <!-- Client fields inserted here -->
-          </tbody>
-        </table>
-
-        <!-- Booking Section (Collapsible) - starts closed -->
-        <details id="booking-section-responder" class="share-accordion">
-          <summary class="accordion-header">Booking</summary>
-          <div class="accordion-content">
-            <table id="responder_booking_table" class="booking-table">
-              <thead>
-                <tr>
-                  <th>Field</th>
-                  <th>Value</th>
-                </tr>
-              </thead>
-              <tbody id="responder_booking_tbody">
-                <!-- Booking fields inserted here -->
-              </tbody>
-            </table>
-          </div>
-        </details>
-
-        <!-- Special Information Section -->
-        <div id="special-info-section-responder" class="special-info-section">
-          <div class="special-info-label">
-            Special Information (Deposit policy, fees, etc.)
-          </div>
-          <textarea
-            id="specialInfoTextarea-responder"
-            class="special-info-textarea"
-            placeholder="Add deposit policy, additional fees, or special requirements to include in the response email..."
-          ></textarea>
-        </div>
-      </div>
-
-    </div><!-- END page-responder -->
-
-
-    <!-- ========================================== -->
-    <!-- OUTREACH PAGE (Outreach Email Generator)  -->
+    <!-- OUTREACH PAGE (Outreach + Respond + Thank You consolidated) -->
+    <!-- Hint-driven Draft box: Write = LLM, Email = Gmail compose    -->
     <!-- ========================================== -->
     <div id="page-outreach" class="page-content">
 
@@ -549,15 +414,15 @@
           </tbody>
         </table>
 
-        <!-- Special Information Section -->
-        <div id="special-info-section-outreach" class="special-info-section">
+        <!-- Draft Section: hint in, finished email out (editable) -->
+        <div id="draft-section-outreach" class="special-info-section">
           <div class="special-info-label">
-            Special Information
+            Draft
           </div>
           <textarea
-            id="specialInfoTextarea-outreach"
+            id="draftTextarea-outreach"
             class="special-info-textarea"
-            placeholder="Add details about services, rates, availability to include in outreach..."
+            placeholder="Give a hint, then press Write:  'Thank you Cindy for the fun party'  |  'Respond that I'm available'  |  'Not available - offer to find another artist'"
           ></textarea>
         </div>
       </div>
@@ -603,34 +468,6 @@
     </button>
   </div>
 
-  <!-- THANKYOU BUTTONS - Fixed position outside scrolling area, above footer -->
-  <!-- Only visible when thankyou page is active -->
-  <div class="button-wrapper" id="thankyou-buttons" style="display: none;">
-    <button id="clearThankYouBtn" class="sidebar-button" title="Clear and reset">
-      Clear
-    </button>
-
-    <button id="writeThankYouBtn" class="sidebar-button" title="Generate and send thank you">
-      Write
-    </button>
-  </div>
-
-  <!-- RESPONDER BUTTONS - Fixed position outside scrolling area, above footer -->
-  <!-- Only visible when responder page is active -->
-  <div class="button-wrapper" id="responder-buttons" style="display: none;">
-    <button id="clearResponderBtn" class="sidebar-button" title="Clear and reset">
-      Clear
-    </button>
-
-    <button id="saveResponderBtn" class="sidebar-button" title="Save client and booking to database">
-      Save
-    </button>
-
-    <button id="writeResponderBtn" class="sidebar-button" title="Generate and send first response">
-      Write
-    </button>
-  </div>
-
   <!-- OUTREACH BUTTONS - Fixed position outside scrolling area, above footer -->
   <!-- Only visible when outreach page is active -->
   <div class="button-wrapper" id="outreach-buttons" style="display: none;">
@@ -638,8 +475,12 @@
       Clear
     </button>
 
-    <button id="writeOutreachBtn" class="sidebar-button" title="Generate and send outreach">
+    <button id="writeOutreachBtn" class="sidebar-button" title="Send hint/draft to LLM">
       Write
+    </button>
+
+    <button id="emailOutreachBtn" class="sidebar-button" title="Send draft to Gmail compose">
+      Email
     </button>
   </div>
 
