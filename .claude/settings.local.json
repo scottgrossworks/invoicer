@@ -56,7 +56,19 @@
       "Bash(ls:*)",
       "Bash(python3 -c \"import zipfile; z=zipfile.ZipFile\\(r''C:\\\\Users\\\\Scott\\\\Desktop\\\\WKG\\\\LEEDZ\\\\FRONT_3\\\\py\\\\reportLeed\\\\reportLeed.zip''\\); [print\\(f\\) for f in z.namelist\\(\\) if ''reportLeed'' in f or f.endswith\\(''.py''\\)]\")",
       "Bash(python:*)",
-      "Bash(unzip:*)"
+      "Bash(unzip:*)",
+      "Bash(git check-ignore *)",
+      "Bash(cd C:/Users/Scott/Desktop/WKG/INVOICER)",
+      "Bash(grep -n \"toObject\" client/js/pages/Page.js client/js/pages/ClientCapture.js client/js/pages/Outreach.js)",
+      "Bash(ls client/node_modules/.bin/vitest*)",
+      "Bash(npx vitest *)",
+      "PowerShell(Set-Location \"C:\\\\Users\\\\Scott\\\\Desktop\\\\WKG\\\\INVOICER\\\\client\"; & .\\\\build.bat 2>&1 | Select-Object -Last 10; Write-Output \"--- dist check ---\"; foreach \\($p in @\\(\"dist\\\\DOCS\\\\VALUE_PROP.md\",\"dist\\\\LLM_KEY.json\",\"dist\\\\manifest.json\",\"dist\\\\js\\\\utils\\\\ValuePropLoader.js\"\\)\\) { if \\(Test-Path $p\\) { Write-Output \"OK: $p\" } else { Write-Output \"MISSING: $p\" } })",
+      "PowerShell($p=\"C:\\\\Users\\\\Scott\\\\Desktop\\\\WKG\\\\INVOICER\\\\client\\\\dist\"; foreach \\($f in @\\(\"DOCS\\\\VALUE_PROP.md\",\"LLM_KEY.json\",\"manifest.json\",\"js\\\\utils\\\\ValuePropLoader.js\",\"leedz_config.json\"\\)\\) { $full=Join-Path $p $f; if \\(Test-Path $full\\) { Write-Output \"OK: $f\" } else { Write-Output \"MISSING: $f\" } })",
+      "Bash(npm test *)",
+      "PowerShell($sqlite = Get-Command sqlite3 -ErrorAction SilentlyContinue; if \\($sqlite\\) { Write-Output \"sqlite3 found: $\\($sqlite.Source\\)\" } else { Write-Output \"sqlite3 NOT found\" })",
+      "PowerShell(node --version; Write-Output \"--- prisma client present? ---\"; Test-Path \"C:\\\\Users\\\\Scott\\\\Desktop\\\\WKG\\\\INVOICER\\\\server\\\\node_modules\\\\@prisma\\\\client\")",
+      "Bash(npx prisma *)",
+      "Bash(DATABASE_URL=\"file:./data/leedz.sqlite\" npx prisma generate)"
     ],
     "deny": [],
     "ask": []
