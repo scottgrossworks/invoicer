@@ -15,6 +15,9 @@ import { DateTimeUtils } from './utils/DateTimeUtils.js';
 class State {
   constructor( loadData ) {
     this.Clients = [];  // Array is primary storage for clients
+    // Index of the client that OWNS the one Booking (carousel attachment).
+    // Exactly one owner at all times; the Booker checkbox transfers it.
+    this.bookingOwnerIndex = 0;
     this.Booking = {};
     this.Config = {};
     this.Square = {};  // Square OAuth configuration from leedz_config.json
@@ -30,22 +33,30 @@ class State {
   }
 
   /**
-   * Backward compatibility getter - returns first client
-   * Booker and parsers use state.Client (singular)
+   * Backward compatibility getter - returns the booking OWNER
+   * Booker, parsers, PDF, Calendar, Save all use state.Client (singular);
+   * following bookingOwnerIndex here means they all track the checkbox
+   * owner automatically with zero changes at the call sites.
    */
   get Client() {
     if (this.Clients.length === 0) {
       this.Clients[0] = {};  // Initialize if empty
     }
-    return this.Clients[0];
+    if (this.bookingOwnerIndex >= this.Clients.length) {
+      this.bookingOwnerIndex = 0;  // Clamp stale index
+    }
+    return this.Clients[this.bookingOwnerIndex];
   }
 
   /**
-   * Backward compatibility setter - sets first client
+   * Backward compatibility setter - sets the booking OWNER
    * Booker and parsers write to state.Client
    */
   set Client(data) {
-    this.Clients[0] = data;
+    if (this.bookingOwnerIndex >= this.Clients.length) {
+      this.bookingOwnerIndex = 0;
+    }
+    this.Clients[this.bookingOwnerIndex] = data;
   }
 
   /**
@@ -85,6 +96,7 @@ class State {
    */
   clear() {
     this.Clients = [];
+    this.bookingOwnerIndex = 0;
     this.Booking = {};
     // DO NOT CLEAR CONFIG DATA
     // this.Config = {};
@@ -119,8 +131,9 @@ class State {
     });
 
     return {
-      Client: cleanClients[0] || {},  // Backward compatibility - first client
+      Client: cleanClients[this.bookingOwnerIndex] || cleanClients[0] || {},  // Backward compatibility - booking owner
       Clients: cleanClients,           // Array of clients
+      bookingOwnerIndex: this.bookingOwnerIndex,
       Booking: { ...this.Booking },
       Config: { ...this.Config },
       // Included so the content-script parsers receive runtime identity via the
@@ -161,6 +174,12 @@ class State {
       // Strip _fromDB flag
       const { _fromDB, ...cleanClient } = obj.Client;
       this.Clients = [cleanClient];
+    }
+
+    // Restore booking owner (clamped; clear() above reset it to 0)
+    if (Number.isInteger(obj.bookingOwnerIndex) && obj.bookingOwnerIndex >= 0 &&
+        obj.bookingOwnerIndex < this.Clients.length) {
+      this.bookingOwnerIndex = obj.bookingOwnerIndex;
     }
 
     Object.assign(this.Booking, obj.Booking || {});
@@ -265,6 +284,20 @@ class State {
   }
 
   /**
+   * Last-resort name deduction: a client with an email but no name gets the
+   * email local-part as name ("kimberly@kgeventagency.com" -> "kimberly").
+   * Kills the name-NOT-NULL save failure without ever blocking a save.
+   * Called by Booker before save and render.
+   */
+  applyNameFallbacks() {
+    this.Clients.forEach(c => {
+      if (c && (!c.name || !String(c.name).trim()) && c.email) {
+        c.name = String(c.email).split('@')[0];
+      }
+    });
+  }
+
+  /**
    * Calculate duration from startTime/endTime and update Booking.duration
    * Business logic: duration calculation belongs to state, not UI
    * @returns {boolean} True if duration was calculated and updated, false otherwise
@@ -317,6 +350,14 @@ class State {
           this.Clients = [...data.Clients];
         } else if (data.Client && Object.keys(data.Client).length > 0) {
           this.Clients = [data.Client];
+        }
+
+        // Restore booking owner (clamped)
+        if (Number.isInteger(data.bookingOwnerIndex) && data.bookingOwnerIndex >= 0 &&
+            data.bookingOwnerIndex < this.Clients.length) {
+          this.bookingOwnerIndex = data.bookingOwnerIndex;
+        } else {
+          this.bookingOwnerIndex = 0;
         }
 
         Object.assign(this.Booking, data.Booking || {});
@@ -418,6 +459,21 @@ export function mergePageData(state, parsedData) {
           state.Booking.clientId = value;
         }
       }
+    });
+  }
+
+  // Multi-client capture: adopt parsed clients past the primary so the Booker
+  // carousel can page through everyone found. Dedup by email; owner unchanged.
+  if (Array.isArray(parsedData.Clients) && parsedData.Clients.length > 1) {
+    const seen = new Set(
+      state.Clients.map(c => (c?.email || '').toLowerCase()).filter(Boolean)
+    );
+    parsedData.Clients.slice(1).forEach(c => {
+      if (!c) return;
+      const em = (c.email || '').toLowerCase();
+      if (em && seen.has(em)) return;
+      if (em) seen.add(em);
+      state.Clients.push({ ...c });
     });
   }
 
