@@ -377,8 +377,11 @@ export class Outreach extends DataPage {
         }
         this.hideLoadingSpinner();
 
-        // Close the sidebar to make room for email composition
+        // Close the sidebar to make room for email composition.
+        // Reading lastError marks it "checked" - the sidebar may tear down
+        // before the reply lands, which is expected here, not an error.
         chrome.tabs.sendMessage(tabs[0].id, { action: 'toggleSidebar' }, () => {
+          void chrome.runtime.lastError;
           console.log('Leedz sidebar closed');
         });
       });

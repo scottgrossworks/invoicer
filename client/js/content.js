@@ -16,6 +16,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.action === "toggleSidebar") {
     toggleSidebar();
+    // Always answer - a listener that returns without responding closes the
+    // port empty and the sender logs "Unchecked runtime.lastError" (2026-07-24)
+    sendResponse({ ok: true });
   } else {
 
     // console.log("[LeedzEx] content.js > [" + message.type + "] " + message.body);
