@@ -3,7 +3,7 @@
   "port": 4000,
   "database": {
     "type": "prisma_sqlite",
-    "url": "file:./data/leedz.sqlite"
+    "url": "file:PATH TO SQLITE DB"
   },
   "logging": {
     "level": "debug",
