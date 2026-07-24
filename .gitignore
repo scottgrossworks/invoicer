@@ -89,3 +89,5 @@ server/exports/
 # above, just parked in one folder instead.
 client/TMP/
 server/TMP/
+# Root doc archive - stale planning notes moved out of DOCS/ (2026-07-24)
+/TMP/
