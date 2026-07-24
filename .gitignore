@@ -82,3 +82,10 @@ server/dist-pkg/**/server_config.json
 *.sqlite.migrating.tmp*
 server/data/
 server/exports/
+
+# Local stash of real/informed config (VALUE_PROP.md, LLM_KEY.json,
+# leedz_config.json, server_config.json) used by rebuild_and_restore.bat to
+# repopulate a fresh build/ - same secrets class as the individual ignores
+# above, just parked in one folder instead.
+client/TMP/
+server/TMP/
