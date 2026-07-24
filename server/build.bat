@@ -181,10 +181,14 @@ for %%A in (%ARCHITECTURES%) do (
     )
 
     :: Create launch_leedz.bat
+    :: The Gmail MCP line bakes in this dev machine's source path (%CD% at
+    :: build time) and is guarded with "if exist" - on a shipped install
+    :: without the source tree it silently skips, everything else still runs.
     echo @echo off > "!PKG_DIR!\launch_leedz.bat"
     echo :: Leedz Server Launcher >> "!PKG_DIR!\launch_leedz.bat"
     echo echo Starting Leedz... >> "!PKG_DIR!\launch_leedz.bat"
     echo start "" "TheLeedz.exe" >> "!PKG_DIR!\launch_leedz.bat"
+    echo if exist "%CD%\mcp\mcp_gmail.js" start "Gmail MCP" cmd /c node "%CD%\mcp\mcp_gmail.js" >> "!PKG_DIR!\launch_leedz.bat"
     echo echo Server starting on port 4000... >> "!PKG_DIR!\launch_leedz.bat"
     echo leedz-server.exe >> "!PKG_DIR!\launch_leedz.bat"
 
