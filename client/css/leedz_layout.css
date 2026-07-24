@@ -637,6 +637,14 @@ input.invalid {
   background-color: darkviolet;
 }
 
+/* No rule = browser-default grey face = looks disabled (2026-07-24) */
+#emailOutreachBtn {
+  background-color: #01ac56;
+}
+#emailOutreachBtn:hover:not(:disabled) {
+  background-color: #018a45;
+}
+
 /* Special Information section for ThankYou page */
 .special-info-section {
   margin-top: 20px;
