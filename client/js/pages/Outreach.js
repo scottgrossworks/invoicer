@@ -133,16 +133,14 @@ export class Outreach extends DataPage {
   }
 
   /**
-   * Clear/reset outreach page to initial state
+   * Clear the Draft box ONLY - the parsed Client/Booking table stays.
+   * (Reload arrow is the way to re-parse the page from scratch.)
    */
   clear() {
-    this.state.clear();
     this.draft = '';
-    this.clientFromDB = false;
     const box = document.getElementById('draftTextarea-outreach');
     if (box) box.value = '';
-    this.updateFromState(this.state);
-    log('Cleared');
+    log('Draft cleared');
   }
 
   /**
@@ -275,6 +273,33 @@ export class Outreach extends DataPage {
   }
 
   /**
+   * Light spinner for Write: the Client/Booking table STAYS visible;
+   * only the Draft box + buttons swap out for the spinner beneath the table.
+   * (The full-page spinner is reserved for the initial parse workflow.)
+   */
+  _showWriteSpinner() {
+    const spinner = document.getElementById('loading_spinner_outreach');
+    if (spinner) {
+      // Move spinner below the table (it sits above it in the static HTML)
+      spinner.parentElement.appendChild(spinner);
+      spinner.style.display = 'block';
+    }
+    const draftSection = document.getElementById('draft-section-outreach');
+    if (draftSection) draftSection.style.display = 'none';
+    const buttonWrapper = document.getElementById('outreach-buttons');
+    if (buttonWrapper) buttonWrapper.style.display = 'none';
+  }
+
+  _hideWriteSpinner() {
+    const spinner = document.getElementById('loading_spinner_outreach');
+    if (spinner) spinner.style.display = 'none';
+    const draftSection = document.getElementById('draft-section-outreach');
+    if (draftSection) draftSection.style.display = 'block';
+    const buttonWrapper = document.getElementById('outreach-buttons');
+    if (buttonWrapper) buttonWrapper.style.display = 'flex';
+  }
+
+  /**
    * WRITE: send hint/draft + Client/Booking + VALUE_PROP to the LLM,
    * display the finished draft back in the Draft box for editing.
    */
@@ -283,7 +308,7 @@ export class Outreach extends DataPage {
       const box = document.getElementById('draftTextarea-outreach');
       const hint = (box ? box.value : this.draft || '').trim();
 
-      this.showLoadingSpinner();
+      this._showWriteSpinner();
       log('Writing draft...');
 
       const prompt = this.buildWritePrompt(hint);
@@ -303,7 +328,7 @@ export class Outreach extends DataPage {
       logError('Draft generation failed:', error);
       showToast('Error generating draft', 'error');
     } finally {
-      this.hideLoadingSpinner();
+      this._hideWriteSpinner();
     }
   }
 
