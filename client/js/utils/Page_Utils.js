@@ -235,8 +235,11 @@ Never output empty lines for missing fields.`;
         return { success: false, count: 0, error: 'No data to save' };
       }
 
-      // Set state.Clients array
+      // Filtering shifts array indices - keep bookingOwnerIndex pointed at the
+      // same client object (fall back to 0 if the owner was filtered out)
+      const owner = state.Clients[state.bookingOwnerIndex];
       state.setClients(clientsToSave);
+      state.bookingOwnerIndex = Math.max(0, clientsToSave.indexOf(owner));
 
       // Clear or preserve Booking based on includeBooking flag
       if (!includeBooking) {

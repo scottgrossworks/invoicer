@@ -76,6 +76,9 @@ cleanFloat(value) {
       // Get clients array
       const clients = state.Clients || [];
 
+      // The one Booking attaches to exactly one client: the checkbox owner
+      const ownerIdx = Number.isInteger(state.bookingOwnerIndex) ? state.bookingOwnerIndex : 0;
+
       if (clients.length === 0) {
         // console.log('No clients to save');
         return;
@@ -129,8 +132,8 @@ cleanFloat(value) {
         console.log(`Client ${i} saved: ${client.name} (${client.id})`);
 
         // BOOKING (optional - only save if booking data exists)
-        // Only save booking for first client (Booker use case: 1 client = 1 booking)
-        if (i === 0 && state.Booking && Object.keys(state.Booking).length > 0) {
+        // Only save booking for the OWNER client (carousel checkbox)
+        if (i === ownerIdx && state.Booking && Object.keys(state.Booking).length > 0) {
           let data = state.Booking;
           data.clientId = client.id;
           check = Booking.validate(data);
@@ -309,12 +312,16 @@ async load() {
   async searchClient(email, name) {
     try {
 
-      // Build query parameters
+      // EMAIL is the strong identity key - search by it ALONE when we have it.
+      // The server ANDs its filters, and Gmail header display-names are often
+      // junk ("kimberly@kge..." instead of "Kimberly Gora"), so email+name
+      // returned 0 rows for known clients and forced a needless LLM parse.
       const params = new URLSearchParams();
-      if (email) params.append('email', email);
-      if (name) params.append('name', name);
-
-      if (!email && !name) {
+      if (email) {
+        params.append('email', email);
+      } else if (name) {
+        params.append('name', name);
+      } else {
         // console.log('searchClient: No email or name provided');
         return null;
       }
