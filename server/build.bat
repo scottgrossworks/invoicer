@@ -13,6 +13,20 @@ echo   LEEDZ SERVER BUILD
 echo ==========================================
 echo.
 
+:: Pre-flight: the build overwrites leedz-server.exe and TheLeedz.exe.
+:: Windows locks running executables, so a live server/tray kills the build
+:: halfway through (EPERM/Access denied). Fail fast with a clear message.
+tasklist /FI "IMAGENAME eq leedz-server.exe" | find /I "leedz-server.exe" >nul
+if not errorlevel 1 (
+    echo [ERROR] leedz-server.exe is running - stop the server first.
+    goto :ERROR
+)
+tasklist /FI "IMAGENAME eq TheLeedz.exe" | find /I "TheLeedz.exe" >nul
+if not errorlevel 1 (
+    echo [ERROR] TheLeedz.exe is running - exit the tray first.
+    goto :ERROR
+)
+
 :: Configuration
 set "DIST_DIR=dist-pkg"
 set "CANONICAL_DB=dist\leedz.sqlite"
@@ -52,7 +66,7 @@ if not exist "%TRAY_BUILD_SCRIPT%" (
 )
 
 pushd tray
-call build.bat
+call ".\build.bat"
 set TRAY_BUILD_RESULT=%errorlevel%
 popd
 
