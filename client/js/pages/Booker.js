@@ -23,14 +23,53 @@ export class Booker extends DataPage {
 
     // Track if client was loaded from database (persistent flag)
     this.clientFromDB = false;
+
+    // Carousel: which client in state.Clients[] is currently displayed.
+    // Independent of state.bookingOwnerIndex (who OWNS the booking).
+    this.viewIndex = 0;
   }
 
   /**
    * Initialize booker page (called once on app startup)
+   * Wires the static carousel controls (prev/next/owner checkbox).
    * Note: Settings button handler is in sidebar.js:setupHeaderButtons()
    */
   async initialize() {
-    // No initialization needed - settings button handled by sidebar.js
+    const prevBtn = document.getElementById('clientPrevBtn');
+    const nextBtn = document.getElementById('clientNextBtn');
+    const ownerBox = document.getElementById('ownerAttachCheckbox');
+
+    if (prevBtn) prevBtn.addEventListener('click', () => this.cycleClient(-1));
+    if (nextBtn) nextBtn.addEventListener('click', () => this.cycleClient(1));
+
+    if (ownerBox) {
+      ownerBox.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          // Transfer the one booking to the client in view. Same booking
+          // object, data intact - only the owner changes.
+          this.state.bookingOwnerIndex = this.viewIndex;
+          this.populateBookingTable();
+          const owner = this.state.Clients[this.viewIndex] || {};
+          showToast(`Booking attached to ${owner.name || owner.email || 'this client'}`, 'info');
+        } else {
+          // Can't orphan the booking - exactly one owner at all times.
+          // Transfer by checking the box on a DIFFERENT client.
+          e.target.checked = true;
+          showToast('One client must own the booking - check a different client to transfer it', 'info');
+        }
+      });
+    }
+  }
+
+  /**
+   * Page the carousel by delta (-1 prev / +1 next), clamped to array bounds
+   */
+  cycleClient(delta) {
+    const count = this.state.Clients.length || 1;
+    const next = this.viewIndex + delta;
+    if (next < 0 || next >= count) return;
+    this.viewIndex = next;
+    this.populateBookingTable();
   }
 
   /**
@@ -49,11 +88,22 @@ export class Booker extends DataPage {
     // Load Config data from DB
     await this.state.loadConfigFromDB();
 
-    // Update state
+    // Update state - adopt the full Clients array when present (carousel)
     if (stateData) {
-      Object.assign(this.state.Client, stateData.Client || {});
+      if (Array.isArray(stateData.Clients) && stateData.Clients.length > 0) {
+        this.state.setClients(stateData.Clients.map(c => ({ ...c })));
+        if (Number.isInteger(stateData.bookingOwnerIndex) &&
+            stateData.bookingOwnerIndex < this.state.Clients.length) {
+          this.state.bookingOwnerIndex = stateData.bookingOwnerIndex;
+        }
+      } else {
+        Object.assign(this.state.Client, stateData.Client || {});
+      }
       Object.assign(this.state.Booking, stateData.Booking || {});
     }
+
+    // Open the carousel on the booking owner
+    this.viewIndex = this.state.bookingOwnerIndex;
 
     // Render
     this.populateBookingTable();
@@ -91,6 +141,9 @@ export class Booker extends DataPage {
       this.state.Booking._fromDB = true;
     }
 
+    // DB hit populates the owner - show that client in the carousel
+    this.viewIndex = this.state.bookingOwnerIndex;
+
     // Render with green styling
     this.populateBookingTable(true); // Pass fromDB flag
   }
@@ -103,12 +156,16 @@ export class Booker extends DataPage {
     await this.state.loadConfigFromDB();
 
     // Update state from parse
+    // (multi-client array already merged into state.Clients by mergePageData)
     if (parseResult.data?.Client) {
       Object.assign(this.state.Client, parseResult.data.Client);
     }
     if (parseResult.data?.Booking) {
       Object.assign(this.state.Booking, parseResult.data.Booking);
     }
+
+    // Fresh parse: open the carousel on the booking owner
+    this.viewIndex = this.state.bookingOwnerIndex;
 
     // Render
     this.populateBookingTable();
@@ -384,14 +441,27 @@ export class Booker extends DataPage {
   }
 
   /**
-   * Populate the booking table with all fields from state.
-   * Shows ALL Booking and Client fields, with values if available, blank if not.
+   * Populate the page: client carousel section + booking section.
+   * CLIENT section (tinted) shows Clients[viewIndex] with prev/next paging.
+   * BOOKING section is live/editable only when the viewed client OWNS the
+   * booking (viewIndex === bookingOwnerIndex); for non-owners it renders
+   * blank, greyed, read-only - the booking data is intact, just not theirs.
    * Applies green styling (honeydew + LEEDZ_GREEN border) if client loaded from DB.
    */
   populateBookingTable() {
     const tbody = document.getElementById('booking_tbody');
     const table = document.getElementById('booking_table');
     if (!tbody || !table) return;
+
+    // Clamp carousel view to the clients array
+    if (this.state.Clients.length === 0) this.state.Clients.push({});
+    if (this.viewIndex >= this.state.Clients.length) this.viewIndex = 0;
+
+    // Deduce missing names (email local-part last resort) so no blank names
+    this.state.applyNameFallbacks();
+
+    const isOwnerView = (this.viewIndex === this.state.bookingOwnerIndex);
+    const client = this.state.Clients[this.viewIndex];
 
     // AUTO-FILL: endDate always matches startDate when endDate is empty
     if (this.state.Booking.startDate && !this.state.Booking.endDate) {
@@ -414,31 +484,28 @@ export class Booker extends DataPage {
       }
     }
 
-    // Clear existing rows
+    // ---- CLIENT SECTION (carousel) ----
+    this.renderClientSection(client, isOwnerView);
+
+    // ---- BOOKING SECTION ----
     tbody.innerHTML = '';
 
-    // Apply green table styling if client was loaded from DB
-    /*
-    console.log('=== BOOKER TABLE STYLING ===');
-    console.log('_fromDB flag:', this.state.Client._fromDB);
-    console.log('clientFromDB flag:', this.clientFromDB);
-    */
+    // Non-owner view: greyed shell (CSS .non-owner)
+    table.classList.toggle('non-owner', !isOwnerView);
 
-    // Use persistent flag OR transient state flag (for backward compatibility)
-    if (this.clientFromDB || this.state.Client._fromDB) {
+    // Green styling only on the live (owner) table when client came from DB
+    if (isOwnerView && (this.clientFromDB || this.state.Client._fromDB)) {
       table.classList.add('thankyou-table-from-db');  // Reuse same CSS class
     } else {
       table.classList.remove('thankyou-table-from-db');
     }
 
-    // Skip rate fields - will be rendered by Calculator
+    // Rate fields are rendered by Calculator (owner view only)
     const rateFields = ['duration', 'hourlyRate', 'flatRate', 'totalAmount'];
     const skipFields = ['id', 'clientId', 'createdAt', 'updatedAt', ...rateFields];
 
-    const allFields = [...this.clientFields, ...this.bookingFields];
-
-    // Populate table rows with booking and client data (excluding rate fields)
-    allFields.forEach(field => {
+    // Booking fields only - client fields live in the carousel section above
+    this.bookingFields.forEach(field => {
       if (skipFields.includes(field)) return;
 
       const row = document.createElement('tr');
@@ -456,41 +523,42 @@ export class Booker extends DataPage {
       input.type = 'text';
       input.setAttribute('data-field', field);
 
-      // Convert to display formats
-      let displayValue = this.state.Booking[field] || this.state.Client[field] || '';
+      if (!isOwnerView) {
+        // Blank + read-only: this client does not own the booking
+        input.value = '';
+        input.disabled = true;
+      } else {
+        // Convert to display formats
+        let displayValue = this.state.Booking[field] || '';
 
-      // DATES
-      if ((field === 'startTime' || field === 'endTime') && displayValue) {
-        displayValue = DateTimeUtils.convertTo12Hour(displayValue);
-      }
-      if ((field === 'startDate' || field === 'endDate') && displayValue) {
-        displayValue = DateTimeUtils.formatDateForDisplay(displayValue);
-      }
-
-      // PHONE
-      if (field === 'phone') {
-        displayValue = Booker.formatPhoneForDisplay(displayValue);
-      }
-
-      input.value = displayValue;
-
-      // Add event listener to sync changes back to state on input
-      input.addEventListener('input', (event) => {
-        this.syncFormFieldToState(field, event.target.value);
-      });
-
-      // Add Enter key listener to commit and format the value
-      input.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-          event.preventDefault();
-          this.commitAndFormatField(field, event.target);
+        // DATES
+        if ((field === 'startTime' || field === 'endTime') && displayValue) {
+          displayValue = DateTimeUtils.convertTo12Hour(displayValue);
         }
-      });
+        if ((field === 'startDate' || field === 'endDate') && displayValue) {
+          displayValue = DateTimeUtils.formatDateForDisplay(displayValue);
+        }
 
-      // Add blur listener to commit and format when user leaves field
-      input.addEventListener('blur', (event) => {
-        this.commitAndFormatField(field, event.target);
-      });
+        input.value = displayValue;
+
+        // Add event listener to sync changes back to state on input
+        input.addEventListener('input', (event) => {
+          this.syncFormFieldToState(field, event.target.value);
+        });
+
+        // Add Enter key listener to commit and format the value
+        input.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            this.commitAndFormatField(field, event.target);
+          }
+        });
+
+        // Add blur listener to commit and format when user leaves field
+        input.addEventListener('blur', (event) => {
+          this.commitAndFormatField(field, event.target);
+        });
+      }
 
       valueCell.appendChild(input);
       row.appendChild(nameCell);
@@ -498,13 +566,108 @@ export class Booker extends DataPage {
       tbody.appendChild(row);
     });
 
-    // Render rate fields using Calculator (includes duration for Booker)
-    Calculator.renderFields(
-      tbody,
-      this.state.Booking,
-      () => this.updateFromState(this.state),
-      { includeDuration: true }
-    );
+    if (isOwnerView) {
+      // Render rate fields using Calculator (includes duration for Booker)
+      Calculator.renderFields(
+        tbody,
+        this.state.Booking,
+        () => this.updateFromState(this.state),
+        { includeDuration: true }
+      );
+    } else {
+      // Blank read-only rate rows to keep the table shape recognizable
+      rateFields.forEach(field => {
+        const row = document.createElement('tr');
+        const nameCell = document.createElement('td');
+        nameCell.className = 'field-name';
+        nameCell.textContent = field;
+        const valueCell = document.createElement('td');
+        valueCell.className = 'field-value';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.disabled = true;
+        valueCell.appendChild(input);
+        row.appendChild(nameCell);
+        row.appendChild(valueCell);
+        tbody.appendChild(row);
+      });
+    }
+  }
+
+  /**
+   * Render the client carousel: "Client N of M" nav, owner checkbox, and
+   * the tinted client table for the client currently in view. Edits write
+   * straight into state.Clients[viewIndex] (via syncFormFieldToState).
+   */
+  renderClientSection(client, isOwnerView) {
+    const count = this.state.Clients.length;
+
+    const label = document.getElementById('clientCarouselLabel');
+    if (label) label.textContent = `Client ${this.viewIndex + 1} of ${count}`;
+
+    const prevBtn = document.getElementById('clientPrevBtn');
+    const nextBtn = document.getElementById('clientNextBtn');
+    if (prevBtn) prevBtn.disabled = (this.viewIndex === 0);
+    if (nextBtn) nextBtn.disabled = (this.viewIndex >= count - 1);
+
+    // Checkbox reflects ownership of the client IN VIEW
+    const ownerBox = document.getElementById('ownerAttachCheckbox');
+    if (ownerBox) ownerBox.checked = isOwnerView;
+
+    const ctable = document.getElementById('client_table_booker');
+    const ctbody = document.getElementById('client_tbody_booker');
+    if (!ctable || !ctbody) return;
+
+    // Green when THIS client came from the DB
+    if (client._fromDB || (isOwnerView && this.clientFromDB)) {
+      ctable.classList.add('thankyou-table-from-db');
+    } else {
+      ctable.classList.remove('thankyou-table-from-db');
+    }
+
+    ctbody.innerHTML = '';
+    const skipFields = ['id', 'createdAt', 'updatedAt'];
+
+    this.clientFields.forEach(field => {
+      if (skipFields.includes(field)) return;
+
+      const row = document.createElement('tr');
+
+      const nameCell = document.createElement('td');
+      nameCell.className = 'field-name';
+      nameCell.textContent = field;
+
+      const valueCell = document.createElement('td');
+      valueCell.className = 'field-value';
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.setAttribute('data-field', field);
+
+      let displayValue = client[field] || '';
+      if (field === 'phone') {
+        displayValue = Booker.formatPhoneForDisplay(displayValue);
+      }
+      input.value = displayValue;
+
+      input.addEventListener('input', (event) => {
+        this.syncFormFieldToState(field, event.target.value);
+      });
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          this.commitAndFormatField(field, event.target);
+        }
+      });
+      input.addEventListener('blur', (event) => {
+        this.commitAndFormatField(field, event.target);
+      });
+
+      valueCell.appendChild(input);
+      row.appendChild(nameCell);
+      row.appendChild(valueCell);
+      ctbody.appendChild(row);
+    });
   }
 
   /**
@@ -591,7 +754,9 @@ export class Booker extends DataPage {
     }
 
     if (this.clientFields.includes(fieldName)) {
-      this.state.Client[fieldName] = canonicalValue;
+      // Client edits apply to the client IN VIEW (carousel), who may or may
+      // not be the booking owner - never blindly to state.Client (the owner)
+      this.state.Clients[this.viewIndex][fieldName] = canonicalValue;
     } else if (this.bookingFields.includes(fieldName)) {
       this.state.Booking[fieldName] = canonicalValue;
     }
@@ -645,7 +810,11 @@ export class Booker extends DataPage {
    */
   async onSave() {
     try {
+      // Never block a save on a missing name - deduce from email local-part
+      this.state.applyNameFallbacks();
+
       // Ensure current state is saved to Chrome storage for PDF settings page
+      // (saves ALL clients in the array + the one booking, attached to owner)
       await this.state.save();
 
       // Show toast on success/failure
