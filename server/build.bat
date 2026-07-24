@@ -225,7 +225,16 @@ for %%A in (%ARCHITECTURES%) do (
 
     if exist "!ZIP_NAME!" del "!ZIP_NAME!"
 
-    powershell -NoProfile -command "Compress-Archive -Path '%CD%\!PKG_DIR!\*' -DestinationPath '%CD%\!ZIP_NAME!' -Force"
+    :: SANITIZED STAGING: the ZIP is for DISTRIBUTION. server_config.json holds
+    :: the real Square appSecret + local DB path - swap in the blank template.
+    :: dist-pkg\ itself keeps the real config (it is the LOCAL deployment).
+    set "STAGE=%TEMP%\leedz_srv_zip_stage"
+    if exist "!STAGE!" rd /s /q "!STAGE!"
+    robocopy "!PKG_DIR!" "!STAGE!" /E /NFL /NDL /NJH /NJS >nul
+    copy /Y "server_config.template.json" "!STAGE!\server_config.json" >nul
+
+    powershell -NoProfile -command "Compress-Archive -Path '!STAGE!\*' -DestinationPath '%CD%\!ZIP_NAME!' -Force"
+    rd /s /q "!STAGE!"
 
     if exist "!ZIP_NAME!" (
         echo     - Created !ZIP_NAME!

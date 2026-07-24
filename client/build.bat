@@ -125,9 +125,20 @@ echo     - Build directory ready at: client\%DIST_DIR%
 echo [6/6] Creating distribution ZIP package...
 if exist "%ZIP_NAME%" del "%ZIP_NAME%"
 
-:: Use PowerShell to zip the contents of DIST (not including the dist folder itself)
+:: SANITIZED STAGING: the ZIP is for DISTRIBUTION. The real Anthropic key
+:: (LLM_KEY.json) and real business identity incl. bank info (VALUE_PROP.md)
+:: must NEVER ship - stage a copy of dist with the blank templates swapped in.
+:: dist\ itself keeps the real files (it is the LOCAL install).
+set "STAGE=%TEMP%\leedz_zip_stage"
+if exist "%STAGE%" rd /s /q "%STAGE%"
+robocopy "%DIST_DIR%" "%STAGE%" /E /NFL /NDL /NJH /NJS >nul
+copy /Y "LLM_KEY.template.json" "%STAGE%\LLM_KEY.json" >nul
+copy /Y "DOCS\VALUE_PROP.template.md" "%STAGE%\DOCS\VALUE_PROP.md" >nul
+
+:: Use PowerShell to zip the sanitized staging copy
 :: -NoProfile + absolute paths: profile-proof (see validation note above).
-powershell -NoProfile -command "Compress-Archive -Path '%CD%\%DIST_DIR%\*' -DestinationPath '%CD%\%ZIP_NAME%' -Force"
+powershell -NoProfile -command "Compress-Archive -Path '%STAGE%\*' -DestinationPath '%CD%\%ZIP_NAME%' -Force"
+rd /s /q "%STAGE%"
 
 if exist "%ZIP_NAME%" (
     echo     - Distribution ZIP created: %ZIP_NAME%
