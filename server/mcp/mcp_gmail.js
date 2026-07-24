@@ -88,7 +88,7 @@ function createHttpServer() {
         res.end(JSON.stringify({ error: 'Not found' }));
     });
 
-    const port = config.http?.port || 4001;
+    const port = config.http?.port || 7000;
 
     server.on('error', (err) => {
         if (err.code === 'EADDRINUSE') {
@@ -149,7 +149,7 @@ function handleTokenRequest(req, res) {
  * Used when this instance lost the port race
  */
 async function fetchTokenFromPrimary() {
-    const port = config.http?.port || 4001;
+    const port = config.http?.port || 7000;
     try {
         const response = await axios.get(`http://127.0.0.1:${port}/token`, { timeout: 2000 });
         if (response.data?.token) {
