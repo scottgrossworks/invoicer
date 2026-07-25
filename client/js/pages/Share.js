@@ -1162,7 +1162,7 @@ export class Share extends DataPage {
           this.state.Config.friends = `${this.state.Config.friends},${emailAddresses}`;
           await this.state.save();
         } catch (err) {
-          console.log('Failed to load Config. Is leedz server connected?');
+          // console.log('Failed to load Config. Is leedz server connected?');
         }
       }
 

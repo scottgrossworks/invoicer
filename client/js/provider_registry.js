@@ -80,12 +80,12 @@ export async function getDbLayer() {
         // Handle both old serverUrl format and new serverHost format
         baseUrl = `http://${startupConfig.serverHost}:${startupConfig.serverPort}`;
         provider = startupConfig.dbProvider || 'local_prisma_sqlite';
-        console.log('Using startup config from Chrome storage:', baseUrl);
+        // console.log('Using startup config from Chrome storage:', baseUrl);
       } else if (startupConfig.serverUrl && startupConfig.serverPort) {
         // Legacy support for old serverUrl format
         baseUrl = `${startupConfig.serverUrl}:${startupConfig.serverPort}`;
         provider = startupConfig.dbProvider || 'local_prisma_sqlite';
-        console.log('Using legacy startup config from Chrome storage:', baseUrl);
+        // console.log('Using legacy startup config from Chrome storage:', baseUrl);
       }
     }
   } catch (error) {
@@ -97,7 +97,8 @@ export async function getDbLayer() {
     const cfg = await loadConfig();
     baseUrl = cfg?.db?.baseUrl || 'http://localhost:4000';
     provider = cfg?.db?.provider || 'local_prisma_sqlite';
-    console.log('Using default config from leedz_config.json:', baseUrl);
+    // console.log('Using default config from leedz_config.json:', baseUrl);
+    // (resolved URL is confirmed once via sidebar.js "DB_LAYER initialized" log)
   }
 
   // Create DB layer instance

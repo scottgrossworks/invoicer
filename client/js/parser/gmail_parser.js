@@ -145,7 +145,7 @@ class GmailParser extends EventParser {
         email: this.STATE.Client?.email
       };
       const prompt = this._buildLLMPrompt(emailData, content, CONFIG.gmailParser);
-      console.log(`[GmailParser] sending to LLM: ${content.length} chars of thread content`);
+      // console.log(`[GmailParser] sending to LLM: ${content.length} chars of thread content`);
       const response = await this._sendLLMRequest(llmConfig, prompt);
 
       if (!response?.ok) {
@@ -164,7 +164,7 @@ class GmailParser extends EventParser {
         console.error('[GmailParser] LLM responded but JSON parse produced null. Raw head:', String(textContent).slice(0, 300));
         return null;
       }
-      console.log('[GmailParser] LLM extracted:', JSON.stringify({ Client: parsedResult.Client, Booking: parsedResult.Booking }).slice(0, 400));
+      // console.log('[GmailParser] LLM extracted:', JSON.stringify({ Client: parsedResult.Client, Booking: parsedResult.Booking }).slice(0, 400));
 
       // Source-evidence verification (U11): scrub any date/time the LLM returned that is
       // not supported by the email text. One repair pass on the failed fields, then
@@ -377,7 +377,7 @@ class GmailParser extends EventParser {
             return { email, name };
         } 
       }
-      console.log("Gmail parser could not find a primary sender element.");
+      // console.log("Gmail parser could not find a primary sender element.");
       return { email: null, name: null };
     
     } catch (error) {

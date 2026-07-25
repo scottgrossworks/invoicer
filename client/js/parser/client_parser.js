@@ -25,7 +25,7 @@ class ClientParser extends ProfileParser {
       // ConfigLoader merges LLM_KEY.json into llm['api-key'] — a raw config
       // fetch here shipped an EMPTY key and LLM calls 401'd. Fixed 2026-07-21.
       CONFIG = await loadConfig();
-      console.log('Client parser config loaded successfully');
+      // console.log('Client parser config loaded successfully');
     } catch (error) {
       console.error('FATAL: Unable to load leedz_config.json:', error);
       throw new Error('Client parser cannot initialize - config file missing or invalid');
@@ -83,7 +83,7 @@ class ClientParser extends ProfileParser {
       }
 
       if (email || name) {
-        console.log('ClientParser quick identity:', { email, name });
+        // console.log('ClientParser quick identity:', { email, name });
         return { email, name };
       }
 

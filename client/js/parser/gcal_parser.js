@@ -67,7 +67,7 @@ class GCalParser extends EventParser {
           proceduralData.location ||
           proceduralData.description)
     ) {
-      console.log("Calendar Event not found. Cannot parse details. Make sure the event pop-up is open.");
+      // console.log("Calendar Event not found. Cannot parse details. Make sure the event pop-up is open.");
       return { source: 'gcal' };
     }
 

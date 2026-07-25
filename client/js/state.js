@@ -255,7 +255,7 @@ class State {
       const dbLayer = await getDbLayer();
 
       if (!dbLayer) {
-        console.log("No DB Layer configured - Config will not be loaded from database");
+        // console.log("No DB Layer configured - Config will not be loaded from database");
         return;
       }
 
@@ -264,7 +264,7 @@ class State {
 
       if (dbConfig) {
         Object.assign(this.Config, dbConfig);
-        console.log("Config loaded from database successfully");
+        // console.log("Config loaded from database successfully");
 
       } else {
         // SCHEMA unification (2026-07-22): dbLayer.load() returning null is the

@@ -129,7 +129,7 @@ cleanFloat(value) {
           throw new Error(`Client ${i} save failed - no valid ID returned`);
         }
 
-        console.log(`Client ${i} saved: ${client.name} (${client.id})`);
+        // console.log(`Client ${i} saved: ${client.name} (${client.id})`);
 
         // BOOKING (optional - only save if booking data exists)
         // Only save booking for the OWNER client (carousel checkbox)
@@ -181,7 +181,7 @@ cleanFloat(value) {
             throw new Error('Booking save failed - no valid ID returned');
           }
 
-          console.log('Booking saved for client:', client.name, '(', booking.id, ')');
+          // console.log('Booking saved for client:', client.name, '(', booking.id, ')');
 
           // UPDATE STATE WITH RETURNED IDs
           state.Client.id = client.id;
@@ -267,12 +267,12 @@ async load() {
         const config = await configResponse.json();
 
         if (!config.db || !config.db.provider) {
-          console.log("No DB configured");
+          // console.log("No DB configured");
           return null;
         }
 
         serverUrl = config.db?.baseUrl || URL_DEFAULT;
-        console.log('Using default config from leedz_config.json for load():', serverUrl);
+        // console.log('Using default config from leedz_config.json for load():', serverUrl);
       }
 
       // SCHEMA unification (2026-07-21): GET /config no longer exists — the DB
@@ -280,12 +280,14 @@ async load() {
       // /health returns { status, databaseName }: liveness + db name only.
       // Returning null tells callers "no DB-backed Config", which every caller
       // already handles (state.loadConfigFromDB warns and continues).
-      console.log(`Checking server health: ${serverUrl}/health`);
+      // This fires on EVERY page navigation (health check) - too noisy for
+      // routine logging; the one-time "DB_LAYER initialized" log covers it.
+      // console.log(`Checking server health: ${serverUrl}/health`);
       const dbResponse = await fetch(`${serverUrl}/health`);
 
       if (dbResponse.ok) {
         const health = await dbResponse.json();
-        console.log(`Leedz server ok — database: ${health.databaseName || 'unknown'}`);
+        // console.log(`Leedz server ok — database: ${health.databaseName || 'unknown'}`);
         return null;
 
       } else {
@@ -298,7 +300,7 @@ async load() {
       if (error.message.includes('Failed to fetch')) {
         return null;
       }
-      console.log('DB Config load ERROR:', error.message);
+      // console.log('DB Config load ERROR:', error.message);
       return null;
     }
   }

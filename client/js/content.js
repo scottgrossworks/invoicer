@@ -103,7 +103,7 @@ async function getMatchingParser() {
  * @param {string} options.actionName - For logging (e.g. 'THANK YOU', 'RESPONDER')
  */
 async function openGmailCompose({ mode, to, subject, body, actionName }) {
-  console.log(`=== CONTENT SCRIPT: OPEN ${actionName} ===`);
+  // console.log(`=== CONTENT SCRIPT: OPEN ${actionName} ===`);
   // console.log('Received:', {
   //   mode,
   //   to,
@@ -254,7 +254,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
 
         // Check if parser has quickExtractIdentity method
         if (typeof parser.quickExtractIdentity !== 'function') {
-          console.log('Parser does not support quickExtractIdentity - returning null');
+          // console.log('Parser does not support quickExtractIdentity - returning null');
           reply({
             ok: true,
             identity: { email: null, name: null }

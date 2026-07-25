@@ -238,7 +238,7 @@ export class Startup extends Page {
     } catch (error) {
       dbNameEl.textContent = 'Not connected';
       dbNameEl.style.color = 'red';
-      console.log('Leedz server not available:', error.message);
+      // console.log('Leedz server not available:', error.message);
     }
   }
 
@@ -322,10 +322,10 @@ export class Startup extends Page {
     const REFRESH_INTERVAL = 45 * 60 * 1000; // 45 minutes
 
     this.gmailRefreshTimer = setInterval(async () => {
-      console.log('[Gmail Auto-Refresh] Refreshing token...');
+      // console.log('[Gmail Auto-Refresh] Refreshing token...');
       try {
         await this.refreshGmailSilent();
-        console.log('[Gmail Auto-Refresh] Token refreshed successfully');
+        // console.log('[Gmail Auto-Refresh] Token refreshed successfully');
       } catch (error) {
         console.log('[Gmail Auto-Refresh] Failed:', error.message);
         // Stop auto-refresh if it fails - user will need to re-enable manually
@@ -469,7 +469,7 @@ export class Startup extends Page {
 
       // console.log('JWT token obtained, expires:', new Date(expires * 1000));
     } catch (error) {
-      console.log('JWT token fetch failed (non-critical):', error.message);
+      // console.log('JWT token fetch failed (non-critical):', error.message);
     }
   }
 

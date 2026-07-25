@@ -23,7 +23,7 @@ class PDF_render extends RenderLayer {
    */
    async render(state) {
     try {
-      console.log('PDF Render starting...');
+      // console.log('PDF Render starting...');
       
       // Extract data from state using static methods
       const bookingData = Booking.extractBookingData(state);

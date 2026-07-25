@@ -36,14 +36,14 @@ class PDF_settings extends Settings {
         // Settings tab already exists - focus it instead of creating new one
         await chrome.tabs.update(existingTab.id, { active: true });
         await chrome.windows.update(existingTab.windowId, { focused: true });
-        console.log('Focused existing PDF settings tab:', existingTab.id);
+        // console.log('Focused existing PDF settings tab:', existingTab.id);
       } else {
         // No existing settings tab - create new one
         chrome.tabs.create({
           url: settingsUrl,
           active: true
         });
-        console.log('PDF settings opened in new tab:', settingsUrl);
+        // console.log('PDF settings opened in new tab:', settingsUrl);
       }
 
     } catch (error) {
@@ -86,7 +86,7 @@ class PDF_settings extends Settings {
 
       await this.STATE.save(); // Save entire state, including Config
 
-      console.log('PDF settings saved to database');
+      // console.log('PDF settings saved to database');
 
     } catch (error) {
       console.error('Failed to save PDF settings to database:', error);
@@ -104,8 +104,8 @@ class PDF_settings extends Settings {
 
       Object.assign(this.STATE.Config, this.getDefaults());
       await this.STATE.save();
-     
-      console.log('PDF settings reset to defaults');
+
+      // console.log('PDF settings reset to defaults');
     } catch (error) {
       console.error('Failed to reset PDF settings:', error);
       throw error;

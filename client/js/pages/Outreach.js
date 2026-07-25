@@ -382,7 +382,7 @@ export class Outreach extends DataPage {
         // before the reply lands, which is expected here, not an error.
         chrome.tabs.sendMessage(tabs[0].id, { action: 'toggleSidebar' }, () => {
           void chrome.runtime.lastError;
-          console.log('Leedz sidebar closed');
+          // console.log('Leedz sidebar closed');
         });
       });
     });

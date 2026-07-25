@@ -309,15 +309,15 @@ export class Page {
                     // console.log('DB search result:', dbClient);
                   } else {
                     if (!window.DB_LAYER) {
-                      console.log('DB_LAYER not available - skipping DB search');
+                      // console.log('DB_LAYER not available - skipping DB search');
                     } else {
-                      console.log('No identity data - skipping DB search');
+                      // console.log('No identity data - skipping DB search');
                     }
                   }
                 }
               } catch (identityError) {
                 // Identity extraction failed - this is OK, just skip DB search
-                console.log('Identity extraction not supported by this parser - skipping DB search');
+                // console.log('Identity extraction not supported by this parser - skipping DB search');
               }
             } else {
               // console.log('Force full parse enabled - skipping DB check');
@@ -442,8 +442,8 @@ export class Page {
             break;
           }
         } catch (e) {
-          // Parser failed - log to console but don't use logError
-          console.log(`Parser ${p.name} check failed (expected on non-supported pages):`, e.message);
+          // Parser failed - expected on non-supported pages, not worth logging per-attempt
+          // console.log(`Parser ${p.name} check failed (expected on non-supported pages):`, e.message);
         }
       }
 

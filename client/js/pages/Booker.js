@@ -217,7 +217,7 @@ export class Booker extends DataPage {
         });
       });
 
-      console.log('OAuth token obtained for Calendar API');
+      // console.log('OAuth token obtained for Calendar API');
 
       // STEP 2: Construct Calendar event object from Booking data
       const calendarEvent = this.buildCalendarEvent();
@@ -266,7 +266,7 @@ export class Booker extends DataPage {
       // SUCCESS
       const action = existingEventId ? 'updated' : 'added to';
       showToast(`Booking ${action} Google Calendar successfully`, 'success');
-      console.log('Calendar event saved:', result);
+      // console.log('Calendar event saved:', result);
 
     } catch (error) {
       // ERROR HANDLING

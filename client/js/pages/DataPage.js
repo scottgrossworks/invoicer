@@ -275,12 +275,12 @@ export class DataPage extends Page {
    */
   async searchDB(stateData) {
     if (!window.DB_LAYER) {
-      console.log('DB_LAYER not available - skipping DB search');
+      // console.log('DB_LAYER not available - skipping DB search');
       return null;
     }
 
     if (!stateData?.Client?.email && !stateData?.Client?.name) {
-      console.log('No email/name in STATE - skipping DB search');
+      // console.log('No email/name in STATE - skipping DB search');
       return null;
     }
 
@@ -311,7 +311,7 @@ export class DataPage extends Page {
     } catch (error) {
       // Server not running - fail silently and continue
       if (error.message === 'SERVER_NOT_RUNNING') {
-        console.log('Database not available for client lookup');
+        // console.log('Database not available for client lookup');
         return null;
       }
       console.error('DB search error:', error);
@@ -345,7 +345,7 @@ export class DataPage extends Page {
 
       return null;
     } catch (error) {
-      console.log('Quick identity extraction failed:', error.message);
+      // console.log('Quick identity extraction failed:', error.message);
       return null;
     }
   }

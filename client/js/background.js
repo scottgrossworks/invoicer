@@ -19,7 +19,7 @@ chrome.action.onClicked.addListener((tab) => {
       }
     });
   } catch (e) {
-    console.log("Error handled:", e.message);
+    // console.log("Error handled:", e.message);
   }
 });
 

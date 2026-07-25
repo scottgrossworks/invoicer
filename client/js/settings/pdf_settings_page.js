@@ -263,7 +263,7 @@ class PDFSettingsPage {
       // Get form settings for Config
       // just in case the user is changing in one window and previewing in another
       const formConfig = this.collectFormData();
-      console.log('Form Config settings:', formConfig);
+      // console.log('Form Config settings:', formConfig);
       
       await this.pdfSettings.save(formConfig);
 
@@ -380,17 +380,17 @@ class PDFSettingsPage {
 
 // DOMContentLoaded event listener to initialize the page
 document.addEventListener('DOMContentLoaded', async () => {
-  console.log('PDF Settings page loading...');
+  // console.log('PDF Settings page loading...');
 
   try {
     // Get state from Chrome storage
     const { StateFactory } = await import('../state.js');
     const state = await StateFactory.create();
-    console.log('State loaded:', state);
+    // console.log('State loaded:', state);
 
     // Initialize the settings page
     const settingsPage = new PDFSettingsPage(state);
-    console.log('PDF Settings page initialized');
+    // console.log('PDF Settings page initialized');
   } catch (error) {
     console.error('Failed to initialize PDF Settings page:', error);
   }
