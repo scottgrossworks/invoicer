@@ -635,9 +635,13 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
                     // Get command line to check if it's our server
                     string cmdLine = GetProcessCommandLine(proc);
 
+                    // mcp_gmail.js: the Gmail MCP started by launch_leedz.bat is
+                    // part of the server's process family - stopping the server
+                    // must take it down too (user requirement: no zombies).
                     if (!string.IsNullOrEmpty(cmdLine) &&
                         (cmdLine.ToLower().Contains(serverScriptPath) ||
-                         cmdLine.ToLower().Contains("leedz_server.js")))
+                         cmdLine.ToLower().Contains("leedz_server.js") ||
+                         cmdLine.ToLower().Contains("mcp_gmail.js")))
                     {
                         DebugWrite($"[TRAY] Killing orphaned node process (PID: {proc.Id}): {cmdLine}");
                         proc.Kill(entireProcessTree: true);

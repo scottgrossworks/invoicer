@@ -37,6 +37,11 @@ try {
     process.exit(1);
 }
 
+// --standalone: set by launch_leedz.bat. Ties this process's lifetime to the
+// Leedz server (watchdog) and makes a lost port bind fatal. Claude Desktop
+// stdio instances launch without the flag and keep sibling-mode behavior.
+const STANDALONE = process.argv.includes('--standalone');
+
 // Token storage - expires after 1 hour
 let oauthToken = null;
 let tokenExpiry = null;
@@ -92,6 +97,12 @@ function createHttpServer() {
 
     server.on('error', (err) => {
         if (err.code === 'EADDRINUSE') {
+            if (STANDALONE) {
+                // Launched by launch_leedz.bat with no stdio client: an instance
+                // that lost the port bind is a pure zombie - die immediately.
+                console.error(`[Gmail MCP] Port ${port} already in use - standalone instance exiting.`);
+                process.exit(1);
+            }
             console.error(`[Gmail MCP] Port ${port} already in use — another instance owns the HTTP server. MCP stdio will still work.`);
         } else {
             console.error(`[Gmail MCP] HTTP server error: ${err.message}`);
@@ -613,6 +624,50 @@ async function handleInputLine(line) {
 // ==============================================================================
 
 /**
+ * STANDALONE WATCHDOG
+ *
+ * When launched by launch_leedz.bat (--standalone), this process is part of
+ * the Leedz server's process family: if the server goes away, we must too -
+ * a Gmail MCP with no server is a zombie the user can't see or stop.
+ *
+ * Polls the server's /health endpoint. Arms only after the server has been
+ * seen alive once (so starting the MCP before/without the server doesn't
+ * immediately kill it), then exits after 3 consecutive failed polls.
+ *
+ * Claude Desktop stdio instances (no flag) never run the watchdog.
+ */
+function startWatchdog() {
+    const serverUrl = config.watchdog?.serverUrl || 'http://127.0.0.1:4000';
+    const intervalMs = Number(process.env.LEEDZ_WATCHDOG_INTERVAL_MS) || config.watchdog?.intervalMs || 30000;
+    const maxFailures = config.watchdog?.maxFailures || 3;
+
+    let serverSeenUp = false;
+    let consecutiveFailures = 0;
+
+    console.error(`[Gmail MCP] Watchdog armed: ${serverUrl}/health every ${intervalMs}ms, exit after ${maxFailures} failures`);
+
+    setInterval(async () => {
+        try {
+            const res = await fetch(`${serverUrl}/health`, { signal: AbortSignal.timeout(5000) });
+            if (res.ok) {
+                serverSeenUp = true;
+                consecutiveFailures = 0;
+                return;
+            }
+            throw new Error(`HTTP ${res.status}`);
+        } catch (err) {
+            if (!serverSeenUp) return; // server never came up - keep waiting
+            consecutiveFailures++;
+            console.error(`[Gmail MCP] Watchdog: server unreachable (${consecutiveFailures}/${maxFailures})`);
+            if (consecutiveFailures >= maxFailures) {
+                console.error('[Gmail MCP] Leedz server is gone - standalone instance exiting.');
+                process.exit(0);
+            }
+        }
+    }, intervalMs);
+}
+
+/**
  * Start the Gmail MCP server
  */
 function startServer() {
@@ -620,6 +675,10 @@ function startServer() {
 
     // Start HTTP server for extension communication
     createHttpServer();
+
+    if (STANDALONE) {
+        startWatchdog();
+    }
 
     // Set up readline for MCP protocol (stdin/stdout)
     const rl = readline.createInterface({
