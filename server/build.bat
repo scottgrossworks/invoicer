@@ -139,14 +139,14 @@ for %%A in (%ARCHITECTURES%) do (
 
     echo     - Assembling leedz-server-win-%%A...
 
-    :: Create directories
+    REM Create directories
     if not exist "!PKG_DIR!\data" mkdir "!PKG_DIR!\data"
     if not exist "!PKG_DIR!\prisma" mkdir "!PKG_DIR!\prisma"
     if not exist "!PKG_DIR!\img" mkdir "!PKG_DIR!\img"
     if not exist "!PKG_DIR!\mcp" mkdir "!PKG_DIR!\mcp"
 
-    :: Copy Gmail MCP (needed for Outreach page's "Authorize Gmail" button -
-    :: launch_leedz.bat starts this alongside the server)
+    REM Copy Gmail MCP (needed for Outreach page's "Authorize Gmail" button -
+    REM launch_leedz.bat starts this alongside the server)
     copy /Y "mcp\mcp_gmail.js" "!PKG_DIR!\mcp\mcp_gmail.js" >nul
     if errorlevel 1 (
         echo [ERROR] Failed to copy mcp_gmail.js for %%A
@@ -158,8 +158,8 @@ for %%A in (%ARCHITECTURES%) do (
         goto :ERROR
     )
 
-    :: Copy Leedz MCP plugin (lets Claude Desktop / Claude Code / LM Studio
-    :: query the database via the server API - zero npm dependencies)
+    REM Copy Leedz MCP plugin (lets Claude Desktop / Claude Code / LM Studio
+    REM query the database via the server API - zero npm dependencies)
     copy /Y "mcp\mcp_server.js" "!PKG_DIR!\mcp\mcp_server.js" >nul
     if errorlevel 1 (
         echo [ERROR] Failed to copy mcp_server.js for %%A
@@ -176,49 +176,49 @@ for %%A in (%ARCHITECTURES%) do (
         goto :ERROR
     )
 
-    :: Copy canonical database to data/ (matches server_config.json)
+    REM Copy canonical database to data/ (matches server_config.json)
     copy /Y "%CANONICAL_DB%" "!PKG_DIR!\data\leedz.sqlite" >nul
     if errorlevel 1 (
         echo [ERROR] Failed to copy canonical DB for %%A
         goto :ERROR
     )
 
-    :: Copy Prisma schema
+    REM Copy Prisma schema
     copy /Y "prisma\schema.prisma" "!PKG_DIR!\prisma\schema.prisma" >nul
     if errorlevel 1 (
         echo [ERROR] Failed to copy schema.prisma for %%A
         goto :ERROR
     )
 
-    :: Copy server config (always overwrite for clean build)
+    REM Copy server config (always overwrite for clean build)
     copy /Y "server_config.json" "!PKG_DIR!\server_config.json" >nul
     if errorlevel 1 (
         echo [ERROR] Failed to copy server_config.json for %%A
         goto :ERROR
     )
 
-    :: Copy install instructions
+    REM Copy install instructions
     copy /Y "INSTALL_INSTRUCTIONS.txt" "!PKG_DIR!\INSTALL_INSTRUCTIONS.txt" >nul
     if errorlevel 1 (
         echo [ERROR] Failed to copy INSTALL_INSTRUCTIONS.txt for %%A
         goto :ERROR
     )
 
-    :: Copy Claude/MCP connection guide
+    REM Copy Claude/MCP connection guide
     copy /Y "MCP_INSTRUCTIONS.txt" "!PKG_DIR!\MCP_INSTRUCTIONS.txt" >nul
     if errorlevel 1 (
         echo [ERROR] Failed to copy MCP_INSTRUCTIONS.txt for %%A
         goto :ERROR
     )
 
-    :: Copy README.md from server directory
+    REM Copy README.md from server directory
     copy /Y "README.md" "!PKG_DIR!\README.md" >nul
     if errorlevel 1 (
         echo [ERROR] Failed to copy README.md for %%A
         goto :ERROR
     )
 
-    :: Copy tray executable and dependencies
+    REM Copy tray executable and dependencies
     copy /Y "%TRAY_OUTPUT%\TheLeedz.exe" "!PKG_DIR!\TheLeedz.exe" >nul
     if errorlevel 1 (
         echo [ERROR] Failed to copy TheLeedz.exe for %%A
@@ -228,7 +228,7 @@ for %%A in (%ARCHITECTURES%) do (
     copy /Y "%TRAY_OUTPUT%\TheLeedz.dll" "!PKG_DIR!\TheLeedz.dll" >nul 2>&1
     copy /Y "%TRAY_OUTPUT%\TheLeedz.runtimeconfig.json" "!PKG_DIR!\TheLeedz.runtimeconfig.json" >nul 2>&1
 
-    :: Copy tray icons
+    REM Copy tray icons
     if exist "tray\img\icon.ico" (
         copy /Y "tray\img\icon.ico" "!PKG_DIR!\img\icon.ico" >nul
     )
@@ -236,9 +236,9 @@ for %%A in (%ARCHITECTURES%) do (
         copy /Y "tray\img\*.png" "!PKG_DIR!\img\" >nul 2>&1
     )
 
-    :: Copy launch_leedz.bat from template (uses %%~dp0 so it finds the Gmail
-    :: MCP relative to wherever the customer extracted the ZIP - NOT hardcoded
-    :: to this build machine's path)
+    REM Copy launch_leedz.bat from template (uses %%~dp0 so it finds the Gmail
+    REM MCP relative to wherever the customer extracted the ZIP - NOT hardcoded
+    REM to this build machine's path)
     copy /Y "launch_leedz.template.bat" "!PKG_DIR!\launch_leedz.bat" >nul
     if errorlevel 1 (
         echo [ERROR] Failed to copy launch_leedz.template.bat for %%A
@@ -264,15 +264,15 @@ for %%A in (%ARCHITECTURES%) do (
 
     if exist "!ZIP_NAME!" del "!ZIP_NAME!"
 
-    :: SANITIZED STAGING: the ZIP is for DISTRIBUTION. server_config.json holds
-    :: the real Square appSecret + local DB path - swap in the blank template.
-    :: dist-pkg\ itself keeps the real config (it is the LOCAL deployment).
+    REM SANITIZED STAGING: the ZIP is for DISTRIBUTION. server_config.json holds
+    REM the real Square appSecret + local DB path - swap in the blank template.
+    REM dist-pkg\ itself keeps the real config (it is the LOCAL deployment).
     set "STAGE=%TEMP%\leedz_srv_zip_stage"
     if exist "!STAGE!" rd /s /q "!STAGE!"
     robocopy "!PKG_DIR!" "!STAGE!" /E /NFL /NDL /NJH /NJS >nul
     copy /Y "server_config.template.json" "!STAGE!\server_config.json" >nul
-    :: mcp_server_config.json carries the owner's personal marketplace email -
-    :: ship the placeholder template instead (dist-pkg keeps the real one)
+    REM mcp_server_config.json carries the owner's personal marketplace email -
+    REM ship the placeholder template instead (dist-pkg keeps the real one)
     copy /Y "mcp\mcp_server_config.template.json" "!STAGE!\mcp\mcp_server_config.json" >nul
 
     powershell -NoProfile -command "Compress-Archive -Path '!STAGE!\*' -DestinationPath '%CD%\!ZIP_NAME!' -Force"
