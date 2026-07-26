@@ -140,6 +140,20 @@ for %%A in (%ARCHITECTURES%) do (
     if not exist "!PKG_DIR!\data" mkdir "!PKG_DIR!\data"
     if not exist "!PKG_DIR!\prisma" mkdir "!PKG_DIR!\prisma"
     if not exist "!PKG_DIR!\img" mkdir "!PKG_DIR!\img"
+    if not exist "!PKG_DIR!\mcp" mkdir "!PKG_DIR!\mcp"
+
+    :: Copy Gmail MCP (needed for Outreach page's "Authorize Gmail" button -
+    :: launch_leedz.bat starts this alongside the server)
+    copy /Y "mcp\mcp_gmail.js" "!PKG_DIR!\mcp\mcp_gmail.js" >nul
+    if errorlevel 1 (
+        echo [ERROR] Failed to copy mcp_gmail.js for %%A
+        goto :ERROR
+    )
+    copy /Y "mcp\gmail_mcp_config.json" "!PKG_DIR!\mcp\gmail_mcp_config.json" >nul
+    if errorlevel 1 (
+        echo [ERROR] Failed to copy gmail_mcp_config.json for %%A
+        goto :ERROR
+    )
 
     :: Copy canonical database to data/ (matches server_config.json)
     copy /Y "%CANONICAL_DB%" "!PKG_DIR!\data\leedz.sqlite" >nul
@@ -194,17 +208,14 @@ for %%A in (%ARCHITECTURES%) do (
         copy /Y "tray\img\*.png" "!PKG_DIR!\img\" >nul 2>&1
     )
 
-    :: Create launch_leedz.bat
-    :: The Gmail MCP line bakes in this dev machine's source path (%CD% at
-    :: build time) and is guarded with "if exist" - on a shipped install
-    :: without the source tree it silently skips, everything else still runs.
-    echo @echo off > "!PKG_DIR!\launch_leedz.bat"
-    echo :: Leedz Server Launcher >> "!PKG_DIR!\launch_leedz.bat"
-    echo echo Starting Leedz... >> "!PKG_DIR!\launch_leedz.bat"
-    echo start "" "TheLeedz.exe" >> "!PKG_DIR!\launch_leedz.bat"
-    echo if exist "%CD%\mcp\mcp_gmail.js" start "Gmail MCP" cmd /c node "%CD%\mcp\mcp_gmail.js" >> "!PKG_DIR!\launch_leedz.bat"
-    echo echo Server starting on port 4000... >> "!PKG_DIR!\launch_leedz.bat"
-    echo leedz-server.exe >> "!PKG_DIR!\launch_leedz.bat"
+    :: Copy launch_leedz.bat from template (uses %%~dp0 so it finds the Gmail
+    :: MCP relative to wherever the customer extracted the ZIP - NOT hardcoded
+    :: to this build machine's path)
+    copy /Y "launch_leedz.template.bat" "!PKG_DIR!\launch_leedz.bat" >nul
+    if errorlevel 1 (
+        echo [ERROR] Failed to copy launch_leedz.template.bat for %%A
+        goto :ERROR
+    )
 
     echo       Files assembled successfully
 )
