@@ -155,6 +155,24 @@ for %%A in (%ARCHITECTURES%) do (
         goto :ERROR
     )
 
+    :: Copy Leedz MCP plugin (lets Claude Desktop / Claude Code / LM Studio
+    :: query the database via the server API - zero npm dependencies)
+    copy /Y "mcp\mcp_server.js" "!PKG_DIR!\mcp\mcp_server.js" >nul
+    if errorlevel 1 (
+        echo [ERROR] Failed to copy mcp_server.js for %%A
+        goto :ERROR
+    )
+    copy /Y "mcp\mcp_server_config.json" "!PKG_DIR!\mcp\mcp_server_config.json" >nul
+    if errorlevel 1 (
+        echo [ERROR] Failed to copy mcp_server_config.json for %%A
+        goto :ERROR
+    )
+    copy /Y "mcp\INSTALL_INSTRUCTIONS.txt" "!PKG_DIR!\mcp\INSTALL_INSTRUCTIONS.txt" >nul
+    if errorlevel 1 (
+        echo [ERROR] Failed to copy mcp INSTALL_INSTRUCTIONS.txt for %%A
+        goto :ERROR
+    )
+
     :: Copy canonical database to data/ (matches server_config.json)
     copy /Y "%CANONICAL_DB%" "!PKG_DIR!\data\leedz.sqlite" >nul
     if errorlevel 1 (
@@ -243,6 +261,9 @@ for %%A in (%ARCHITECTURES%) do (
     if exist "!STAGE!" rd /s /q "!STAGE!"
     robocopy "!PKG_DIR!" "!STAGE!" /E /NFL /NDL /NJH /NJS >nul
     copy /Y "server_config.template.json" "!STAGE!\server_config.json" >nul
+    :: mcp_server_config.json carries the owner's personal marketplace email -
+    :: ship the placeholder template instead (dist-pkg keeps the real one)
+    copy /Y "mcp\mcp_server_config.template.json" "!STAGE!\mcp\mcp_server_config.json" >nul
 
     powershell -NoProfile -command "Compress-Archive -Path '!STAGE!\*' -DestinationPath '%CD%\!ZIP_NAME!' -Force"
     rd /s /q "!STAGE!"

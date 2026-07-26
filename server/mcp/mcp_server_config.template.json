@@ -1,0 +1,19 @@
+{
+  "_comment": "Leedz MCP plugin config. database.apiUrl must match your Leedz server port. aws.email is only needed for the share_leed marketplace tool - all other tools work without it.",
+  "mcp": {
+    "name": "leedz-mcp",
+    "version": "3.0.0",
+    "protocolVersion": "2025-06-18"
+  },
+  "aws": {
+    "apiGatewayUrl": "https://jjz8op6uy4.execute-api.us-west-2.amazonaws.com/Leedz_Stage_1",
+    "email": "REPLACE_WITH_YOUR_LEEDZ_ACCOUNT_EMAIL"
+  },
+  "database": {
+    "apiUrl": "http://localhost:4000"
+  },
+  "logging": {
+    "level": "info",
+    "file": "./mcp_server.log"
+  }
+}
