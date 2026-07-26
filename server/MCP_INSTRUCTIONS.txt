@@ -1,0 +1,123 @@
+====================================================================
+CONNECT CLAUDE TO YOUR LEEDZ DATABASE  (leedz-mcp plugin)
+====================================================================
+
+This guide connects Claude (Desktop or Code) to your local Leedz
+server so you can explore and analyze your clients and bookings in
+plain English:
+
+  "show me all bookings for March"
+  "who are my top clients by number of bookings?"
+  "find clients I haven't updated since January"
+
+Your data never leaves your machine. No API key is required.
+
+
+====================================================================
+BEFORE YOU START
+====================================================================
+
+1. The Leedz Server must be running
+   - Double-click launch_leedz.bat in your Leedz folder
+   - Verify: open http://localhost:4000/health in a browser -
+     you should see {"status":"ok", ...}
+
+2. Node.js 18 or later must be installed
+   - Check: open a command prompt, type:  node --version
+   - If missing: download from https://nodejs.org (default options)
+
+3. Know your plugin path
+   - The plugin is the file  mcp\mcp_server.js  inside the folder
+     where you extracted the Leedz server ZIP
+   - Example: C:\Program Files\Leedz\mcp\mcp_server.js
+
+
+====================================================================
+OPTION A: CLAUDE DESKTOP
+====================================================================
+
+STEP 1: Open this file in Notepad (create it if it doesn't exist):
+
+  C:\Users\<YourUsername>\AppData\Roaming\Claude\claude_desktop_config.json
+
+STEP 2: Paste this, updating the path to YOUR mcp_server.js:
+
+{
+  "mcpServers": {
+    "leedz-mcp": {
+      "command": "C:\\Program Files\\nodejs\\node.exe",
+      "args": ["C:\\Program Files\\Leedz\\mcp\\mcp_server.js"]
+    }
+  }
+}
+
+If the file already has an "mcpServers" section, add just the
+"leedz-mcp" entry inside it, next to your existing servers.
+
+IMPORTANT: use DOUBLE BACKSLASHES (\\) in every path.
+
+STEP 3: Save the file and restart Claude Desktop.
+
+STEP 4: Verify - ask Claude:
+  "list the first 5 clients from the Leedz"
+
+
+====================================================================
+OPTION B: CLAUDE CODE
+====================================================================
+
+Run ONE command in a terminal (update the path to yours):
+
+  claude mcp add leedz-mcp -- node "C:\Program Files\Leedz\mcp\mcp_server.js"
+
+Then ask Claude Code:
+  "use leedz-mcp to show me this month's bookings"
+
+
+====================================================================
+WHAT CLAUDE CAN DO
+====================================================================
+
+Claude automatically sees 16 tools and picks the right one for each
+question. Every call becomes an HTTP request to your local server -
+the plugin never touches the database file directly.
+
+CLIENTS:   list_clients (search/filter/sort), get_client,
+           create_client, update_client, touch_client, delete_client
+BOOKINGS:  list_bookings (by client, status, date range - results
+           include full client details), get_booking, search_bookings,
+           create_booking, update_booking, delete_booking
+ANALYSIS:  get_stats, get_client_stats, health
+MARKET:    share_leed (posts a leed to the Leedz marketplace;
+           requires your account email in mcp\mcp_server_config.json)
+
+CAUTION: delete_client and delete_booking are PERMANENT. Claude will
+normally confirm before deleting, but back up your database file
+(data\leedz.sqlite) regularly.
+
+
+====================================================================
+TROUBLESHOOTING
+====================================================================
+
+CLAUDE DOESN'T SHOW THE LEEDZ TOOLS:
+- Config paths must use double backslashes: C:\\path\\to\\file
+- Confirm Node.js 18+:  node --version
+- Fully restart Claude Desktop after editing its config
+- Test the plugin by hand: open a command prompt in your Leedz
+  mcp\ folder and run:  node mcp_server.js
+  You should see "[MCP] Server ready". Press Ctrl+C to stop.
+
+"CANNOT REACH LEEDZ SERVER" ERRORS:
+- Start the server (launch_leedz.bat) and check the tray icon
+- Verify http://localhost:4000/health responds in a browser
+- If your server uses a different port, edit
+  mcp\mcp_server_config.json > "database" > "apiUrl" to match
+
+UNEXPECTED RESULTS:
+- Check mcp\mcp_server.log for what the plugin actually did
+- Check server.log in your Leedz folder for API errors
+
+SUPPORT: theleedz.com@gmail.com
+
+====================================================================

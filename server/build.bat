@@ -201,6 +201,13 @@ for %%A in (%ARCHITECTURES%) do (
         goto :ERROR
     )
 
+    :: Copy Claude/MCP connection guide
+    copy /Y "MCP_INSTRUCTIONS.txt" "!PKG_DIR!\MCP_INSTRUCTIONS.txt" >nul
+    if errorlevel 1 (
+        echo [ERROR] Failed to copy MCP_INSTRUCTIONS.txt for %%A
+        goto :ERROR
+    )
+
     :: Copy README.md from server directory
     copy /Y "README.md" "!PKG_DIR!\README.md" >nul
     if errorlevel 1 (
@@ -297,6 +304,7 @@ echo     server_config.json
 echo     img\icon.ico
 echo     launch_leedz.bat
 echo     INSTALL_INSTRUCTIONS.txt
+echo     MCP_INSTRUCTIONS.txt
 echo     README.md
 echo.
 echo ==========================================
