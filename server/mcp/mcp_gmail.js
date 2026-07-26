@@ -19,7 +19,8 @@ const readline = require('readline');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const axios = require('axios');
+// No npm dependencies - uses built-in fetch (Node 18+) so the shipped
+// package works with nothing but a Node install (no node_modules).
 
 // ==============================================================================
 // CONFIGURATION AND GLOBALS
@@ -162,10 +163,11 @@ function handleTokenRequest(req, res) {
 async function fetchTokenFromPrimary() {
     const port = config.http?.port || 7000;
     try {
-        const response = await axios.get(`http://127.0.0.1:${port}/token`, { timeout: 2000 });
-        if (response.data?.token) {
-            oauthToken = response.data.token;
-            tokenExpiry = response.data.expiry;
+        const response = await fetch(`http://127.0.0.1:${port}/token`, { signal: AbortSignal.timeout(2000) });
+        const data = response.ok ? await response.json() : null;
+        if (data?.token) {
+            oauthToken = data.token;
+            tokenExpiry = data.expiry;
             console.error('[Gmail MCP] Token fetched from primary instance');
             return true;
         }
@@ -184,9 +186,9 @@ async function validateTokenWithGmail() {
     if (!oauthToken) return false;
 
     try {
-        const response = await axios.get('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
+        const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
             headers: { 'Authorization': `Bearer ${oauthToken}` },
-            timeout: 5000
+            signal: AbortSignal.timeout(5000)
         });
         return response.status === 200;
     } catch (error) {
@@ -520,18 +522,26 @@ async function sendGmailMessage(mimeMessage, isDraft = false) {
         : { raw: encodedMessage };
 
     // Call Gmail API
-    const response = await axios.post(
-        endpoint,
-        payload,
-        {
-            headers: {
-                'Authorization': `Bearer ${oauthToken}`,
-                'Content-Type': 'application/json'
-            }
-        }
-    );
+    const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${oauthToken}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    });
 
-    return response.data.id;
+    if (!response.ok) {
+        // Preserve the axios-style error shape the caller's 401 handler expects
+        let detail = '';
+        try { detail = JSON.stringify(await response.json()); } catch (e) { /* no body */ }
+        const err = new Error(`Gmail API HTTP ${response.status}${detail ? ': ' + detail : ''}`);
+        err.response = { status: response.status };
+        throw err;
+    }
+
+    const data = await response.json();
+    return data.id;
 }
 
 /**
