@@ -100,8 +100,8 @@ if exist "LICENSE" copy /Y "LICENSE" "%DIST_DIR%\" >nul
 :: Install Instructions
 if exist "INSTALL_INSTRUCTIONS.txt" copy /Y "INSTALL_INSTRUCTIONS.txt" "%DIST_DIR%\" >nul
 
-:: README.md from parent directory
-if exist "..\README.md" copy /Y "..\README.md" "%DIST_DIR%\" >nul
+:: README.md (this directory's own - NOT the server's, see ..\README.md)
+if exist "README.md" copy /Y "README.md" "%DIST_DIR%\" >nul
 
 :: 5. MANIFEST VALIDATION (JSON Syntax + Version Check)
 echo [5/6] Validating build...
