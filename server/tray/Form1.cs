@@ -40,6 +40,8 @@ public partial class Form1 : Form
     private NotifyIcon? trayIcon;
     private Process? nodeProcess;
     private ToolStripMenuItem? headerMenuItem;
+    private ToolStripMenuItem? startMenuItem;
+    private ToolStripMenuItem? stopMenuItem;
     private ToolStripMenuItem? exitMenuItem;
     private Font? headerFont;
     private SolidBrush? greenBrush;
@@ -136,22 +138,27 @@ private void SetupTrayIcon()
     headerMenuItem.Enabled = false;
     headerMenuItem.Font = headerFont;
     headerMenuItem.Paint += (s, e) => {
+        Rectangle rect = e.ClipRectangle;
+
         // Fill background
-        e.Graphics.FillRectangle(greenBrush, e.ClipRectangle);
+        e.Graphics.FillRectangle(greenBrush, rect);
 
-        // Draw white text centered
-        TextRenderer.DrawText(e.Graphics, "Leedz Server",
-            headerFont,
-            e.ClipRectangle, Color.White,
-            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
-
-        // Draw status indicator circle on the right
+        // Status indicator circle on the right (25% larger than the old 14px)
         bool isRunning = IsServerCurrentlyRunning();
         Color indicatorColor = isRunning ? Color.LimeGreen : Color.Red;
-        int circleSize = 14;
-        int margin = 20;
-        int circleX = e.ClipRectangle.Right - circleSize - margin;
-        int circleY = e.ClipRectangle.Top + (e.ClipRectangle.Height - circleSize) / 2;
+        int circleSize = 18;
+        int rightMargin = 16;
+        int circleX = rect.Right - circleSize - rightMargin;
+        int circleY = rect.Top + (rect.Height - circleSize) / 2;
+
+        // Draw white text centered in the region LEFT of the dot, with a clear
+        // gap before it (was centered across the whole header, crowding the dot).
+        int textGap = 18;
+        Rectangle textRect = Rectangle.FromLTRB(rect.Left, rect.Top, circleX - textGap, rect.Bottom);
+        TextRenderer.DrawText(e.Graphics, "Leedz Server",
+            headerFont,
+            textRect, Color.White,
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
 
         e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
         using (SolidBrush indicatorBrush = new SolidBrush(indicatorColor))
@@ -160,19 +167,35 @@ private void SetupTrayIcon()
         }
     };
 
-    headerMenuItem.Padding = new Padding(10);
+    // Fixed width guarantees room for the centered text AND the right-side dot
+    // with a gap - autosize would shrink to the text alone and clip it.
+    Size headerText = TextRenderer.MeasureText("Leedz Server", headerFont);
+    headerMenuItem.AutoSize = false;
+    headerMenuItem.Width = headerText.Width + 90;
+    headerMenuItem.Height = headerText.Height + 18;
 
     menu.BackColor = Color.WhiteSmoke;
     menu.Padding = new Padding(5);
+    // Remove the wide left icon/checkmark gutter so rows sit close to the edge
+    menu.ShowImageMargin = false;
+    menu.ShowCheckMargin = false;
+
+    startMenuItem = new ToolStripMenuItem("Start Server", null, OnStartServerClick);
+    stopMenuItem = new ToolStripMenuItem("Stop Server", null, OnStopServerClick);
 
     menu.Items.Add(headerMenuItem);
     menu.Items.Add(new ToolStripSeparator());
-    menu.Items.Add("Start Server", null, OnStartServerClick);
+    menu.Items.Add(startMenuItem);
     menu.Items.Add("Configure", null, OnConfigClick);
-    menu.Items.Add("Stop Server", null, OnStopServerClick);
+    menu.Items.Add(stopMenuItem);
     menu.Items.Add(new ToolStripSeparator());
     exitMenuItem = new ToolStripMenuItem("Exit", null, OnExitClick);
     menu.Items.Add(exitMenuItem);
+
+    // Grey out the action that doesn't apply to the current state:
+    // running -> Start disabled; stopped -> Stop disabled. Refresh every open.
+    menu.Opening += (s, e) => UpdateMenuState();
+    UpdateMenuState();
 
     // Prevent menu from closing except for Exit or outside clicks
     menu.Closing += (s, e) => {
@@ -214,6 +237,17 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
 {
     // Let default rendering handle everything - we're using Paint event on header
 }
+
+/// <summary>
+/// Enables/disables Start and Stop based on whether the server is running.
+/// Running  -> Start greyed out (green dot). Stopped -> Stop greyed out (red dot).
+/// </summary>
+private void UpdateMenuState()
+{
+    bool isRunning = IsServerCurrentlyRunning();
+    if (startMenuItem != null) startMenuItem.Enabled = !isRunning;
+    if (stopMenuItem != null) stopMenuItem.Enabled = isRunning;
+}
  
     /// <summary>
     /// Context menu handler for "Start Server" menu item.
@@ -222,10 +256,12 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
     private void OnStartServerClick(object? sender, EventArgs e)
     {
         // Start the Node server when the user clicks Start Server
+        // (menu state refreshed below after the start attempt)
         StartNodeServer();
 
-        // Refresh header to show updated status circle
+        // Refresh header status circle and Start/Stop enabled state
         headerMenuItem?.Invalidate();
+        UpdateMenuState();
     }
 
     /// <summary>
@@ -436,8 +472,9 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
     {
         StopNodeServer();
 
-        // Refresh header to show updated status circle
+        // Refresh header status circle and Start/Stop enabled state
         headerMenuItem?.Invalidate();
+        UpdateMenuState();
     }
 
     /// <summary>
