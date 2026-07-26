@@ -117,6 +117,13 @@ initLogging(config.logging, baseDir);
 
 app.use(express.json());
 
+// Booking.sharedAt is BigInt in the shared schema (PRECRIME unification) -
+// JSON.stringify throws on BigInt, so any shared booking 500'd every route
+// that returned it. Serialize BigInt as Number (epoch-ms fits in 2^53).
+app.set('json replacer', (key, value) =>
+  typeof value === 'bigint' ? Number(value) : value
+);
+
 // CORS hardening (KTD15): the server binds 127.0.0.1, but open cors() let any
 // visited web page drive it. Restrict to the extension origin and localhost;
 // still allow origin-less requests (curl, same-origin OAuth redirects, health
@@ -201,6 +208,66 @@ app.get("/clients", asyncRoute(async (req, res) => {
 }, "GET /clients"));
 
 /**
+ * GET /clients/stats
+ * Retrieves aggregate statistics for all clients.
+ * MUST be registered BEFORE GET /clients/:id - Express matches routes in
+ * registration order, so :id would otherwise swallow "stats" as a client ID.
+ */
+app.get("/clients/stats", asyncRoute(async (req, res) => {
+  const stats = await db.getClientStats();
+  res.json(stats);
+}, "GET /clients/stats"));
+
+/**
+ * PUT /clients/touch
+ * Marks client as processed by name or email
+ * Accepts: { name: "John Doe" } OR { email: "john@example.com" }
+ * Returns error if client not found or multiple matches
+ * MUST be registered BEFORE PUT /clients/:id (same shadowing issue as above).
+ */
+app.put("/clients/touch", asyncRoute(async (req, res) => {
+  const { name, email } = req.body;
+
+  if (!name && !email) {
+    return res.status(400).json({
+      error: "Missing required parameter",
+      message: "Must provide either 'name' or 'email'"
+    });
+  }
+
+  // Look up client by email (exact match) or name (contains)
+  const filters = email ? { email } : { name };
+  const clients = await db.getClients(filters);
+
+  if (clients.length === 0) {
+    return res.status(404).json({
+      error: "Client not found",
+      message: email
+        ? `No client found with email: ${email}`
+        : `No client found with name: ${name}`
+    });
+  }
+
+  if (clients.length > 1) {
+    return res.status(400).json({
+      error: "Multiple clients found",
+      message: `Found ${clients.length} clients matching '${name || email}'. Please be more specific or use client ID.`,
+      clients: clients.map(c => ({ id: c.id, name: c.name, email: c.email }))
+    });
+  }
+
+  // Exactly one client found - touch it
+  const client = clients[0];
+  const touchedClient = await db.updateClient(client.id, {});
+
+  res.status(200).json({
+    success: true,
+    message: "Client marked as processed",
+    client: touchedClient
+  });
+}, "PUT /clients/touch"));
+
+/**
  * GET /clients/:id
  * Retrieves a specific client by ID
  */
@@ -279,64 +346,8 @@ app.put("/clients/:id/touch", asyncRoute(async (req, res) => {
   });
 }, "PUT /clients/:id/touch"));
 
-/**
- * PUT /clients/touch
- * Marks client as processed by name or email
- * Accepts: { name: "John Doe" } OR { email: "john@example.com" }
- * Returns error if client not found or multiple matches
- */
-app.put("/clients/touch", asyncRoute(async (req, res) => {
-  const { name, email } = req.body;
-
-  if (!name && !email) {
-    return res.status(400).json({
-      error: "Missing required parameter",
-      message: "Must provide either 'name' or 'email'"
-    });
-  }
-
-  // Look up client by email (exact match) or name (contains)
-  const filters = email ? { email } : { name };
-  const clients = await db.getClients(filters);
-
-  if (clients.length === 0) {
-    return res.status(404).json({
-      error: "Client not found",
-      message: email
-        ? `No client found with email: ${email}`
-        : `No client found with name: ${name}`
-    });
-  }
-
-  if (clients.length > 1) {
-    return res.status(400).json({
-      error: "Multiple clients found",
-      message: `Found ${clients.length} clients matching '${name || email}'. Please be more specific or use client ID.`,
-      clients: clients.map(c => ({ id: c.id, name: c.name, email: c.email }))
-    });
-  }
-
-  // Exactly one client found - touch it
-  const client = clients[0];
-  const touchedClient = await db.updateClient(client.id, {});
-
-  res.status(200).json({
-    success: true,
-    message: "Client marked as processed",
-    client: touchedClient
-  });
-}, "PUT /clients/touch"));
-
 // CLIENT STATISTICS ENDPOINTS
-
-/**
- * GET /clients/stats
- * Retrieves aggregate statistics for all clients
- */
-app.get("/clients/stats", asyncRoute(async (req, res) => {
-  const stats = await db.getClientStats();
-  res.json(stats);
-}, "GET /clients/stats"));
+// (GET /clients/stats registered earlier, before /clients/:id)
 
 /**
  * GET /clients/:id/stats
