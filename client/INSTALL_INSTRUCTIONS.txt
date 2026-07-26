@@ -45,7 +45,15 @@ STEP 4: LOAD THE EXTENSION
 STEP 5: START USING LEEDZ
 --------------------------------------------------------------------
 Look for the Leedz icon in your Chrome toolbar (top-right). Click it
-to start creating invoices!
+to open the sidebar.
+
+--------------------------------------------------------------------
+STEP 6: CONFIGURE THE STARTUP PAGE
+--------------------------------------------------------------------
+The sidebar opens on the Startup page. Before using Leedz you must
+connect it to your Leedz Server (see the Leedz Server install guide)
+and enter your LLM provider key. See README.md, section STARTUP, for
+what to enter and where.
 
 ====================================================================
 TROUBLESHOOTING
