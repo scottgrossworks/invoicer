@@ -176,9 +176,6 @@ private void SetupTrayIcon()
 
     menu.BackColor = Color.WhiteSmoke;
     menu.Padding = new Padding(5);
-    // Remove the wide left icon/checkmark gutter so rows sit close to the edge
-    menu.ShowImageMargin = false;
-    menu.ShowCheckMargin = false;
 
     startMenuItem = new ToolStripMenuItem("Start Server", null, OnStartServerClick);
     stopMenuItem = new ToolStripMenuItem("Stop Server", null, OnStopServerClick);
