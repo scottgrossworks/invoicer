@@ -19,11 +19,14 @@ echo.
 tasklist /FI "IMAGENAME eq leedz-server.exe" | find /I "leedz-server.exe" >nul
 if not errorlevel 1 (
     echo [ERROR] leedz-server.exe is running - stop the server first.
+    echo         No tray icon or console window? A hidden instance is running.
+    echo         Kill it with:  taskkill /F /IM leedz-server.exe
     goto :ERROR
 )
 tasklist /FI "IMAGENAME eq TheLeedz.exe" | find /I "TheLeedz.exe" >nul
 if not errorlevel 1 (
     echo [ERROR] TheLeedz.exe is running - exit the tray first.
+    echo         No tray icon visible? Kill it with:  taskkill /F /IM TheLeedz.exe
     goto :ERROR
 )
 
