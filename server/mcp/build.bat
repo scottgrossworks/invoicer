@@ -98,7 +98,7 @@ echo [4/4] Creating distribution ZIP...
 if exist "%ZIP_NAME%" del "%ZIP_NAME%"
 
 :: Create ZIP using PowerShell
-powershell -command "Compress-Archive -Path '%DIST_DIR%\*' -DestinationPath '%ZIP_NAME%' -Force"
+powershell -NoProfile -command "Compress-Archive -Path '%CD%\%DIST_DIR%\*' -DestinationPath '%CD%\%ZIP_NAME%' -Force"
 
 if exist "%ZIP_NAME%" (
     echo     - %ZIP_NAME% created successfully

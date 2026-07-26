@@ -2,24 +2,29 @@
  * ==============================================================================
  * LEEDZ - MCP SERVER
  * ==============================================================================
- * 
- * Model Context Protocol server that bridges natural language requests 
- * from LLM clients (like Claude Desktop) to HTTP API calls against the 
- * Leedz invoicing database server.
- * 
+ *
+ * Model Context Protocol server that exposes the Leedz database to LLM
+ * orchestrators (Claude Desktop, Claude Code, Codex, ...) as a set of
+ * granular, self-describing tools.
+ *
  * ARCHITECTURE:
  * 1. Receives JSON-RPC messages via stdin
- * 2. Extracts natural language requests 
- * 3. Sends requests to Claude API for translation to structured HTTP calls
- * 4. Executes HTTP calls against local database server
- * 5. Returns formatted responses via stdout
- * 
+ * 2. Advertises one tool per database operation (list_clients, get_booking, ...)
+ *    with fully-declared input schemas - the CALLING LLM picks the tool and
+ *    fills in the arguments itself. No internal LLM translation step.
+ * 3. Each tool call maps 1:1 to an HTTP request against the local Leedz server
+ * 4. Returns raw JSON responses via stdout for the orchestrator to interpret
+ *
+ * The Leedz server (leedz-server.exe, port 4000) remains the sole owner of the
+ * database - this process never opens the SQLite file directly.
+ *
+ * REQUIREMENTS: Node 18+ (uses built-in fetch - no npm dependencies)
+ *
  * @author Scott Gross
- * @version 2.0.0
+ * @version 3.0.0
  */
 
 const readline = require('readline');
-const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 
@@ -40,41 +45,22 @@ try {
     process.exit(1);
 }
 
-// Fetch API key from database Config at startup
-let dbApiKey = null;
+if (!config.database?.apiUrl) {
+    console.error(`[MCP] FATAL: database.apiUrl missing from config`);
+    process.exit(1);
+}
 
-// Leedz marketplace JWT - fetched from AWS getToken endpoint
-// Same token Startup.js stores in chrome.storage.local.leedzJWT
+const API_URL = config.database.apiUrl.replace(/\/$/, '');
+const HTTP_TIMEOUT_MS = 15000;
+
+// Leedz marketplace JWT - fetched lazily on first share_leed call
 let leedzJWT = null;
 let leedzJWTExpiry = null;
-
-(async () => {
-    try {
-        const dbConfigUrl = `${config.database.apiUrl}/config`;
-        const response = await axios.get(dbConfigUrl);
-        if (response.data && response.data.llmApiKey) {
-            dbApiKey = response.data.llmApiKey;
-            console.error(`[MCP] Using API key from database Config`);
-        }
-    } catch (error) {
-        console.error(`[MCP] Could not fetch API key from database, using config file: ${error.message}`);
-    }
-
-    // Fetch Leedz JWT at startup
-    await fetchLeedzJWT();
-})();
-
-// System prompt for Claude API - defines available endpoints and response format
-const SYSTEM_PROMPT = config.llm.systemPrompt;
 
 // ==============================================================================
 // LOGGING UTILITIES
 // ==============================================================================
 
-/**
- * Resolve the absolute path for log file
- * Ensures logs are written to server root directory
- */
 function getLogFilePath() {
     const configuredPath = config.logging?.file || './mcp_server.log';
     return path.resolve(__dirname, configuredPath);
@@ -82,7 +68,6 @@ function getLogFilePath() {
 
 const LOG_FILE_PATH = getLogFilePath();
 
-// Ensure log directory exists
 try {
     fs.mkdirSync(path.dirname(LOG_FILE_PATH), { recursive: true });
 } catch (error) {
@@ -91,144 +76,372 @@ try {
 
 /**
  * Write log entry to file with timestamp
- * @param {string} level - Log level (debug, info, warn, error)
- * @param {string} message - Message to log
  */
 function writeLogEntry(level, message) {
     const timestamp = new Date().toISOString();
     const entry = `[${timestamp}] [${level.toUpperCase()}] ${message}\n`;
-    
+
     try {
         fs.appendFileSync(LOG_FILE_PATH, entry);
     } catch (error) {
         console.error('Failed to write log file:', error.message);
     }
-    
+
     // Only show warnings and errors on stderr to avoid cluttering client UI
     if (level === 'error' || level === 'warn') {
         console.error(entry.trim());
     }
 }
 
-// Convenient logging functions
 const logDebug = (message) => writeLogEntry('debug', message);
 const logInfo = (message) => writeLogEntry('info', message);
 const logWarn = (message) => writeLogEntry('warn', message);
 const logError = (message) => writeLogEntry('error', message);
 
 // ==============================================================================
-// JSON EXTRACTION UTILITIES
+// TOOL DEFINITIONS
 // ==============================================================================
+//
+// Each tool = { description, inputSchema, route(args) }
+// route() returns { method, path, query?, body? } - the HTTP request to make.
+//
+// Schemas are FULLY declared (every property typed, additionalProperties false
+// left off deliberately for forward-compat). Never ship a bare {type:'object'}
+// node - strict clients (Groq et al.) reject them.
+
+const CLIENT_FIELDS = {
+    name: { type: 'string', description: 'Client full name (person, not organization)' },
+    email: { type: 'string', description: 'Client email address' },
+    phone: { type: 'string', description: 'Client phone, digits only' },
+    company: { type: 'string', description: 'Organization/company name' },
+    clientNotes: { type: 'string', description: 'Freeform notes (role, address, etc.)' }
+};
+
+const BOOKING_FIELDS = {
+    title: { type: 'string', description: 'Short event title' },
+    description: { type: 'string', description: 'One-sentence event summary' },
+    notes: { type: 'string', description: 'Additional booking notes' },
+    location: { type: 'string', description: 'Service address/venue' },
+    startDate: { type: 'string', description: 'Event date, YYYY-MM-DD' },
+    endDate: { type: 'string', description: 'End date, YYYY-MM-DD (optional, 1-day events omit)' },
+    startTime: { type: 'string', description: 'Start time, 12-hour format e.g. "7:00 PM"' },
+    endTime: { type: 'string', description: 'End time, 12-hour format' },
+    duration: { type: 'number', description: 'Duration in hours' },
+    hourlyRate: { type: 'number', description: 'Hourly rate in dollars (no $ symbol)' },
+    flatRate: { type: 'number', description: 'Flat rate in dollars' },
+    totalAmount: { type: 'number', description: 'Total payment in dollars' },
+    status: { type: 'string', description: 'Booking status' },
+    source: { type: 'string', description: 'Where this booking came from' }
+};
 
 /**
- * Check if text looks like JSON (starts with { or [)
- * @param {string} text - Text to check
- * @returns {boolean} True if text appears to be JSON
+ * Build a query string from the subset of args that are actually provided.
  */
-function looksLikeJson(text) {
-    const trimmed = text.trim();
-    return trimmed.startsWith('{') || trimmed.startsWith('[');
-}
-
-/**
- * Check if text is pure JSON (starts and ends with matching brackets)
- * @param {string} text - Text to check
- * @returns {boolean} True if text is pure JSON
- */
-function isPureJson(text) {
-    const trimmed = text.trim();
-    return (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
-           (trimmed.startsWith('[') && trimmed.endsWith(']'));
-}
-
-/**
- * Extract JSON from code fence blocks (```json ... ``` or ``` ... ```)
- * @param {string} text - Text containing code fences
- * @returns {string|null} Extracted JSON or null if not found
- */
-function extractFromCodeFence(text) {
-    const fenceMatch = text.match(/```json[\s\S]*?```/i) || text.match(/```[\s\S]*?```/);
-    
-    if (!fenceMatch) return null;
-    
-    const inner = fenceMatch[0]
-        .replace(/```json/i, '```')
-        .replace(/```/g, '')
-        .trim();
-    
-    if (!looksLikeJson(inner)) return null;
-    
-    const startChar = inner.includes('{') ? '{' : '[';
-    return inner.substring(inner.indexOf(startChar));
-}
-
-/**
- * Find the first JSON object or array in text by balancing brackets
- * @param {string} text - Text to search
- * @returns {string|null} Extracted JSON or null if not found
- */
-function findFirstJsonBlock(text) {
-    // Find the first opening bracket
-    let startIndex = -1;
-    let openChar = '';
-    
-    for (let i = 0; i < text.length; i++) {
-        if (text[i] === '{' || text[i] === '[') {
-            startIndex = i;
-            openChar = text[i];
-            break;
+function buildQuery(args, keys) {
+    const params = new URLSearchParams();
+    for (const key of keys) {
+        if (args[key] !== undefined && args[key] !== null && args[key] !== '') {
+            params.set(key, String(args[key]));
         }
     }
-    
-    if (startIndex === -1) return null;
-    
-    // Find matching closing bracket by counting depth
-    const closeChar = openChar === '{' ? '}' : ']';
-    let depth = 0;
-    
-    for (let i = startIndex; i < text.length; i++) {
-        if (text[i] === openChar) depth++;
-        if (text[i] === closeChar) depth--;
-        
-        if (depth === 0) {
-            return text.substring(startIndex, i + 1);
-        }
-    }
-    
-    return null;
+    const qs = params.toString();
+    return qs ? `?${qs}` : '';
 }
 
 /**
- * Extract the first valid JSON string from text using multiple strategies
- * @param {string} text - Text that may contain JSON
- * @returns {string|null} Extracted JSON string or null if not found
+ * Pick only the given keys from args (drop undefined).
  */
-function extractJsonString(text) {
-    if (!text || !text.trim()) return null;
-    
-    const trimmed = text.trim();
-    
-    // Strategy 1: Already pure JSON
-    if (isPureJson(trimmed)) {
-        return trimmed;
+function pickFields(args, keys) {
+    const out = {};
+    for (const key of keys) {
+        if (args[key] !== undefined) out[key] = args[key];
     }
-    
-    // Strategy 2: Try code fence extraction
-    const fromFence = extractFromCodeFence(trimmed);
-    if (fromFence) return fromFence;
-    
-    // Strategy 3: Find first JSON block by bracket balancing
-    return findFirstJsonBlock(trimmed);
+    return out;
 }
 
+const CLIENT_FILTER_KEYS = [
+    'email', 'name', 'company', 'search', 'search_any',
+    'name_startsWith', 'email_endsWith', 'company_not',
+    'updatedAt_lt', 'updatedAt_gte', 'orderBy', 'order'
+];
+
+const BOOKING_FILTER_KEYS = [
+    'clientId', 'clientName', 'clientEmail', 'status', 'startDateFrom', 'startDateTo'
+];
+
+const TOOLS = {
+
+    // ------------------------------------------------------------- CLIENTS
+
+    list_clients: {
+        description: 'List/search clients. All filters optional and combinable. Returns full client records.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                email: { type: 'string', description: 'Exact email match' },
+                name: { type: 'string', description: 'Partial name match (contains)' },
+                company: { type: 'string', description: 'Partial company match (contains)' },
+                search: { type: 'string', description: 'Keyword search across name/email/company' },
+                search_any: { type: 'string', description: 'Comma-separated keywords, matches any (e.g. "French,France,Francais")' },
+                name_startsWith: { type: 'string', description: 'Names starting with this prefix' },
+                email_endsWith: { type: 'string', description: 'Emails ending with this suffix (e.g. ".edu")' },
+                company_not: { type: 'string', description: 'Exclude clients at this company' },
+                updatedAt_lt: { type: 'string', description: 'Only clients updated before this date, YYYY-MM-DD' },
+                updatedAt_gte: { type: 'string', description: 'Only clients updated on/after this date, YYYY-MM-DD' },
+                orderBy: { type: 'string', description: 'Sort field: name, email, company, createdAt, updatedAt' },
+                order: { type: 'string', description: 'Sort direction: asc or desc' }
+            },
+            required: []
+        },
+        route: (args) => ({ method: 'GET', path: `/clients${buildQuery(args, CLIENT_FILTER_KEYS)}` })
+    },
+
+    get_client: {
+        description: 'Get one client by ID.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                id: { type: 'string', description: 'Client ID' }
+            },
+            required: ['id']
+        },
+        route: (args) => ({ method: 'GET', path: `/clients/${encodeURIComponent(args.id)}` })
+    },
+
+    create_client: {
+        description: 'Create a new client. If a client with the same email exists, the server finds and returns it instead of duplicating.',
+        inputSchema: {
+            type: 'object',
+            properties: { ...CLIENT_FIELDS },
+            required: ['name']
+        },
+        route: (args) => ({ method: 'POST', path: '/clients', body: pickFields(args, Object.keys(CLIENT_FIELDS)) })
+    },
+
+    update_client: {
+        description: 'Update client fields by ID. Only provided fields change.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                id: { type: 'string', description: 'Client ID' },
+                ...CLIENT_FIELDS
+            },
+            required: ['id']
+        },
+        route: (args) => ({ method: 'PUT', path: `/clients/${encodeURIComponent(args.id)}`, body: pickFields(args, Object.keys(CLIENT_FIELDS)) })
+    },
+
+    touch_client: {
+        description: 'Mark a client as processed/reviewed (bumps updatedAt, changes nothing else). Identify by id, exact email, or name. Name/email lookup fails if it matches multiple clients - then use id.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                id: { type: 'string', description: 'Client ID (preferred when known)' },
+                email: { type: 'string', description: 'Exact client email' },
+                name: { type: 'string', description: 'Client name' }
+            },
+            required: []
+        },
+        route: (args) => {
+            if (args.id) {
+                return { method: 'PUT', path: `/clients/${encodeURIComponent(args.id)}/touch` };
+            }
+            return { method: 'PUT', path: '/clients/touch', body: pickFields(args, ['name', 'email']) };
+        }
+    },
+
+    delete_client: {
+        description: 'Permanently delete a client by ID.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                id: { type: 'string', description: 'Client ID' }
+            },
+            required: ['id']
+        },
+        route: (args) => ({ method: 'DELETE', path: `/clients/${encodeURIComponent(args.id)}` })
+    },
+
+    // ------------------------------------------------------------ BOOKINGS
+
+    list_bookings: {
+        description: 'List/filter bookings. Each booking includes full client details - no separate client lookup needed. Use startDateFrom/startDateTo for date ranges (e.g. a month or quarter). For "all info about [person]" queries, filter by clientName.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                clientId: { type: 'string', description: 'Filter by client ID' },
+                clientName: { type: 'string', description: 'Filter by client name (partial, case-insensitive)' },
+                clientEmail: { type: 'string', description: 'Filter by client email' },
+                status: { type: 'string', description: 'Filter by booking status' },
+                startDateFrom: { type: 'string', description: 'Bookings on/after this date, YYYY-MM-DD' },
+                startDateTo: { type: 'string', description: 'Bookings on/before this date, YYYY-MM-DD' }
+            },
+            required: []
+        },
+        route: (args) => ({ method: 'GET', path: `/bookings${buildQuery(args, BOOKING_FILTER_KEYS)}` })
+    },
+
+    get_booking: {
+        description: 'Get one booking by ID (includes client details).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                id: { type: 'string', description: 'Booking ID' }
+            },
+            required: ['id']
+        },
+        route: (args) => ({ method: 'GET', path: `/bookings/${encodeURIComponent(args.id)}` })
+    },
+
+    search_bookings: {
+        description: 'Keyword search across booking title/description/notes/location. NOT for client names - use list_bookings with clientName for that.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                keyword: { type: 'string', description: 'Search keyword' }
+            },
+            required: ['keyword']
+        },
+        route: (args) => ({ method: 'GET', path: `/bookings/search/${encodeURIComponent(args.keyword)}` })
+    },
+
+    create_booking: {
+        description: 'Create a booking. Provide EITHER clientId OR client fields (name/email/...) - the server auto-creates/finds the client. Duplicate (same client + location + date) updates the existing booking instead.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                clientId: { type: 'string', description: 'Existing client ID (omit if providing client fields)' },
+                ...CLIENT_FIELDS,
+                ...BOOKING_FIELDS
+            },
+            required: []
+        },
+        route: (args) => ({
+            method: 'POST',
+            path: '/bookings',
+            body: pickFields(args, ['clientId', ...Object.keys(CLIENT_FIELDS), ...Object.keys(BOOKING_FIELDS)])
+        })
+    },
+
+    update_booking: {
+        description: 'Update booking fields by ID. Booking fields ONLY - to change client info, use update_client.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                id: { type: 'string', description: 'Booking ID' },
+                ...BOOKING_FIELDS
+            },
+            required: ['id']
+        },
+        route: (args) => ({ method: 'PUT', path: `/bookings/${encodeURIComponent(args.id)}`, body: pickFields(args, Object.keys(BOOKING_FIELDS)) })
+    },
+
+    delete_booking: {
+        description: 'Permanently delete a booking by ID.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                id: { type: 'string', description: 'Booking ID' }
+            },
+            required: ['id']
+        },
+        route: (args) => ({ method: 'DELETE', path: `/bookings/${encodeURIComponent(args.id)}` })
+    },
+
+    // --------------------------------------------------------- STATS / META
+
+    get_stats: {
+        description: 'System-wide statistics (client and booking counts, revenue totals).',
+        inputSchema: {
+            type: 'object',
+            properties: {},
+            required: []
+        },
+        route: () => ({ method: 'GET', path: '/stats' })
+    },
+
+    get_client_stats: {
+        description: 'Aggregate client statistics. Pass id for one client, omit for all clients.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                id: { type: 'string', description: 'Client ID (optional)' }
+            },
+            required: []
+        },
+        route: (args) => ({
+            method: 'GET',
+            path: args.id ? `/clients/${encodeURIComponent(args.id)}/stats` : '/clients/stats'
+        })
+    },
+
+    health: {
+        description: 'Check the Leedz server is running and which database file it is using.',
+        inputSchema: {
+            type: 'object',
+            properties: {},
+            required: []
+        },
+        route: () => ({ method: 'GET', path: '/health' })
+    }
+};
+
 // ==============================================================================
-// AWS / LEEDZ JWT UTILITIES
+// HTTP EXECUTION
 // ==============================================================================
 
 /**
- * Fetch JWT token from AWS getToken endpoint
- * Same flow as Startup.js:fetchJWTToken() (lines 337-379)
- * Calls GET /getToken?email={email} and stores token in memory
+ * Execute an HTTP request against the Leedz server.
+ * Returns { ok, status, data } - never throws on HTTP errors.
+ */
+async function executeHttpRequest(route) {
+    const url = `${API_URL}${route.path}`;
+    logInfo(`Executing ${route.method} ${route.path}`);
+
+    try {
+        const response = await fetch(url, {
+            method: route.method,
+            headers: { 'Content-Type': 'application/json' },
+            body: route.body !== undefined ? JSON.stringify(route.body) : undefined,
+            signal: AbortSignal.timeout(HTTP_TIMEOUT_MS)
+        });
+
+        let data = null;
+        try { data = await response.json(); } catch (e) { data = null; }
+
+        if (!response.ok) {
+            logWarn(`HTTP ${response.status} from ${route.method} ${route.path}`);
+        }
+        return { ok: response.ok, status: response.status, data };
+
+    } catch (error) {
+        logError(`HTTP request failed: ${error.message}`);
+        return {
+            ok: false,
+            status: 0,
+            data: { error: `Cannot reach Leedz server at ${API_URL} - is it running? (${error.message})` }
+        };
+    }
+}
+
+/**
+ * Format a tool result as readable text for the orchestrator.
+ */
+function formatToolResult(result) {
+    const { data } = result;
+    if (Array.isArray(data)) {
+        return `Found ${data.length} items:\n${JSON.stringify(data, null, 2)}`;
+    }
+    return JSON.stringify(data, null, 2);
+}
+
+// ==============================================================================
+// AWS / LEEDZ JWT UTILITIES (share_leed only)
+// ==============================================================================
+
+/**
+ * Fetch JWT token from AWS getToken endpoint (lazy - only when share_leed runs).
+ * Same flow as Startup.js:fetchJWTToken().
  */
 async function fetchLeedzJWT() {
     try {
@@ -240,7 +453,7 @@ async function fetchLeedzJWT() {
             return;
         }
 
-        // Check if token still valid (7+ days remaining, same threshold as Startup.js)
+        // Still valid with 7+ days remaining? Keep it.
         const now = Date.now();
         const sevenDays = 7 * 24 * 60 * 60 * 1000;
         if (leedzJWT && leedzJWTExpiry > (now + sevenDays)) {
@@ -248,247 +461,63 @@ async function fetchLeedzJWT() {
         }
 
         const url = `${apiUrl}/getToken?email=${encodeURIComponent(email)}`;
-        const response = await axios.get(url, { timeout: 5000 });
+        const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+        const { token, expires } = await response.json();
 
-        const { token, expires } = response.data;
         if (!token) {
             logWarn('getToken returned no token');
             return;
         }
 
         leedzJWT = token;
-        leedzJWTExpiry = expires * 1000; // Convert seconds to ms, same as Startup.js line 371
-
+        leedzJWTExpiry = expires * 1000;
         logInfo(`Leedz JWT obtained, expires: ${new Date(leedzJWTExpiry).toISOString()}`);
-        console.error(`[MCP] Leedz JWT obtained, expires: ${new Date(leedzJWTExpiry).toISOString()}`);
 
     } catch (error) {
         logError(`Failed to fetch Leedz JWT: ${error.message}`);
-        console.error(`[MCP] Failed to fetch Leedz JWT: ${error.message}`);
     }
-}
-
-// ==============================================================================
-// CLAUDE API UTILITIES
-// ==============================================================================
-
-/**
- * Build headers for Claude API request
- * @returns {Object} Headers object for axios request
- */
-function buildClaudeHeaders() {
-    // Use database API key if available, otherwise fall back to config file
-    const apiKey = dbApiKey || config.llm['api-key'];
-    return {
-        'x-api-key': apiKey,
-        'anthropic-version': config.llm['anthropic-version'],
-        'content-type': 'application/json'
-    };
-}
-
-/**
- * Build request body for Claude API
- * @param {string} userMessage - User's natural language request
- * @returns {Object} Request body for Claude API
- */
-function buildClaudeRequestBody(userMessage) {
-    return {
-        model: config.llm.provider,
-        max_tokens: config.llm.max_tokens,
-        system: SYSTEM_PROMPT,
-        messages: [
-            { role: 'user', content: userMessage }
-        ]
-    };
-}
-
-/**
- * Extract content text from Claude API response
- * @param {Object} responseData - Claude API response data
- * @returns {string} Extracted content text
- */
-function extractClaudeContent(responseData) {
-    return responseData.content?.[0]?.text || '';
-}
-
-/**
- * Send request to Claude API and get structured response
- * @param {string} userMessage - User's natural language request
- * @returns {Object|null} Parsed JSON response or null if failed
- */
-async function translateWithClaude(userMessage) {
-    try {
-        const claudeUrl = `${config.llm.baseUrl}${config.llm.endpoints.completions}`;
-        const headers = buildClaudeHeaders();
-        const body = buildClaudeRequestBody(userMessage);
-        
-        logDebug(`Sending request to Claude: ${userMessage.substring(0, 100)}...`);
-        
-        const response = await axios.post(claudeUrl, body, {
-            headers: headers,
-            timeout: 30000
-        });
-        
-        const content = extractClaudeContent(response.data);
-        logDebug(`Claude response: ${content.substring(0, 200)}...`);
-        
-        return parseClaudeResponse(content);
-        
-    } catch (error) {
-        logError(`Claude API error: ${error.message}`);
-        return null;
-    }
-}
-
-/**
- * Parse Claude's response text to extract JSON
- * @param {string} content - Raw response content from Claude
- * @returns {Object|null} Parsed JSON object or null if failed
- */
-function parseClaudeResponse(content) {
-    const jsonString = extractJsonString(content);
-    
-    if (!jsonString) {
-        logWarn('No JSON found in Claude response');
-        return null;
-    }
-    
-    try {
-        const parsed = JSON.parse(jsonString);
-        logInfo('Successfully parsed Claude response');
-        return parsed;
-    } catch (error) {
-        logWarn(`Failed to parse JSON: ${error.message}`);
-        return null;
-    }
-}
-
-// ==============================================================================
-// HTTP API UTILITIES
-// ==============================================================================
-
-/**
- * Execute HTTP request against the database API server
- * @param {Object} action - Action object with method, endpoint, and data
- * @returns {Object} Response data from API server
- */
-async function executeHttpRequest(action) {
-    const { method, endpoint, data } = action;
-    const url = `${config.database.apiUrl}${endpoint}`;
-    
-    logInfo(`Executing ${method} ${endpoint}`);
-    
-    try {
-        const response = await axios({
-            method: method.toLowerCase(),
-            url: url,
-            data: method === 'GET' ? undefined : data,
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        logInfo(`HTTP request successful: ${response.status}`);
-        return response.data;
-        
-    } catch (error) {
-        const errorMsg = error.response 
-            ? `HTTP ${error.response.status}: ${error.response.data.error || 'Request failed'}`
-            : 'Network error';
-        
-        logError(`HTTP request failed: ${errorMsg}`);
-        throw new Error(errorMsg);
-    }
-}
-
-/**
- * Format response data for display to user
- * @param {Object} result - Response data from API
- * @param {Object} action - Original action object
- * @returns {string} Formatted response string
- */
-function formatApiResponse(result, action) {
-    const { method, endpoint, description } = action;
-    
-    // Format based on HTTP method
-    switch (method.toUpperCase()) {
-        case 'GET':
-            return formatGetResponse(result, endpoint, description);
-        case 'POST':
-            return `✅ ${description}\n\nCreated successfully:\n${JSON.stringify(result, null, 2)}`;
-        case 'PUT':
-            return `🔄 ${description}\n\nUpdated successfully:\n${JSON.stringify(result, null, 2)}`;
-        case 'DELETE':
-            return `🗑️ ${description}\n\nDeleted successfully`;
-        default:
-            return `✅ ${description}\n\n${JSON.stringify(result, null, 2)}`;
-    }
-}
-
-/**
- * Format GET response based on content type
- * @param {Object|Array} result - Response data
- * @param {string} endpoint - API endpoint
- * @param {string} description - Action description
- * @returns {string} Formatted response
- */
-function formatGetResponse(result, endpoint, description) {
-    if (endpoint.includes('/stats')) {
-        return `📊 ${description}\n\n${JSON.stringify(result, null, 2)}`;
-    }
-    
-    if (Array.isArray(result)) {
-        return `📋 ${description}\n\nFound ${result.length} items:\n${JSON.stringify(result, null, 2)}`;
-    }
-    
-    return `📄 ${description}\n\n${JSON.stringify(result, null, 2)}`;
 }
 
 // ==============================================================================
 // JSON-RPC RESPONSE UTILITIES
 // ==============================================================================
 
-/**
- * Create successful JSON-RPC response
- * @param {string} id - Request ID
- * @param {string} text - Response text to send
- * @returns {Object} JSON-RPC response object
- */
 function createSuccessResponse(id, text) {
     return {
         jsonrpc: '2.0',
         id: id,
         result: {
-            content: [{
-                type: 'text',
-                text: text
-            }]
+            content: [{ type: 'text', text: text }]
         }
     };
 }
 
 /**
- * Create JSON-RPC error response
- * @param {string} id - Request ID
- * @param {number} code - Error code
- * @param {string} message - Error message
- * @returns {Object} JSON-RPC error response
+ * Tool-level failure: returned as a normal result with isError so the
+ * orchestrator LLM can read the message and self-correct.
+ */
+function createToolErrorResponse(id, text) {
+    return {
+        jsonrpc: '2.0',
+        id: id,
+        result: {
+            isError: true,
+            content: [{ type: 'text', text: text }]
+        }
+    };
+}
+
+/**
+ * Protocol-level failure (unknown method, parse error).
  */
 function createErrorResponse(id, code, message) {
     return {
         jsonrpc: '2.0',
         id: id,
-        error: {
-            code: code,
-            message: message
-        }
+        error: { code: code, message: message }
     };
 }
 
-/**
- * Send JSON-RPC response to stdout
- * @param {Object} response - Response object to send
- */
 function sendJsonRpcResponse(response) {
     process.stdout.write(JSON.stringify(response) + '\n');
 }
@@ -497,14 +526,9 @@ function sendJsonRpcResponse(response) {
 // MCP PROTOCOL HANDLERS
 // ==============================================================================
 
-/**
- * Handle MCP initialization request
- * @param {string} id - Request ID
- * @returns {Object} Initialization response
- */
 function handleInitialize(id) {
     logInfo('Handling MCP initialize request');
-    
+
     return {
         jsonrpc: '2.0',
         id: id,
@@ -514,87 +538,58 @@ function handleInitialize(id) {
                 tools: {}
             },
             serverInfo: {
-                name: config.mcp.name,
-                version: config.mcp.version
+                name: config.mcp?.name || 'leedz-mcp',
+                version: config.mcp?.version || '3.0.0'
             }
         }
     };
 }
 
-/**
- * Handle tools list request
- * @param {string} id - Request ID
- * @returns {Object} Tools list response
- */
 function handleToolsList(id) {
     logInfo('Handling tools/list request');
-    
+
+    const tools = Object.entries(TOOLS).map(([name, def]) => ({
+        name: name,
+        description: def.description,
+        inputSchema: def.inputSchema
+    }));
+
+    // share_leed is handled separately (AWS, not the local DB)
+    tools.push({
+        name: 'share_leed',
+        description: 'Share a leed to the Leedz marketplace DynamoDB. Calls the addLeed API on AWS API Gateway. Use this to seed leedz with precise structured data.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                tn: { type: 'string', description: 'Trade name (e.g. Caricatures, DJ, Photographer)' },
+                ti: { type: 'string', description: 'Leed title (short event name)' },
+                lc: { type: 'string', description: 'Location - must end with 5-digit zip code' },
+                zp: { type: 'string', description: '5-digit zip code extracted from location' },
+                st: { type: 'string', description: 'Start time as epoch milliseconds' },
+                et: { type: 'string', description: 'End time as epoch milliseconds (optional)' },
+                dt: { type: 'string', description: 'Description/details (optional)' },
+                rq: { type: 'string', description: 'Requirements/special instructions (optional)' },
+                cn: { type: 'string', description: 'Client name (optional)' },
+                ph: { type: 'string', description: 'Client phone digits only (optional)' },
+                em: { type: 'string', description: 'Client email (optional)' },
+                pr: { type: 'string', description: 'Price in cents, 0 = free (optional, defaults to 0)' },
+                sh: { type: 'string', description: 'Share list: #email1,email2 for private, #* for broadcast, #*,email1 for both' },
+                id: { type: 'string', description: 'Pre-generated leed ID (optional, server generates if omitted)' }
+            },
+            required: ['tn', 'ti', 'lc', 'st', 'sh']
+        }
+    });
+
     return {
         jsonrpc: '2.0',
         id: id,
-        result: {
-            tools: [
-                {
-                    name: 'the_leedz',
-                    description: 'Interact with the Leedz CRM system. Create clients, manage bookings, generate IDs, and get statistics.',
-                    inputSchema: {
-                        type: 'object',
-                        properties: {
-                            message: {
-                                type: 'string',
-                                description: 'Natural language request to the Leedz CRM'
-                            }
-                        },
-                        required: ['message']
-                    }
-                },
-                {
-                    name: 'share_leed',
-                    description: 'Share a leed to the Leedz marketplace DynamoDB. Calls the addLeed API on AWS API Gateway. Use this to seed leedz with precise structured data.',
-                    inputSchema: {
-                        type: 'object',
-                        properties: {
-                            tn: { type: 'string', description: 'Trade name (e.g. Caricatures, DJ, Photographer)' },
-                            ti: { type: 'string', description: 'Leed title (short event name)' },
-                            lc: { type: 'string', description: 'Location - must end with 5-digit zip code' },
-                            zp: { type: 'string', description: '5-digit zip code extracted from location' },
-                            st: { type: 'string', description: 'Start time as epoch milliseconds' },
-                            et: { type: 'string', description: 'End time as epoch milliseconds (optional)' },
-                            dt: { type: 'string', description: 'Description/details (optional)' },
-                            rq: { type: 'string', description: 'Requirements/special instructions (optional)' },
-                            cn: { type: 'string', description: 'Client name (optional)' },
-                            ph: { type: 'string', description: 'Client phone digits only (optional)' },
-                            em: { type: 'string', description: 'Client email (optional)' },
-                            pr: { type: 'string', description: 'Price in cents, 0 = free (optional, defaults to 0)' },
-                            sh: { type: 'string', description: 'Share list: #email1,email2 for private, #* for broadcast, #*,email1 for both' },
-                            id: { type: 'string', description: 'Pre-generated leed ID (optional, server generates if omitted)' }
-                        },
-                        required: ['tn', 'ti', 'lc', 'st', 'sh']
-                    }
-                }
-            ]
-        }
+        result: { tools: tools }
     };
 }
 
 /**
- * Extract user message from tool call parameters
- * @param {Object} params - Tool call parameters
- * @returns {string|null} User message or null if not found
- */
-function extractUserMessage(params) {
-    return params.arguments?.request ||
-           params.arguments?.message ||
-           (params.messages && params.messages[params.messages.length - 1]?.content);
-}
-
-/**
  * Handle share_leed tool call
- * Direct API call to AWS addLeed - no LLM translation needed
- * Same flow as Share.js:sendToServer() (lines 916-957)
- * @param {string} id - JSON-RPC request ID
- * @param {Object} params - Tool call params with arguments
- * @returns {Object} JSON-RPC response
+ * Direct API call to AWS addLeed. Same flow as Share.js:sendToServer().
  */
 async function handleShareLeed(id, params) {
     const args = params.arguments || {};
@@ -607,28 +602,27 @@ async function handleShareLeed(id, params) {
     if (!args.st) errors.push('Start time (st) is required');
     if (!args.sh) errors.push('Share list (sh) is required');
 
-    // Validate zip in location (must end with 5-digit zip)
     if (args.lc && !/\d{5}$/.test(args.lc.trim())) {
         errors.push('Location must end with 5-digit zip code');
     }
 
     if (errors.length > 0) {
-        return createErrorResponse(id, -32602, errors.join('; '));
+        return createToolErrorResponse(id, errors.join('; '));
     }
 
-    // Ensure we have a valid JWT
+    // Ensure we have a valid JWT (lazy fetch)
     const now = Date.now();
     if (!leedzJWT || !leedzJWTExpiry || leedzJWTExpiry < now) {
         await fetchLeedzJWT();
     }
     if (!leedzJWT) {
-        return createErrorResponse(id, -32001, 'No valid Leedz JWT. Check aws.email and aws.apiGatewayUrl in mcp_server_config.json');
+        return createToolErrorResponse(id, 'No valid Leedz JWT. Check aws.email and aws.apiGatewayUrl in mcp_server_config.json');
     }
 
     try {
         const apiUrl = config.aws.apiGatewayUrl;
 
-        // Build query params - same keys as Share.js:buildAddLeedPayload (line 633-654)
+        // Build query params - same keys as Share.js:buildAddLeedPayload
         const payload = {
             tn: args.tn,
             ti: args.ti,
@@ -639,7 +633,6 @@ async function handleShareLeed(id, params) {
             session: leedzJWT
         };
 
-        // Optional fields - only include if provided
         if (args.et) payload.et = args.et;
         if (args.dt) payload.dt = args.dt;
         if (args.rq) payload.rq = args.rq;
@@ -648,8 +641,6 @@ async function handleShareLeed(id, params) {
         if (args.em) payload.em = args.em;
         if (args.pr) payload.pr = args.pr;
         if (args.id) payload.id = args.id;
-
-        // Default price to 0 (free) if not provided
         if (!payload.pr) payload.pr = '0';
 
         const queryString = new URLSearchParams(payload).toString();
@@ -657,20 +648,25 @@ async function handleShareLeed(id, params) {
 
         logInfo(`Calling addLeed: tn=${args.tn}, ti=${args.ti}, lc=${args.lc}`);
 
-        // GET request - same as Share.js line 935-937
-        const response = await axios.get(url, { timeout: 10000 });
-        const result = response.data;
+        const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
+        const result = await response.json();
 
-        // Check response format: {cd: 1, id, ti, tn, pr} or {cd: 0, er}
-        // Same check as Share.js lines 948-954
+        // If 401/403, JWT may be bad - clear it
+        if (response.status === 401 || response.status === 403) {
+            leedzJWT = null;
+            leedzJWTExpiry = null;
+            return createToolErrorResponse(id, 'JWT rejected by API Gateway. Token cleared - will re-fetch on next call.');
+        }
+
+        // Response format: {cd: 1, id, ti, tn, pr} or {cd: 0, er}
         if (result.cd === 0) {
             logError(`addLeed error: ${result.er}`);
-            return createErrorResponse(id, -32603, `addLeed failed: ${result.er || 'Unknown error'}`);
+            return createToolErrorResponse(id, `addLeed failed: ${result.er || 'Unknown error'}`);
         }
 
         if (result.cd !== 1) {
             logError(`addLeed invalid response: ${JSON.stringify(result)}`);
-            return createErrorResponse(id, -32603, 'Invalid response from addLeed API');
+            return createToolErrorResponse(id, 'Invalid response from addLeed API');
         }
 
         logInfo(`Leed shared: id=${result.id}, tn=${result.tn}, ti=${result.ti}`);
@@ -678,59 +674,55 @@ async function handleShareLeed(id, params) {
 
     } catch (error) {
         logError(`share_leed error: ${error.message}`);
-
-        // If 401/403, JWT may be bad - clear it
-        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-            leedzJWT = null;
-            leedzJWTExpiry = null;
-            return createErrorResponse(id, -32001, 'JWT rejected by API Gateway. Token cleared - will re-fetch on next call.');
-        }
-
-        return createErrorResponse(id, -32603, `share_leed failed: ${error.message}`);
+        return createToolErrorResponse(id, `share_leed failed: ${error.message}`);
     }
 }
 
 /**
- * Handle tool call request
- * @param {string} id - Request ID
- * @param {Object} params - Tool call parameters
- * @returns {Object} Tool call response
+ * Handle tool call request - look up the tool, build the HTTP route, execute.
  */
 async function handleToolCall(id, params) {
     try {
-        // Route share_leed directly - no LLM translation needed
-        if (params.name === 'share_leed') {
+        const toolName = params?.name;
+
+        // share_leed goes to AWS, not the local DB
+        if (toolName === 'share_leed') {
             return await handleShareLeed(id, params);
         }
 
-        const userMessage = extractUserMessage(params);
-
-        if (!userMessage) {
-            logWarn('No user message found in tool call');
-            return createErrorResponse(id, -32602, 'No user message found in request');
+        const tool = TOOLS[toolName];
+        if (!tool) {
+            logWarn(`Unknown tool requested: ${toolName}`);
+            return createErrorResponse(id, -32602, `Unknown tool: ${toolName}`);
         }
 
-        logInfo(`Processing tool call: ${userMessage.substring(0, 100)}...`);
+        const args = params.arguments || {};
 
-        // Translate natural language to action using Claude
-        const action = await translateWithClaude(userMessage);
-
-        if (!action) {
-            return createSuccessResponse(id, "I couldn't understand your request. Please try being more specific about what you want to do with the Leedz.");
+        // Validate declared-required arguments
+        const missing = (tool.inputSchema.required || []).filter(
+            key => args[key] === undefined || args[key] === null || args[key] === ''
+        );
+        if (missing.length > 0) {
+            return createToolErrorResponse(id, `Missing required argument(s): ${missing.join(', ')}`);
         }
 
-        // Handle non-actionable requests (conversations)
-        if (action.actionable === false) {
-            logInfo('Returning conversational response');
-            return createSuccessResponse(id, action.response);
+        // touch_client needs at least one identifier even though none is
+        // individually required
+        if (toolName === 'touch_client' && !args.id && !args.name && !args.email) {
+            return createToolErrorResponse(id, 'touch_client requires id, name, or email');
         }
 
-        // Execute actionable requests (database operations)
-        logInfo(`Executing database operation: ${action.method} ${action.endpoint}`);
-        const result = await executeHttpRequest(action);
-        const formattedResponse = formatApiResponse(result, action);
+        logInfo(`Tool call: ${toolName}(${JSON.stringify(args).substring(0, 200)})`);
 
-        return createSuccessResponse(id, formattedResponse);
+        const route = tool.route(args);
+        const result = await executeHttpRequest(route);
+
+        if (!result.ok) {
+            const detail = result.data ? JSON.stringify(result.data) : 'no response body';
+            return createToolErrorResponse(id, `${toolName} failed (HTTP ${result.status}): ${detail}`);
+        }
+
+        return createSuccessResponse(id, formatToolResult(result));
 
     } catch (error) {
         logError(`Tool call error: ${error.message}`);
@@ -742,122 +734,83 @@ async function handleToolCall(id, params) {
 // REQUEST PROCESSING
 // ==============================================================================
 
-/**
- * Handle prompts list request
- * @param {string} id - Request ID
- * @returns {Object} Empty prompts list response
- */
 function handlePromptsList(id) {
-    logInfo('Handling prompts/list request');
-    
     return {
         jsonrpc: '2.0',
         id: id,
-        result: {
-            prompts: []
-        }
+        result: { prompts: [] }
     };
 }
 
-/**
- * Handle resources list request
- * @param {string} id - Request ID
- * @returns {Object} Empty resources list response
- */
 function handleResourcesList(id) {
-    logInfo('Handling resources/list request');
-    
     return {
         jsonrpc: '2.0',
         id: id,
-        result: {
-            resources: []
-        }
+        result: { resources: [] }
     };
 }
 
-/**
- * Route JSON-RPC request to appropriate handler
- * @param {Object} request - JSON-RPC request object
- * @returns {Object} Response object
- */
 async function processJsonRpcRequest(request) {
     const { id, method, params } = request;
-    
+
     switch (method) {
         case 'initialize':
             return handleInitialize(id);
-            
+
         case 'tools/list':
             return handleToolsList(id);
-            
+
         case 'tools/call':
             return await handleToolCall(id, params);
-            
+
         case 'prompts/list':
             return handlePromptsList(id);
-            
+
         case 'resources/list':
             return handleResourcesList(id);
-            
+
         case 'notifications/initialized':
             // No response needed for notifications
             return null;
-            
+
         default:
             logWarn(`Unknown method: ${method}`);
             return createErrorResponse(id, -32601, 'Method not found');
     }
 }
 
-/**
- * Check if input line looks like JSON-RPC
- * @param {string} line - Input line to check
- * @returns {boolean} True if line appears to be JSON-RPC
- */
-function isJsonRpcLine(line) {
-    const trimmed = line.trim();
-    return trimmed && looksLikeJson(trimmed);
+function looksLikeJson(text) {
+    const trimmed = text.trim();
+    return trimmed.startsWith('{') || trimmed.startsWith('[');
 }
 
-/**
- * Check if parsing error might be for a JSON-RPC request
- * @param {string} line - Original input line
- * @returns {boolean} True if error should generate response
- */
 function shouldRespondToParseError(line) {
     return line.includes('"jsonrpc"') || line.includes('"method"');
 }
 
-/**
- * Handle incoming input line from stdin
- * @param {string} line - Input line to process
- */
 async function handleInputLine(line) {
-    if (!isJsonRpcLine(line)) {
+    if (!line.trim() || !looksLikeJson(line)) {
         logDebug(`Ignoring non-JSON input: ${line.substring(0, 50)}...`);
         return;
     }
-    
+
     try {
         const request = JSON.parse(line.trim());
         const response = await processJsonRpcRequest(request);
         if (response) {
             sendJsonRpcResponse(response);
         }
-        
+
     } catch (error) {
         if (error instanceof SyntaxError) {
             logWarn(`Invalid JSON received: ${line.substring(0, 100)}...`);
-            
+
             if (shouldRespondToParseError(line)) {
-                const errorResponse = createErrorResponse('error', -32700, 'Parse error');
-                sendJsonRpcResponse(errorResponse);
+                sendJsonRpcResponse(createErrorResponse('error', -32700, 'Parse error'));
             }
         } else {
             logError(`Request processing error: ${error.message}`);
-            const errorResponse = createErrorResponse('error', -32603, 'Internal error');
-            sendJsonRpcResponse(errorResponse);
+            sendJsonRpcResponse(createErrorResponse('error', -32603, 'Internal error'));
         }
     }
 }
@@ -866,10 +819,6 @@ async function handleInputLine(line) {
 // SERVER LIFECYCLE
 // ==============================================================================
 
-/**
- * Set up readline interface for stdin/stdout communication
- * @returns {Object} Configured readline interface
- */
 function createReadlineInterface() {
     return readline.createInterface({
         input: process.stdin,
@@ -878,38 +827,27 @@ function createReadlineInterface() {
     });
 }
 
-/**
- * Handle graceful shutdown
- * @param {Object} rl - Readline interface to close
- */
 function handleShutdown(rl) {
     logInfo('Shutting down MCP server...');
     rl.close();
     process.exit(0);
 }
 
-/**
- * Start the MCP server
- */
 function startMcpServer() {
     console.error(`[MCP] Starting MCP server...`);
     console.error(`[MCP] Configuration loaded from: ${CONFIG_PATH}`);
     console.error(`[MCP] Log file: ${LOG_FILE_PATH}`);
-    console.error(`[MCP] Database API: ${config.database.apiUrl}`);
-    console.error(`[MCP] Claude API: ${config.llm.baseUrl}`);
-    
+    console.error(`[MCP] Leedz server API: ${API_URL}`);
+    console.error(`[MCP] Tools: ${Object.keys(TOOLS).length + 1} (${Object.keys(TOOLS).join(', ')}, share_leed)`);
+
     logInfo('Starting MCP server...');
-    logInfo(`Configuration loaded from: ${CONFIG_PATH}`);
-    logInfo(`Log file: ${LOG_FILE_PATH}`);
-    logInfo(`Database API: ${config.database.apiUrl}`);
-    logInfo(`Claude API: ${config.llm.baseUrl}`);
-    
+    logInfo(`Leedz server API: ${API_URL}`);
+
     const rl = createReadlineInterface();
-    
-    // Set up event handlers
+
     rl.on('line', handleInputLine);
     process.on('SIGINT', () => handleShutdown(rl));
-    
+
     console.error(`[MCP] Server ready - listening for JSON-RPC requests...`);
     logInfo('MCP server ready - listening for JSON-RPC requests...');
 }
@@ -918,5 +856,4 @@ function startMcpServer() {
 // SERVER STARTUP
 // ==============================================================================
 
-// Start the server
 startMcpServer();
