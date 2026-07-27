@@ -6,9 +6,10 @@ setlocal
 :: ==========================================
 :: One command, one deployable artifact.
 ::
-::   [1/3] client\build.bat   -> client\leedz-chrome-ext.zip
-::   [2/3] server\build.bat   -> server\leedz-server-win-x64.zip (incl. .NET tray)
-::   [3/3] bundle.bat         -> leedz-desktop-win-x64.zip   <-- upload this
+::   [1/4] client\build.bat   -> client\leedz-chrome-ext.zip
+::   [2/4] server\build.bat   -> server\leedz-server-win-x64.zip (incl. .NET tray)
+::   [3/4] bundle.bat         -> leedz-desktop-win-x64.zip 
+::   [4/4] move to dist       -> deploy this zip
 ::
 :: Upload the result to s3://leedz-invoicer-bucket/dist/ ; the downloadLink
 :: Lambda serves it through a presigned URL.
@@ -55,7 +56,7 @@ if not exist "bundle.bat" (
 :: ------------------------------------------
 :: STEP 1: CHROME EXTENSION
 :: ------------------------------------------
-echo [1/3] Building the Chrome extension...
+echo [1/4] Building the Chrome extension...
 echo.
 pushd client
 call ".\build.bat" < NUL
@@ -77,7 +78,7 @@ echo.
 :: ------------------------------------------
 :: STEP 2: SERVER + TRAY
 :: ------------------------------------------
-echo [2/3] Building the server and system tray...
+echo [2/4] Building the server and system tray...
 echo.
 pushd server
 call ".\build.bat" < NUL
@@ -99,7 +100,7 @@ echo.
 :: ------------------------------------------
 :: STEP 3: MASTER BUNDLE
 :: ------------------------------------------
-echo [3/3] Composing the master download...
+echo [3/4] Composing the master download...
 echo.
 call ".\bundle.bat"
 if errorlevel 1 (
@@ -112,6 +113,40 @@ if not exist "leedz-desktop-win-x64.zip" (
     goto :ERROR
 )
 
+
+
+
+:: ------------------------------------------
+:: STEP 4: MOVE TO dist\
+:: ------------------------------------------
+:: One tidy home for the deployable artifact. dist\ is gitignored, so the
+:: 100+ MB zip never lands in a commit.
+echo [4/4] Moving the artifact to dist\...
+echo.
+
+if not exist "dist\" (
+    echo     - dist\ not found, creating it
+    mkdir "dist"
+    if errorlevel 1 (
+        echo [ERROR] Could not create dist\
+        goto :ERROR
+    )
+)
+
+move /Y "leedz-desktop-win-x64.zip" "dist\leedz-desktop-win-x64.zip" >nul
+if errorlevel 1 (
+    echo [ERROR] Could not move the zip into dist\
+    goto :ERROR
+)
+
+if not exist "dist\leedz-desktop-win-x64.zip" (
+    echo [ERROR] dist\leedz-desktop-win-x64.zip is missing after the move.
+    goto :ERROR
+)
+
+echo     - Artifact moved to dist\
+echo.
+
 :: ------------------------------------------
 :: DONE
 :: ------------------------------------------
@@ -121,8 +156,8 @@ echo   MASTER BUILD SUCCESSFUL
 echo ==========================================
 echo.
 echo   DEPLOY THIS FILE:
-echo     %CD%\leedz-desktop-win-x64.zip
-for %%F in ("leedz-desktop-win-x64.zip") do echo     Size: %%~zF bytes
+echo     %CD%\dist\leedz-desktop-win-x64.zip
+for %%F in ("dist\leedz-desktop-win-x64.zip") do echo     Size: %%~zF bytes
 echo.
 echo   Next step - upload to S3:
 echo     s3://leedz-invoicer-bucket/dist/leedz-desktop-win-x64.zip

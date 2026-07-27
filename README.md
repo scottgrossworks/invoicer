@@ -120,16 +120,19 @@ calling LLM picks the tool and arguments itself; there is no second LLM call.
 build_all.bat
 ```
 
-Builds the extension, the server (including the .NET tray), and composes the
-single customer download `leedz-desktop-win-x64.zip`. Stop the server and tray
-first — Windows locks running executables. See `BUILD_RULES.md` for the
-per-component detail, and `bundle.bat` if you only need to re-compose the zip
-from existing component builds.
+Builds the extension, builds the server (including the .NET tray), composes the
+single customer download, and leaves it at **`dist/leedz-desktop-win-x64.zip`** —
+that one file is what gets uploaded to S3. Stop the server and tray first;
+Windows locks running executables, and the build checks for this up front.
 
-**Secrets never ship.** `dist/` and `dist-pkg/` keep your real config for local
-use, but the zip steps stage a sanitized copy first: `server_config.json`,
-`LLM_KEY.json`, `VALUE_PROP.md`, and `mcp_server_config.json` are all swapped
-for their `.template` versions inside the archive.
+See `BUILD_RULES.md` for the per-component detail, or run `bundle.bat` alone if
+you only need to re-compose the zip from existing component builds.
+
+**Secrets never ship.** The local install folders (`client/dist/`,
+`server/dist-pkg/`) keep your real config so you can run the app, but every zip
+step stages a sanitized copy first: `server_config.json`, `LLM_KEY.json`,
+`VALUE_PROP.md`, and `mcp_server_config.json` are each swapped for their
+`.template` version inside the archive.
 
 ---
 
