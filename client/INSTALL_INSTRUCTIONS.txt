@@ -55,6 +55,68 @@ connect it to your Leedz Server (see the Leedz Server install guide)
 and enter your LLM provider key. See README.md, section STARTUP, for
 what to enter and where.
 
+
+====================================================================
+TO DO FIRST - FILL THESE IN
+====================================================================
+
+Two files in this folder decide whether Leedz works for YOUR
+business. Fill them in now - the extension will not run correctly
+until you do. (A third file, the server's database path, is covered
+in the Leedz Server install guide.)
+
+
+1. DESCRIBE YOUR BUSINESS  ->  DOCS\VALUE_PROP.md
+--------------------------------------------------------------------
+This is the most important file in the product. Open it in Notepad
+and write, in PLAIN ENGLISH, who you are and what you sell.
+
+The AI reads this on every single parse. It is how the extension:
+  - tells YOUR contact details apart from a client's
+  - prices a booking and fills in the invoice header
+  - writes outreach and replies that sound like you
+  - knows whether a job is inside your service area
+
+REQUIRED - the extension will not start without these:
+  Trade, Product Name, Seller, Email, Phone
+
+OPTIONAL but strongly recommended - the more you write, the better
+every draft gets:
+  Website, Socials, Geography / service area, rates and pricing,
+  what you provide, terms, and the bank details that appear on
+  your PDF invoices.
+
+Write it like you would explain your business to a new employee.
+Vague file in, vague emails out.
+
+
+2. PASTE YOUR LLM KEY  ->  LLM_KEY.json
+--------------------------------------------------------------------
+The whole file is one line:
+
+  { "api-key": "sk-ant-PASTE-YOUR-KEY-HERE" }
+
+Replace the placeholder with a real key from any provider (Claude,
+ChatGPT, OpenRouter, or a local model). Nothing that needs AI -
+parsing, drafting, invoices - works until this is set.
+
+
+3. YOUR DATABASE  ->  (in the Leedz Server folder)
+--------------------------------------------------------------------
+Everything you save lives in ONE file on your own machine:
+
+  server\data\leedz.sqlite
+
+Back it up by copying that file somewhere safe. To run a second
+business or a test set, point "database.url" in server_config.json
+at a different filename and restart the server. The Startup page
+shows which database is currently connected.
+
+NOTE: server_config.json ships with a PLACEHOLDER database path.
+You must edit it before the server will start. See the Leedz Server
+INSTALL_INSTRUCTIONS.txt.
+
+
 ====================================================================
 TROUBLESHOOTING
 ====================================================================

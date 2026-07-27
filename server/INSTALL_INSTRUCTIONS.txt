@@ -2,6 +2,28 @@
 LEEDZ SERVER - INSTALL, CONFIGURE & RUN
 ====================================================================
 
+!!! TO DO FIRST !!!
+--------------------------------------------------------------------
+server_config.json ships with a PLACEHOLDER database path. The server
+will NOT start until you edit it. After extracting (Step 1), open
+server_config.json in Notepad and set:
+
+    "url": "file:./data/leedz.sqlite"
+
+That file - server\data\leedz.sqlite - IS your business. Every client
+and booking you save lives there, on your machine and nowhere else.
+Back it up by copying that one file somewhere safe.
+
+To run a second business or a test set, point "url" at a different
+filename in the same data\ folder and restart. The Chrome extension's
+Startup page shows which database is currently connected.
+
+Also fill in the two Chrome extension files before first use -
+DOCS\VALUE_PROP.md (describe your business in plain English) and
+LLM_KEY.json (your AI key). See the extension's
+INSTALL_INSTRUCTIONS.txt, section TO DO FIRST.
+--------------------------------------------------------------------
+
 
 --------------------------------------------------------------------
 STEP 1: DOWNLOAD AND EXTRACT
