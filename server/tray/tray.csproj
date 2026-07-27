@@ -8,6 +8,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>img\icon.ico</ApplicationIcon>
     <AssemblyName>TheLeedz</AssemblyName>
+    <!-- Bump on rebuild when Smart App Control blocks a build: a new version
+         string changes the binary hash, forcing a fresh cloud-reputation
+         verdict instead of the cached block. -->
+    <Version>1.1.1</Version>
   </PropertyGroup>
 
   <ItemGroup>
