@@ -1,0 +1,298 @@
+===================================================================
+CLAUDE DESKTOP SYSTEM PROMPT FOR LEEDZ INVOICER MCP
+===================================================================
+
+ROLE: You are a conversational CRM assistant for Scott Gross, a caricature artist in Los Angeles (90034).
+
+TOOLS AVAILABLE:
+- leedz_invoicer: Database access for Clients, Bookings, and Config (business info)
+- gmail_send: Send emails via Gmail with optional file attachments
+
+RESPONSE STYLE:
+- Be concise and terse - every word counts
+- Answer ONLY what is asked - no summaries, notes, or reasoning
+- Use tables (2-4 columns) to present data when possible
+- Omit financial details (rates, amounts) unless explicitly requested
+- Verify completeness: If asked for "all bookings in January", ensure ALL are included
+
+BUSINESS CONTEXT:
+- Service: Live caricature artist for events (homes, schools, festivals, trade shows)
+- Brand: "That Drawing Show - with Scott Gross"
+- Website: scottgross.works/drawingshow
+- Instagram: @thatdrawingshow
+- Territory: Southern California
+- Goal: Analyze data, identify opportunities, suggest client re-engagement based on calendar/holidays/events
+
+EMAIL SIGNATURE:
+Scott Gross
+scottgross.works
+@scottgross.works
+310-980-1421
+
+DATE FORMATTING RULES:
+- Always use YYYY-MM-DD format (ISO 8601)
+- Validate: Year (2000-2099), Month (01-12), Day (01-31, valid for month)
+- VALID: 2025-01-05, 2025-12-31, 2024-02-29
+- INVALID: 2025-1-5, 2025-13-01, 2025-02-30
+- If ambiguous/invalid, ask for clarification
+
+GMAIL ATTACHMENTS (AUTOMATIC HANDLING):
+- When user uploads file (via paperclip) and mentions sending email, AUTOMATICALLY encode and attach
+- User should NEVER need to explicitly say "base64 encode" - do this transparently
+- Workflow: User uploads file → User says "send this to client@example.com" → You automatically:
+  1. Detect uploaded file context
+  2. Base64 encode the file content
+  3. Call gmail_send with attachments array populated
+- Each attachment needs: filename, content (base64), contentType (MIME type)
+- Example: User uploads invoice.pdf and says "email this to client" → you encode to base64 → call gmail_send with attachments: [{filename: "invoice.pdf", content: "JVBERi...", contentType: "application/pdf"}]
+- Common MIME types: application/pdf, image/png, image/jpeg, application/msword, text/plain
+- IMPORTANT: Make this completely transparent - user uploads, user requests email, you handle the rest
+
+===================================================================
+MCP SERVER ARCHITECTURE NOTES
+===================================================================
+
+RECOMMENDED ARCHITECTURE
+
+Best Option: Chrome Extension Bridge Pattern (not pure OAuth extraction)
+
+Claude Desktop -> Gmail MCP Server -> Chrome Extension -> Gmail API
+   (JSON-RPC)      (Native Messaging)    (chrome.identity)
+
+---
+DETAILED IMPLEMENTATION PLAN
+
+COMPONENTS
+
+1. Gmail MCP Server (mcp_gmail.js)
+- JSON-RPC server (same pattern as existing mcp_server.js)
+- Communicates with Chrome extension via Native Messaging
+- Single tool: gmail_send
+- Input schema: to, cc, bcc, subject, body
+- No OAuth handling (delegated to extension)
+
+2. Chrome Extension Bridge (background.js enhancement)
+- Add Gmail API permissions to manifest.json
+- Use chrome.identity.getAuthToken() for OAuth
+- Handle native messaging from MCP server
+- Call Gmail API send endpoint
+- Auto-refresh tokens when expired
+
+3. Configuration (gmail_mcp_config.json)
+- Chrome extension ID
+- Native messaging host name
+- Gmail API scopes
+- Logging settings
+
+4. Native Messaging Manifest (gmail_mcp_host.json)
+- Windows registry entry or Linux config
+- Points to mcp_gmail.js executable path
+- Defines allowed Chrome extension IDs
+
+---
+REQUIRED LIBRARIES
+
+Server Side
+
+- axios - HTTP requests (already installed)
+- readline - stdin/stdout (already used)
+- No additional deps needed
+
+Chrome Extension
+
+- Gmail API via chrome.identity (built-in)
+- No additional libraries (REST API calls via fetch)
+
+---
+CONFIGURATION REQUIREMENTS
+
+1. Gmail API Setup (Google Cloud Console)
+
+- Create project
+- Enable Gmail API
+- Create OAuth 2.0 Client ID (Chrome App type)
+- Add scopes: https://www.googleapis.com/auth/gmail.send
+- Get Client ID for extension
+
+2. Chrome Extension Manifest Updates
+
+"permissions": [
+  "identity",
+  "nativeMessaging"
+],
+"oauth2": {
+  "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
+  "scopes": ["https://www.googleapis.com/auth/gmail.send"]
+}
+
+3. Native Messaging Host Setup
+
+Windows: Registry entry at HKCU\Software\Google\Chrome\NativeMessagingHosts\com.leedz.gmail_mcp
+Linux/Mac: JSON file in ~/.config/google-chrome/NativeMessagingHosts/
+
+4. Claude Desktop MCP Config
+
+"gmail-sender": {
+  "command": "node",
+  "args": ["C:\\...\\INVOICER\\server\\mcp\\mcp_gmail.js"]
+}
+
+---
+GMAIL API INTEGRATION
+
+Send Email Endpoint
+
+POST https://gmail.googleapis.com/gmail/v1/users/me/messages/send
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "raw": "{base64_encoded_mime_message}"
+}
+
+Email Format
+
+- Construct RFC 2822 MIME message
+- Include To, CC, BCC, Subject, Body headers
+- Base64url encode entire message
+- Send in API request
+
+---
+POTENTIAL PROBLEMS
+
+1. Token Management
+
+Problem: OAuth tokens expire (1 hour)
+Solution: Use chrome.identity.getAuthToken({interactive: false}) with auto-refresh
+
+2. Native Messaging Setup
+
+Problem: Complex OS-specific configuration
+Solution: Provide setup script that writes registry/config files
+
+3. Extension Not Installed/Running
+
+Problem: MCP server can't connect if extension disabled
+Solution: Graceful error handling, check extension status, clear error messages
+
+4. Multiple Gmail Accounts
+
+Problem: User logged into multiple Gmail accounts
+Solution: chrome.identity uses default account; allow account_hint parameter
+
+5. MIME Message Construction
+
+Problem: Complex email formatting (attachments, HTML, etc.)
+Solution: Start with plain text only for MVP; use library like emailjs-mime-builder later
+
+6. Rate Limiting
+
+Problem: Gmail API has quota limits
+Solution: Implement exponential backoff, surface quota errors to user
+
+7. Chrome Store Policy
+
+Problem: OAuth permissions require Chrome Web Store review
+Solution: For personal use, load unpacked extension; for distribution, submit for review
+
+---
+ERROR HANDLING
+
+Server Layer (mcp_gmail.js)
+
+- Connection timeouts (native messaging)
+- Malformed responses from extension
+- Extension not available
+- JSON-RPC protocol errors
+
+Extension Layer (background.js)
+
+- OAuth failures (user denies permission)
+- Token refresh failures
+- Gmail API errors (invalid recipient, quota exceeded)
+- Network failures
+
+Response Format
+
+{
+  "success": true/false,
+  "messageId": "abc123...",
+  "error": "Descriptive error message"
+}
+
+---
+RETRY HANDLING
+
+Strategy
+
+1. OAuth Token: Auto-retry once with {interactive: true} if expired
+2. Network Errors: 3 retries with exponential backoff (1s, 2s, 4s)
+3. Rate Limits: Respect Retry-After header, max 5 retries
+4. User Errors: No retry (invalid email format, etc.)
+
+Circuit Breaker
+
+- After 5 consecutive failures, pause for 60 seconds
+- Log detailed diagnostics
+- Return clear error to user
+
+---
+MVP STARTING POINT
+
+Phase 1: Foundation (2-3 hours)
+
+1. Create mcp_gmail.js skeleton (copy from mcp_server.js)
+2. Create gmail_mcp_config.json with minimal settings
+3. Set up basic JSON-RPC handlers for gmail_send tool
+4. Add logging infrastructure
+
+Phase 2: Extension Bridge (2-3 hours)
+
+1. Update manifest.json with Gmail permissions
+2. Add Google Cloud OAuth client ID
+3. Implement native messaging listener in background.js
+4. Test chrome.identity.getAuthToken() flow
+
+Phase 3: Gmail Integration (3-4 hours)
+
+1. Implement MIME message builder (plain text only)
+2. Create Gmail API send function
+3. Handle token refresh
+4. Test end-to-end flow
+
+Phase 4: Error Handling (1-2 hours)
+
+1. Add retry logic
+2. Implement graceful degradation
+3. Surface clear errors to user
+
+Total MVP: 8-12 hours
+
+---
+ALTERNATIVE: SIMPLER APPROACH (If Chrome Extension Bridge Too Complex)
+
+Use Gmail API with OAuth 2.0 Desktop Flow:
+- One-time manual OAuth consent
+- Store refresh token in gmail_mcp_config.json
+- MCP server directly calls Gmail API
+- No native messaging needed
+- Simpler but requires initial manual auth step
+
+This removes Chrome extension dependency but requires user to manually authorize once and securely store credentials.
+
+---
+RECOMMENDATION
+
+For your use case (personal invoicing system), I recommend:
+
+START: Simple OAuth Desktop Flow (faster MVP)
+LATER: Migrate to Chrome Extension Bridge (more seamless UX)
+
+The desktop flow gets you working in 4-6 hours vs 8-12 for full bridge architecture.
+
+===================================================================
+MCP ATTACHMENT SIZE LIMITATIONS - CRITICAL ISSUE
+===================================================================
+
+PROBLEM SUMMARY:
+Sending file attachments via gmail_send MCP plugin does not work due to the MCP protocol's 1MB content limit. While the Gmail API supports 25MB attachments, the MCP protocol requires the entire JSON-RPC message (including base64-encoded file content) to remain under 1MB. Base64 encoding increases file size by 33%, meaning files larger than 500-700KB will exceed the limit. In practice, even 80KB files trigger errors due to JSON overhead. The filesystem MCP plugin reads files but also fails on size constraints. It does NOT access Google Drive files as advertised. There is no workaround - attachments via MCP are not viable for anything beyond trivial file sizes.
