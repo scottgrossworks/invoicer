@@ -1,189 +1,138 @@
-### Leedz Desktop
-### Leedz Server
-### README
+# Leedz Desktop
 
-## INTRODUCTION
+A lightweight Windows app that uses AI to manage your Clients and Bookings.
+Free, open source, and private — your business data never leaves your machine.
 
-Leedz Desktop (Leedz Chrome Extension + Leedz Server) is a lightweight system that uses AI to manage your Clients and Bookings. The Leedz Server runs from your System Tray and securely stores all data in a local SQLite database. The Chrome Extension inputs data from the web and generates emails, calendar entries, PDF invoices, and saves everything to your database.
+Leedz Desktop is three pieces that ship together in one download:
 
-This README covers the **Leedz Server** — how to install it, configure it, and manage your databases.
+| Component | What it does |
+|---|---|
+| **Chrome Extension** | Reads a Gmail thread and uses any LLM API key to generate invoices, schedule bookings to Google Calendar, draft outreach, and share leads to the Leedz marketplace |
+| **Leedz Server** | Keeps your Clients and Bookings in a local SQLite database you control from the Windows system tray |
+| **MCP plugin** | Turns Claude Desktop, Claude Code, or any MCP-compatible AI into a personal assistant and business analyst over your own data |
 
+The extension never touches the database directly — it calls the server's REST
+API on `localhost:4000`. The server is the single owner of the database, so
+validation and business rules live in one place.
 
-## INSTALL THE LEEDZ SERVER
-
-### STEP 1: DOWNLOAD AND EXTRACT
---------------------------------------------------------------------
-1. Download "leedz-server-win-x64.zip" from theleedz.com
-2. Right-click the ZIP file and select "Extract All..."
-3. Choose a permanent location (e.g., C:\Program Files\Leedz\) — **IMPORTANT:** Do not delete this folder after installation — your database and settings live here!
-4. Click "Extract"
-
-You should see:
 ```
-  TheLeedz.exe           (System tray application)
-  leedz-server.exe       (Backend server)
-  launch_leedz.bat       (Startup script)
-  server_config.json     (Server settings)
-  prisma/                (Database schema)
-  data/                  (Your database files)
-  img/                   (Icons)
+Chrome Extension ──HTTP──> Leedz Server ──Prisma──> SQLite
+   (sidebar)               (:4000, tray)            (data/leedz.sqlite)
+        │                       ▲
+        │  Gmail send           │  HTTP
+        └──> Gmail MCP (:7000)  └── Leedz MCP plugin <── Claude / Codex / LM Studio
 ```
 
-### STEP 2: START THE SERVER
---------------------------------------------------------------------
-1. Double-click `launch_leedz.bat` in the extracted folder
-2. A small icon will appear in your Windows system tray (bottom-right)
-3. A command window will open showing "Server starting on port 3000..."
-4. When you see "Server listening on port 3000", the server is ready!
+---
 
-### STEP 3: VERIFY IT'S WORKING
---------------------------------------------------------------------
-- Check the system tray for the Leedz icon
-- The command window shows "Server listening on port 3000"
-- Leave the command window open while using Leedz — closing it stops the server
+## FOR USERS
 
-### STEP 4: CONNECT YOUR CHROME EXTENSION
---------------------------------------------------------------------
-Install the Leedz Chrome Extension (see the Chrome Extension README). On the Startup page, enter `localhost` and port `3000` to connect to your local server. When connected, the Database Name will appear.
+Download the zip from [theleedz.com](https://theleedz.com/leedz_download.html),
+extract it somewhere permanent (e.g. `C:\Program Files\Leedz`), then:
 
+1. **Start the server** — open `server\` and double-click **TheLeedz.exe** (the
+   green grass icon). A Leedz icon appears in your system tray; the server and
+   Gmail support start hidden in the background. Right-click the tray icon for
+   Start / Stop / Configure.
+2. **Load the extension** — in Chrome go to `chrome://extensions`, turn on
+   **Developer mode**, click **Load unpacked**, and select the
+   `chrome-extension\` folder.
+3. **Connect them** — click the Leedz icon in Chrome, enter your LLM API key on
+   the **Startup** page, and Save. The Database Name appears once the extension
+   finds your server.
+4. *(optional)* **Connect your AI** — see `server\MCP_INSTRUCTIONS.txt` to let
+   Claude query your database in plain English.
 
-## SYSTEM TRAY
+Full instructions ship inside the zip:
 
-Right-click the Leedz system tray icon (bottom-right of your Windows taskbar) for these options:
+- `START_HERE.txt` — the 3-step version of the above
+- `server\INSTALL_INSTRUCTIONS.txt` — server, tray, ports, databases, backups
+- `server\MCP_INSTRUCTIONS.txt` — connect Claude Desktop / Claude Code / LM Studio
+- `chrome-extension\INSTALL_INSTRUCTIONS.txt` — extension install and troubleshooting
 
-- **Open Server** — Opens the server command window
-- **Settings** — Configure auto-start and other preferences
-- **Exit** — Stops the server
+**Requirements:** Windows 10+ (64-bit), an LLM subscription key (Claude, ChatGPT,
+OpenRouter, …), Chrome, and Node.js 18+ *only* if you want Gmail sending or the
+MCP plugin. Gmail recommended.
 
-### AUTO-START ON WINDOWS BOOT (Recommended)
-1. Right-click the Leedz tray icon
-2. Select "Settings"
-3. Check "Start TheLeedz automatically when Windows starts"
-4. Click "Save"
+---
 
+## THE FOUR PAGES
 
-## CONFIGURATION
+The extension sidebar has four pages, switched from the hamburger menu:
 
-### Changing the Server Port
---------------------------------------------------------------------
-If port 3000 is already in use by another program, you can change it:
+- **Startup** — connect to your server, set your LLM key, authorize Gmail.
+  Business identity (name, rates, service area) is parsed at runtime from
+  `DOCS/VALUE_PROP.md`; edit that file rather than the UI.
+- **Booker** — page through the Clients parsed from the current page with the
+  carousel; exactly one Client owns the Booking (the attach checkbox). Save
+  writes all Clients plus the one Booking, and Calendar/PDF act on the owner.
+- **Share** — post a Booking you don't want to the Leedz marketplace, or
+  privately to friends; optionally price it and collect through Square.
+- **Outreach** — type a hint, press **Write** to have the LLM draft the email
+  from your Client/Booking facts, edit it, then **Email** to open it in Gmail.
 
-1. Open `server_config.json` in any text editor
-2. Change the `"port"` value to any available port number:
-```json
-{
-  "port": 3001
-}
+---
+
+## FOR DEVELOPERS
+
+### Repository layout
+
 ```
-3. Save the file and restart the server
-4. Update your Chrome Extension's Startup page to use the new port
-
-### Server Configuration File
---------------------------------------------------------------------
-`server_config.json` controls the server's behavior:
-
-- **port** — The port number the server listens on (default: 3000)
-- **database.type** — The database provider (default: "prisma_sqlite")
-- **database.url** — Path to the database file (default: "file:./data/leedz.sqlite")
-- **logging.level** — How much detail to log: "debug", "info", or "error"
-- **logging.file** — Where to write the log file (default: "./server.log")
-
-
-## DATABASES
-
-Your data is stored in a SQLite database file. By default, the database is at `data/leedz.sqlite` inside your Leedz folder.
-
-### Switching Databases
---------------------------------------------------------------------
-You can maintain multiple databases (e.g., one per business, or a test database):
-
-1. Open `server_config.json`
-2. Change the `"database.url"` path to point to a different `.sqlite` file:
-```json
-{
-  "database": {
-    "type": "prisma_sqlite",
-    "url": "file:./data/my_other_business.sqlite"
-  }
-}
+client/           Chrome extension (vanilla ES6 modules, no build step)
+  js/pages/       Startup, Booker, Share, Outreach (all extend Page/DataPage)
+  js/db/          REST client for the Leedz Server
+  DOCS/           VALUE_PROP.md - runtime business identity
+server/           Node/Express + Prisma over SQLite
+  src/            leedz_server.js and the DB layer
+  tray/           TheLeedz.exe - .NET 8 system tray app (C#)
+  mcp/            mcp_gmail.js (Gmail OAuth) + mcp_server.js (Leedz MCP plugin)
+  prisma/         schema + migrations
 ```
-3. Save the file and restart the server
-4. The Chrome Extension Startup page will show the new database name when connected
 
-### Backing Up Your Database
---------------------------------------------------------------------
-To back up your data, simply copy the `.sqlite` file from the `data/` folder to a safe location. You can restore a backup by copying it back.
+### Architecture notes
 
-### Starting Fresh
---------------------------------------------------------------------
-The server ships with an empty database. To start over:
-1. Stop the server
-2. Delete (or rename) the current `.sqlite` file in `data/`
-3. Copy the original `leedz.sqlite` from a backup or re-extract from the ZIP
-4. Restart the server
+**DataPage universal workflow.** Booker, Share, and Outreach all extend
+`DataPage`, which runs the same sequence on every page: clear UI → load cached
+state → preliminary identity parse → search the database by email → render and
+**stop** if the Client is already known → otherwise run the full LLM parse.
+Skipping the LLM on a database hit is what keeps repeat visits instant; Refresh
+forces a re-parse.
 
-### Exporting Data
---------------------------------------------------------------------
-The server can export your data to JSON files for archiving or transfer:
-- Clients export: `http://localhost:3000/api/dump/clients`
-- Bookings export: `http://localhost:3000/api/dump/bookings`
-- Config export: `http://localhost:3000/api/dump/config`
+**One booking, one owner.** `state.Clients[]` holds every Client parsed from a
+page and `state.bookingOwnerIndex` marks which one owns the Booking. The
+`state.Client` getter/setter transparently reads and writes
+`Clients[bookingOwnerIndex]`, so every existing caller (PDF, Calendar, Save)
+follows the checkbox with no extra code.
 
-Exported files are saved to an `exports/` folder inside your Leedz directory with timestamps.
+**The server owns the database.** Nothing else opens the SQLite file. The MCP
+plugin deliberately goes over HTTP to the running server rather than importing
+Prisma, so business rules are never duplicated and two processes never contend
+for the same file.
 
+**MCP plugins are dependency-free.** Both `mcp_gmail.js` and `mcp_server.js` use
+built-in `fetch` (Node 18+) and ship as single files — a customer install has no
+`node_modules`. `mcp_server.js` exposes 16 direct, self-describing tools so the
+calling LLM picks the tool and arguments itself; there is no second LLM call.
 
-## STOPPING AND RESTARTING
+### Building
 
-**TO STOP:** Close the command window, or right-click the tray icon and select "Exit"
-
-**TO RESTART:** Double-click `launch_leedz.bat` again
-
-
-## MCP SERVER (Claude Desktop Integration)
-
-The Leedz includes an MCP server that lets Claude Desktop talk directly to your database. You can ask Claude questions like "show me all bookings in January" or "find clients in Los Angeles" and it will query your data.
-
-### Setup
-1. Open Claude Desktop Settings
-2. Go to MCP Servers configuration
-3. Add the Leedz MCP server:
-```json
-{
-  "mcpServers": {
-    "leedz-mcp": {
-      "command": "C:\\Program Files\\nodejs\\node.exe",
-      "args": ["C:\\path\\to\\server\\mcp\\mcp_server.js"]
-    }
-  }
-}
+```batch
+build_all.bat
 ```
-4. Replace the paths with your actual Node.js and Leedz server locations
-5. Restart Claude Desktop
 
-The MCP server connects to your running Leedz Server, so make sure the server is started first.
+Builds the extension, the server (including the .NET tray), and composes the
+single customer download `leedz-desktop-win-x64.zip`. Stop the server and tray
+first — Windows locks running executables. See `BUILD_RULES.md` for the
+per-component detail, and `bundle.bat` if you only need to re-compose the zip
+from existing component builds.
 
+**Secrets never ship.** `dist/` and `dist-pkg/` keep your real config for local
+use, but the zip steps stage a sanitized copy first: `server_config.json`,
+`LLM_KEY.json`, `VALUE_PROP.md`, and `mcp_server_config.json` are all swapped
+for their `.template` versions inside the archive.
 
-## TROUBLESHOOTING
+---
 
-**PORT ALREADY IN USE:** If you see "Port 3000 is already in use", another program is using that port. Either stop that program or edit `server_config.json` to change the port.
+## QUESTIONS
 
-**FIREWALL WARNING:** Windows may ask to allow network access. Click "Allow access" — the server only runs locally on your computer.
-
-**SERVER WON'T START:** Make sure you extracted ALL files from the ZIP. Try running as Administrator (right-click `launch_leedz.bat`, select "Run as administrator").
-
-**EXTENSION CAN'T CONNECT:** Verify the server is running (check for the tray icon and command window). Make sure the port in the Chrome Extension's Startup page matches `server_config.json`.
-
-**DATABASE ISSUES:** Your database is stored in `data/leedz.sqlite`. To back up your data, copy this file to a safe location.
-
-
-## SYSTEM REQUIREMENTS
-
-- Windows 10 or later (64-bit)
-- .NET 8 Runtime (usually pre-installed on modern Windows)
-- Port 3000 available (or configure a different port)
-- 50 MB disk space
-
-
-### QUESTIONS
-theleedz.com@gmail.com
-theleedz.com
+theleedz.com@gmail.com · [theleedz.com](https://theleedz.com)
