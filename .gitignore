@@ -54,6 +54,9 @@ build/
 .fake
 client/leedz-chrome-ext.zip
 server/leedz-server-win-x64.zip
+server/mcp/leedz-mcp.zip
+# master deployable artifact (built by build_all.bat, uploaded to S3)
+leedz-desktop-win-x64.zip
 server/tray/bin/
 server/tray/obj/
 server/dist-pkg/**/*.exe
