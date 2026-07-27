@@ -14,13 +14,12 @@ STEP 1: DOWNLOAD AND EXTRACT
 4. Click "Extract"
 
 You should see a folder containing:
-  - TheLeedz.exe           (System tray application)
-  - leedz-server.exe       (Backend server)
-  - launch_leedz.bat       (Startup script)
+  - TheLeedz.exe           (THE APP - double-click this one)
+  - leedz-server.exe       (Backend server - started FOR you, never click)
   - server_config.json     (Server settings)
   - prisma/ folder         (Database schema)
   - data/ folder           (Your database files)
-  - mcp/ folder            (Gmail sending support)
+  - mcp/ folder            (Gmail sending + Claude/AI support)
   - img/ folder            (Icons)
 
 --------------------------------------------------------------------
@@ -36,21 +35,15 @@ without it.
 --------------------------------------------------------------------
 STEP 3: START THE SERVER
 --------------------------------------------------------------------
-1. Double-click "launch_leedz.bat" in the extracted folder
-2. A small icon will appear in your Windows system tray (bottom-right)
-3. A command window will open showing "Server starting on port 4000..."
-4. When you see "Server listening on port 4000", it's ready!
+1. Double-click "TheLeedz.exe" (the green grass icon)
+2. A small icon appears in your Windows system tray (bottom-right,
+   click the ^ arrow if you don't see it)
+3. That's it. The server (and Gmail support, if Node.js is installed)
+   start automatically in the background - no windows open.
 
-If Node.js is installed (Step 2), a second window titled "Gmail MCP"
-also opens - this is what lets the Chrome Extension send email through
-your Gmail account. If you skipped Step 2, you'll see a warning that
-Node.js was not found; the server still starts normally.
-
-The system tray icon lets you quickly access server controls and
-settings. Right-click the icon to see available options.
-
-Leave both command windows open while using Leedz. Closing the main
-server window stops the server.
+The tray icon is your control panel: right-click it for Start Server,
+Stop Server, Configure, and Exit. A green dot in the menu header means
+the server is running; red means stopped.
 
 --------------------------------------------------------------------
 STEP 4: CONNECT YOUR CHROME EXTENSION
@@ -70,10 +63,11 @@ When connected, the Database Name will appear on the Startup page.
 STOPPING AND RESTARTING
 ====================================================================
 
-TO STOP: Close the command window(s), or right-click the tray icon
-and select "Exit"
+TO STOP: Right-click the tray icon and select "Stop Server" (or "Exit"
+to also close the tray)
 
-TO RESTART: Double-click "launch_leedz.bat" again
+TO RESTART: Double-click "TheLeedz.exe" again (or right-click the tray
+icon and select "Start Server")
 
 TO AUTO-START ON WINDOWS BOOT (Recommended):
 1. Right-click the Leedz tray icon
@@ -157,17 +151,17 @@ FIREWALL WARNING: Windows may ask to allow network access. Click
 "Allow access" - the server only runs locally on your computer.
 
 SERVER WON'T START: Make sure you extracted ALL files from the ZIP.
-Try running as Administrator (right-click launch_leedz.bat, select
-"Run as administrator").
+Try running as Administrator (right-click TheLeedz.exe, select
+"Run as administrator"). Check server.log in the Leedz folder for
+error messages.
 
-GMAIL AUTH BUTTON STAYS DISABLED: The Gmail MCP window did not start.
-Confirm Node.js is installed (Step 2) and that a "Gmail MCP" command
-window opened alongside the main server window when you ran
-launch_leedz.bat.
+GMAIL AUTH BUTTON STAYS DISABLED: The Gmail MCP did not start.
+Confirm Node.js is installed (Step 2), then right-click the tray
+icon, Stop Server, Start Server.
 
-EXTENSION CAN'T CONNECT: Verify the server is running (check for
-the tray icon and command window). Make sure the port in the Chrome
-Extension's Startup page matches server_config.json.
+EXTENSION CAN'T CONNECT: Right-click the tray icon - the menu header
+dot should be green. Make sure the port in the Chrome Extension's
+Startup page matches server_config.json.
 
 DATABASE ISSUES: Your database is stored in data\leedz.sqlite.
 To backup your data, copy this file to a safe location.

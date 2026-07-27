@@ -20,9 +20,8 @@ This README covers the **Leedz Server** — how to install it, configure it, and
 
 You should see:
 ```
-  TheLeedz.exe           (System tray application)
-  leedz-server.exe       (Backend server)
-  launch_leedz.bat       (Startup script)
+  TheLeedz.exe           (THE APP - double-click this one)
+  leedz-server.exe       (Backend server - started for you, never click)
   server_config.json     (Server settings)
   prisma/                (Database schema)
   data/                  (Your database files)
@@ -38,18 +37,14 @@ Download and install Node.js (LTS) from [nodejs.org](https://nodejs.org), using 
 
 ### STEP 3: START THE SERVER
 --------------------------------------------------------------------
-1. Double-click `launch_leedz.bat` in the extracted folder
-2. A small icon will appear in your Windows system tray (bottom-right)
-3. A command window will open showing "Server starting on port 4000..."
-4. When you see "Server listening on port 4000", the server is ready!
-
-If Node.js is installed (Step 2), a second window titled "Gmail MCP" also opens — this powers Gmail sending from the Outreach page. If Node.js isn't installed, you'll see a warning in the console and the server still starts normally.
+1. Double-click `TheLeedz.exe` (the green grass icon)
+2. A small icon appears in your Windows system tray (bottom-right — click the `^` arrow if you don't see it)
+3. That's it. The server (and Gmail support, if Node.js is installed) start automatically in the background — no windows open.
 
 ### STEP 4: VERIFY IT'S WORKING
 --------------------------------------------------------------------
-- Check the system tray for the Leedz icon
-- The command window shows "Server listening on port 4000"
-- Leave the command window(s) open while using Leedz — closing the main server window stops the server
+- Right-click the Leedz tray icon — the menu header shows a **green dot** when the server is running
+- Or open http://localhost:4000/health in a browser — you should see `{"status":"ok", ...}`
 
 ### STEP 5: CONNECT YOUR CHROME EXTENSION
 --------------------------------------------------------------------
@@ -60,9 +55,10 @@ Install the Leedz Chrome Extension (see the Chrome Extension README). On the Sta
 
 Right-click the Leedz system tray icon (bottom-right of your Windows taskbar) for these options:
 
-- **Open Server** — Opens the server command window
-- **Settings** — Configure auto-start and other preferences
-- **Exit** — Stops the server
+- **Start Server** — Starts the server (greyed out while running)
+- **Configure** — Auto-start and other preferences
+- **Stop Server** — Stops the server (greyed out while stopped)
+- **Exit** — Stops everything and closes the tray
 
 ### AUTO-START ON WINDOWS BOOT (Recommended)
 1. Right-click the Leedz tray icon
@@ -144,20 +140,20 @@ Exported files are saved to an `exports/` folder inside your Leedz directory wit
 
 ## STOPPING AND RESTARTING
 
-**TO STOP:** Close the command window(s), or right-click the tray icon and select "Exit"
+**TO STOP:** Right-click the tray icon and select "Stop Server" (or "Exit" to also close the tray)
 
-**TO RESTART:** Double-click `launch_leedz.bat` again
+**TO RESTART:** Double-click `TheLeedz.exe` again (or tray icon > Start Server)
 
 
 ## GMAIL MCP (Extension Gmail Sending)
 
-`mcp/mcp_gmail.js` is a small local server that handles the OAuth token exchange so the Chrome Extension's Outreach page can send email through your Gmail account. It requires Node.js (see Step 2 above) and is started automatically by `launch_leedz.bat` alongside the main server — you never run it directly.
+`mcp/mcp_gmail.js` is a small local server that handles the OAuth token exchange so the Chrome Extension's Outreach page can send email through your Gmail account. It requires Node.js (see Step 2 above) and is started automatically by the tray app (TheLeedz.exe) alongside the main server — you never run it directly, and no console window appears.
 
 ### Configuration
 `mcp/gmail_mcp_config.json` controls its host and port (default `127.0.0.1:7000`). If you change the port here, update the MCP Port on the Chrome Extension's Startup page to match.
 
 ### Troubleshooting
-If the "Authorize Gmail" button on the Outreach page stays disabled, confirm Node.js is installed and that a "Gmail MCP" command window opened when you ran `launch_leedz.bat`.
+If the "Authorize Gmail" button on the Outreach page stays disabled, confirm Node.js is installed, then use the tray icon to Stop Server and Start Server.
 
 
 ## CLAUDE DESKTOP MCP (Optional — Database Queries)
@@ -190,7 +186,7 @@ The MCP server connects to your running Leedz Server, so make sure the server is
 
 **FIREWALL WARNING:** Windows may ask to allow network access. Click "Allow access" — the server only runs locally on your computer.
 
-**SERVER WON'T START:** Make sure you extracted ALL files from the ZIP. Try running as Administrator (right-click `launch_leedz.bat`, select "Run as administrator").
+**SERVER WON'T START:** Make sure you extracted ALL files from the ZIP. Try running as Administrator (right-click `TheLeedz.exe`, select "Run as administrator").
 
 **GMAIL AUTH BUTTON STAYS DISABLED:** See "Gmail MCP" troubleshooting above.
 

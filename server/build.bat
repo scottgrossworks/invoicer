@@ -236,14 +236,8 @@ for %%A in (%ARCHITECTURES%) do (
         copy /Y "tray\img\*.png" "!PKG_DIR!\img\" >nul 2>&1
     )
 
-    REM Copy launch_leedz.bat from template (uses %%~dp0 so it finds the Gmail
-    REM MCP relative to wherever the customer extracted the ZIP - NOT hardcoded
-    REM to this build machine's path)
-    copy /Y "launch_leedz.template.bat" "!PKG_DIR!\launch_leedz.bat" >nul
-    if errorlevel 1 (
-        echo [ERROR] Failed to copy launch_leedz.template.bat for %%A
-        goto :ERROR
-    )
+    REM launch_leedz.bat is NO LONGER SHIPPED: TheLeedz.exe is the single entry
+    REM point - it auto-starts the server AND the Gmail MCP hidden (no consoles).
 
     echo       Files assembled successfully
 )
@@ -305,7 +299,6 @@ echo     data\leedz.sqlite    (Empty canonical DB: 0 rows, no Config table)
 echo     prisma\schema.prisma
 echo     server_config.json
 echo     img\icon.ico
-echo     launch_leedz.bat
 echo     INSTALL_INSTRUCTIONS.txt
 echo     MCP_INSTRUCTIONS.txt
 echo     README.md

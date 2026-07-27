@@ -18,7 +18,7 @@ BEFORE YOU START
 ====================================================================
 
 1. The Leedz Server must be running
-   - Double-click launch_leedz.bat in your Leedz folder
+   - Double-click TheLeedz.exe in your Leedz folder
    - Verify: open http://localhost:4000/health in a browser -
      you should see {"status":"ok", ...}
 
@@ -109,7 +109,7 @@ CLAUDE DOESN'T SHOW THE LEEDZ TOOLS:
   You should see "[MCP] Server ready". Press Ctrl+C to stop.
 
 "CANNOT REACH LEEDZ SERVER" ERRORS:
-- Start the server (launch_leedz.bat) and check the tray icon
+- Start the server (double-click TheLeedz.exe) and check the tray icon
 - Verify http://localhost:4000/health responds in a browser
 - If your server uses a different port, edit
   mcp\mcp_server_config.json > "database" > "apiUrl" to match

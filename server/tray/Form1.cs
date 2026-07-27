@@ -279,10 +279,11 @@ private void UpdateMenuState()
                 return;
             }
 
-            // Check if server is already running externally (launched by launch_leedz.bat)
+            // Check if server is already running externally
             if (IsPackagedDeployment && IsServerRunningExternal())
             {
                 DebugWrite("[TRAY] Server is already running (started externally)");
+                StartGmailMcp(); // still make sure the Gmail MCP is up (no-op if it is)
                 return;
             }
 
@@ -343,6 +344,9 @@ private void UpdateMenuState()
                 nodeProcess.BeginOutputReadLine();
                 nodeProcess.BeginErrorReadLine();
                 if (trayIcon != null) trayIcon.Text = "Leedz Server: running";
+
+                // Gmail MCP rides along with the server - hidden, no console
+                StartGmailMcp();
             }
             else
             {
@@ -354,6 +358,62 @@ private void UpdateMenuState()
         {
             DebugWrite($"[TRAY] Error starting server: {ex.Message}");
             MessageBox.Show("Error starting server: " + ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Starts the Gmail MCP (mcp\mcp_gmail.js) hidden alongside the server.
+    /// Requires Node.js on the customer's machine - silently skipped if absent
+    /// (only Gmail sending from the extension's Outreach page is lost).
+    /// --standalone: the MCP exits itself if it loses the port bind, and its
+    /// watchdog exits it when the server goes down. StopNodeServer's orphan
+    /// sweep also kills it by command line on tray-initiated stops.
+    /// No-op if a Gmail MCP is already running.
+    /// </summary>
+    private void StartGmailMcp()
+    {
+        try
+        {
+            string mcpScript = Path.Combine(ServerDir, "mcp", "mcp_gmail.js");
+            if (!File.Exists(mcpScript))
+            {
+                DebugWrite("[TRAY] Gmail MCP not found - skipping");
+                return;
+            }
+
+            // Already running? (match by command line, same as the stop-side sweep)
+            foreach (var proc in Process.GetProcessesByName("node"))
+            {
+                try
+                {
+                    string cmdLine = GetProcessCommandLine(proc);
+                    if (!string.IsNullOrEmpty(cmdLine) && cmdLine.ToLower().Contains("mcp_gmail.js"))
+                    {
+                        DebugWrite("[TRAY] Gmail MCP already running");
+                        return;
+                    }
+                }
+                catch { /* process may have exited mid-check */ }
+            }
+
+            var psi = new ProcessStartInfo("node")
+            {
+                WorkingDirectory = Path.Combine(ServerDir, "mcp"),
+                Arguments = $"\"{mcpScript}\" --standalone",
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            var mcp = Process.Start(psi);
+            DebugWrite(mcp != null
+                ? $"[TRAY] Gmail MCP started (PID: {mcp.Id})"
+                : "[TRAY] Gmail MCP failed to start");
+        }
+        catch (Exception ex)
+        {
+            // Node.js missing or other spawn failure - server still works,
+            // only extension Gmail sending is unavailable
+            DebugWrite($"[TRAY] Gmail MCP not started: {ex.Message}");
         }
     }
 
