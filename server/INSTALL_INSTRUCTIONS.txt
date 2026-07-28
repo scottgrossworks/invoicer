@@ -2,23 +2,21 @@
 LEEDZ SERVER - INSTALL, CONFIGURE & RUN
 ====================================================================
 
-!!! TO DO FIRST !!!
+YOUR DATABASE
 --------------------------------------------------------------------
-server_config.json ships with a PLACEHOLDER database path. The server
-will NOT start until you edit it. After extracting (Step 1), open
-server_config.json in Notepad and set:
+The server ships ready to run. It comes with an empty database:
 
-    "url": "file:./data/leedz.sqlite"
+    data\leedz.sqlite
 
-That file - server\data\leedz.sqlite - IS your business. Every client
-and booking you save lives there, on your machine and nowhere else.
-Back it up by copying that one file somewhere safe.
+Every client and booking you save lives in that one file, on your
+machine and nowhere else. BACK IT UP by copying it somewhere safe.
 
-To run a second business or a test set, point "url" at a different
-filename in the same data\ folder and restart. The Chrome extension's
-Startup page shows which database is currently connected.
+Nothing to configure - the server already points at it.
 
-Also fill in the two Chrome extension files before first use -
+(The Chrome extension uses this same database. It never touches the
+file directly; it goes through this server.)
+
+Before your first use, fill in the two Chrome extension files:
 DOCS\VALUE_PROP.md (describe your business in plain English) and
 LLM_KEY.json (your AI key). See the extension's
 INSTALL_INSTRUCTIONS.txt, section TO DO FIRST.
@@ -126,25 +124,22 @@ If something isn't working, check this file for error messages.
 DATABASES
 ====================================================================
 
-Your data is stored in a SQLite database file inside the data/ folder.
-By default: data\leedz.sqlite
+Your database is one file:  data\leedz.sqlite
 
-SWITCHING DATABASES:
-You can maintain multiple databases (one per business, or a test DB):
-1. Open "server_config.json" in a text editor
-2. Change the "url" value under "database" to point to your file:
-
-   "database": {
-     "type": "prisma_sqlite",
-     "url": "file:./data/my_other_business.sqlite"
-   }
-
-3. Save the file and restart the server
-4. The Chrome Extension Startup page will show the new DB name
+It ships empty and the server already uses it. Nothing to set up.
 
 BACKING UP YOUR DATABASE:
-To back up your data, simply copy the .sqlite file from the data/
-folder to a safe location. To restore, copy it back.
+Copy data\leedz.sqlite somewhere safe. To restore, copy it back.
+That is the whole backup procedure.
+
+SWITCHING DATABASES (optional - most people never do this):
+To keep a second business or a test set in its own file, edit the
+"url" line in server_config.json to another name in the same folder,
+then restart:
+
+     "url": "file:./data/my_other_business.sqlite"
+
+The Chrome Extension Startup page shows which database is connected.
 
 STARTING FRESH:
 1. Stop the server

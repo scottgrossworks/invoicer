@@ -1,9 +1,10 @@
 {
-  "_comment": "Copy this file to server_config.json and fill in database.url + square.appSecret before first run. server_config.json is gitignored - never commit your real values.",
+  "_comment": "This file works as-is - nothing to edit to get started. The only optional change is square.appSecret, needed only if you want to accept payment for shared leedz.",
   "port": 4000,
   "database": {
+    "_comment": "THIS IS YOUR DATABASE: the file data/leedz.sqlite sitting next to this config. Every client and booking you save lives there. Back it up by copying that one file. The Chrome extension reads and writes it through this server - you never point the extension at the file itself.",
     "type": "prisma_sqlite",
-    "url": "file:PATH TO SQLITE DB"
+    "url": "file:./data/leedz.sqlite"
   },
   "logging": {
     "level": "debug",
