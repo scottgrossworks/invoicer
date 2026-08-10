@@ -1,0 +1,102 @@
+{
+  "ui": {
+    "defaultPage": "startup",
+    "pages": [
+      {
+        "id": "startup",
+        "label": "Startup",
+        "module": "js/pages/Startup.js",
+        "className": "Startup"
+      },
+      {
+        "id": "booker",
+        "label": "Booker",
+        "module": "js/pages/Booker.js",
+        "className": "Booker"
+      },
+      {
+        "id": "share",
+        "label": "Share",
+        "module": "js/pages/Share.js",
+        "className": "Share"
+      },
+      {
+        "id": "outreach",
+        "label": "Outreach",
+        "module": "js/pages/Outreach.js",
+        "className": "Outreach"
+      }
+    ]
+  },
+  "llm": {
+    "_comment_api_key": "api-key is loaded at runtime from LLM_KEY.json — edit that file to set your OpenRouter key",
+    "_comment_type": "type selects the request/response shape in js/parser/parser.js (_sendLLMRequest/_extractLLMText): 'openrouter' (OpenAI-compatible) or 'anthropic'. DEFAULT IS OPENROUTER.",
+    "_comment_provider": "provider is the exact model id for your chosen type, e.g. 'openai/gpt-oss-120b' for openrouter, or 'claude-opus-4-1-20250805' for anthropic. Pick one at https://openrouter.ai/models before first use - the extension will not parse without it.",
+    "type": "openrouter",
+    "provider": "",
+    "baseUrl": "https://openrouter.ai/api/v1",
+    "max_tokens": 1024,
+    "endpoints": {
+      "models": "/models",
+      "completions": "/chat/completions"
+    }
+  },
+  "db": {
+    "_comment": "Fallback defaults - overridden by Startup page configuration in Chrome storage",
+    "provider": "local_prisma_sqlite",
+    "baseUrl": "http://127.0.0.1:4000"
+  },
+  "aws": {
+    "apiGatewayUrl": "https://jjz8op6uy4.execute-api.us-west-2.amazonaws.com/Leedz_Stage_1"
+  },
+  "mcp": {
+    "_comment": "Fallback defaults - overridden by Startup page configuration in Chrome storage. Port must match server/mcp/gmail_mcp_config.json http.port",
+    "defaultHost": "127.0.0.1",
+    "defaultPort": "7000"
+  },
+  "parsers": [
+    { "name": "GmailParser", "module": "js/parser/gmail_parser.js" },
+    { "name": "GCalParser", "module": "js/parser/gcal_parser.js" },
+    { "name": "ClientParser", "module": "js/parser/client_parser.js" }
+  ],
+  "_comment_parsers": "Order matters! Specific parsers (Gmail, GCal) must come before fallback (ClientParser)",
+  "gmailParser": {
+    "enableLLM": true,
+    "fallbackToRawText": true,
+    "maxThreadLength": 10000,
+    "systemPrompt": "CURRENT DATE CONTEXT:\n- Today's date: {{CURRENT_DATE}}\n- Current year: {{CURRENT_YEAR}}\n\nDATE PARSING RULES (CRITICAL):\n1. If year NOT mentioned in email: use CURRENT YEAR ({{CURRENT_YEAR}})\n2. If month < current month: assume NEXT YEAR ({{NEXT_YEAR}})\n   Example: In December 2025, 'January 15' → '2026-01-15'\n3. NEVER return dates in the past unless explicitly stated with a year\n4. All dates must be forward-looking from today ({{CURRENT_DATE}})\n5. ISO 8601 format: 'YYYY-MM-DD' for dates\n\nROLE: You are analyzing a Gmail conversation text blob about a potential booking/service appointment. Extract all relevant booking information and return ONLY valid JSON.\n\nEXTRACT THESE BOOKING FIELDS:\n- name: client name (the CLIENT only, never the seller - see SELLER IDENTITY block)\n- email: client email (the client's email, never the seller's - see SELLER IDENTITY block) \n- phone: client phone (the client's phone, never the seller's - see SELLER IDENTITY block)\n- company: client's organization (look in email signature, may include 'Foundation' or 'LLC' or 'District' or 'City')\n- location: service address/venue\n- title: 3-6 word calendar-style event title summarizing the booking\n- description: brief summary of service/event in one coherent sentence, including any requirements for materials to bring or extra services to be offered, like stickers or branded paper\n- startDate: appointment date (ISO 8601 format). All gigs are 1-day events.\n- startTime: start time (12-hour format with AM/PM)\n- endTime: end time (12-hour format with AM/PM)\n- duration: service duration in hours (number)\n- hourlyRate: hourly rate (number, no $ symbol)\n- flatRate: flat rate (number, no $ symbol)\n- totalAmount: total payment (number, no $ symbol)\n- notes: any additional relevant notes about the booking\n\nRULES:\n1. Return ONLY JSON, no explanations\n2. Use null for missing fields\n3. Never extract the seller's contact info (see SELLER IDENTITY block)\n4. Use 12-hour time format (7:00 PM not 19:00)\n5. Extract rates from phrases like '$175/hr', '$500 total', '$200 per hour'\n6. Title should be concise calendar event name (e.g., 'Corporate Workshop', 'School Assembly Event')\n7. Description should be single sentence including special requirements\n8. If no booking found, return: {\"error\": \"No booking information detected\"}\n\nEXAMPLE OUTPUT:\n{\n  \"name\": \"Laura Martinez\",\n  \"email\": \"laura@company.com\",\n  \"phone\": \"(555) 123-4567\",\n  \"company\": \"Tech Solutions LLC\",\n  \"location\": \"123 Event Center, Los Angeles, CA\",\n  \"title\": \"Corporate Team Building Workshop\",\n  \"description\": \"Interactive team building workshop with branded materials and custom stickers for 50 participants\",\n  \"startDate\": \"2026-09-20\",\n  \"startTime\": \"7:00 PM\",\n  \"endTime\": \"11:00 PM\",\n  \"duration\": 4.0,\n  \"hourlyRate\": 150,\n  \"flatRate\": null,\n  \"totalAmount\": 600,\n  \"notes\": null\n}"
+  },
+  "gcalParser": {
+    "enableLLM": true,
+    "fallbackToRawText": true,
+    "maxThreadLength": 10000,
+    "systemPrompt": "ROLE: Extract all information relevant to a potential booking from a Google Calendar Task/Event. Return ONLY valid JSON.\n\nEXTRACT THESE FIELDS:\n- name: client name (the CLIENT only, never the seller - see SELLER IDENTITY block)\n- email: client email (the client's email, never the seller's - see SELLER IDENTITY block) \n- phone: client phone (the client's phone, never the seller's - see SELLER IDENTITY block)\n- company: client's organization (look in email signature, may include 'Foundation' or 'LLC' or 'District' or 'City')\n- location: service address/venue\n- description: brief summary of service/event in one coherent sentence, including any requirements for materials to bring or extra services to be offered, like stickers or branded paper\n- startDate: appointment date (ISO 8601 format). All gigs are 1-day events.\n- startTime: start time (12-hour format with AM/PM)\n- endTime: end time (12-hour format with AM/PM)\n- duration: service duration in hours (number)\n- hourlyRate: hourly rate (number, no $ symbol)\n- flatRate: flat rate (number, no $ symbol)\n- totalAmount: total payment (number, no $ symbol)\n\nRULES:\n1. Return ONLY JSON, no explanations\n2. Use null for missing fields\n3. Never extract the seller's contact info (see SELLER IDENTITY block)\n4. Use 12-hour time format (7:00 PM not 19:00)\n5. Extract rates from phrases like '$175/hr', '$500 total', '$200 per hour'\n6. If no booking found, return: {\"error\": \"No booking information detected\"}\n\nEXAMPLE OUTPUT:\n{\n  \"name\": \"Laura Martinez\",\n  \"email\": \"laura@company.com\",\n  \"phone\": \"(555) 123-4567\",\n  \"location\": \"123 Event Center, Los Angeles, CA\",\n  \"description\": \"Corporate event planning\",\n  \"startDate\": \"2025-09-20\",\n  \"startTime\": \"7:00 PM\",\n  \"endTime\": \"11:00 PM\",\n  \"duration\": 4.0,\n  \"hourlyRate\": 150,\n  \"flatRate\": null,\n  \"totalAmount\": 600\n}"
+  },
+  "clientParser": {
+    "enabled": true,
+    "enableLLM": true,
+    "fallbackToRawText": true,
+    "maxThreadLength": 10000,
+    "systemPrompt": "ROLE: Extract client contact information from webpage content. Return ONLY a JSON array of Client objects.\n\nCLIENT SCHEMA:\n{\n  \"name\": \"string (REQUIRED - person name, NOT organization name)\",\n  \"email\": \"string (optional - must be valid email)\",\n  \"phone\": \"string (optional - digits only, no formatting)\",\n  \"company\": \"string (optional - organization/school/company name)\",\n  \"website\": \"string (optional - organization/company website URL)\",\n  \"clientNotes\": \"string (optional - role, title, address, fax)\"\n}\n\nEXTRACTION RULES:\n1. Extract INDIVIDUAL PEOPLE as separate clients (Administrator, Director, Custodian, Manager, etc.)\n2. NEVER use organization name as client name - use person names only\n3. Each client can have SAME company (organization name)\n4. Each client can have SAME phone (organizational phone) if individual phone not available\n5. Each client can have SAME website (organizational website URL)\n6. Each client MUST have UNIQUE email OR null email (never duplicate emails)\n7. Include person's role/title in clientNotes\n8. Include organizational address in clientNotes for context\n9. Extract website URLs to the website field (not clientNotes)\n10. Phone format: digits only - \"3106522626\" not \"(310) 652-2626\"\n11. Website format: full URL - \"https://www.example.com\" or \"www.example.com\"\n12. Support multilingual names (Hebrew, French, Spanish, etc.)\n13. If no individual people found, return empty array []\n\nEXAMPLE OUTPUT:\n[\n  {\n    \"name\": \"Jairo Sullivan\",\n    \"email\": \"jsullivan@tashbaryeshiva.com\",\n    \"phone\": \"3106522626\",\n    \"company\": \"Tashbar Sephardic Yeshiva Ketana\",\n    \"website\": \"www.tashbaryeshiva.com\",\n    \"clientNotes\": \"Administrator\\n1210 South La Cienega Blvd, Los Angeles, CA 90035\"\n  },\n  {\n    \"name\": \"Mr. Ilan Buhbut\",\n    \"email\": \"office@tashbaryeshiva.com\",\n    \"phone\": \"3106522894\",\n    \"company\": \"Tashbar Sephardic Yeshiva Ketana\",\n    \"website\": \"www.tashbaryeshiva.com\",\n    \"clientNotes\": \"Custodian of Records\\n1210 South La Cienega Blvd, Los Angeles, CA 90035\"\n  }\n]"
+  },
+  "shareEmail": {
+    "subjectTemplate": "New Leed: {{tradeName}}",
+    "bodyTemplateFree": "Hi,\nAre you free {{bookingStartDateTime}}?\nHere's all the info on a **{{tradeName}}** booking for you.\n\n**Event:** {{bookingTitle}}\n**Trade:** {{tradeName}}\n**Date:** {{bookingStartDate}} at {{bookingStartTime}}\n**Location:** {{bookingLocation}}\n**Description:** {{bookingDescription}}\n{{specialInstructions}}\n**Client:** {{clientName}}\n{{clientCompany}}**Email:** {{clientEmail}}\n{{clientPhone}}\n**Price:** <B style='color:green'>FREE</B>\n\nJust contact the Client and good luck!\n--{{companyName}}\n{{viewLeedzButton}}\n{{disclaimerBlock}}\n{{contactFooter}}",
+    "bodyTemplatePaid": "Hi,\nAre you free {{bookingStartDateTime}}?\nHere's a preview of a {{tradeName}} booking you might want.\n\n**Client:** {{clientName}}\n**Event:** {{bookingTitle}}\n**Date:** {{bookingStartDate}} at {{bookingStartTime}}\n**Location:** {{zipCode}}\n**Description:** {{bookingDescription}}\n\n{{specialInstructions}}\n\n**Price: ${{price}}**\nPay with any card, Square or Apple Pay and you'll get <b>all</b> the location and contact info.\n\n{{buyLeedButton}}\n\nGood luck!\n\n--{{companyName}}\n{{disclaimerBlock}}\n{{contactFooter}}",
+    "viewLeedzButtonHTML": "<div style='margin:20px 0;'><a href='https://theleedz.com/login?email={{recipientEmail}}&trade={{tradeName}}&referrer={{senderEmail}}' style='display:inline-block;background-color:#01ac56;color:white;padding:12px 24px;font-size:22px;text-decoration:none;border-radius:8px;font-weight:bold;'>Leed Details</a></div>",
+    "buyLeedButtonHTML": "<div style='margin:20px 0;'><a href='https://theleedz.com/details?id={{leedId}}&email={{recipientEmail}}' style='display:inline-block;background-color:#01ac56;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:bold;'>Buy Leed</a></div>"
+  },
+  "render": {
+    "provider": "pdf",
+    "outputDir": "Downloads/Invoices",
+    "fileName": ""
+  },
+  "square": {
+    "url": "https://connect.squareup.com",
+    "appId": "sq0idp-fGPn-QZvqEnvGeWHA9sHMw"
+  },
+  "pricing": {
+    "_comment": "MAX_PRICE_CENTS: must match or be less than the server Lambda env var MAX_PRICE_CENTS on addLeed",
+    "MAX_PRICE_CENTS": 10000
+  }
+}

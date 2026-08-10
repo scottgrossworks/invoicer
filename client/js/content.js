@@ -43,7 +43,6 @@ async function loadConfig() {
       throw new Error(`Failed to load config: ${response.status}`);
     }
     LEEDZ_CONFIG = await response.json();
-    console.log('Content script loaded config with', LEEDZ_CONFIG.parsers?.length || 0, 'parsers');
     return LEEDZ_CONFIG;
   } catch (error) {
     console.error('Failed to load leedz_config.json:', error);

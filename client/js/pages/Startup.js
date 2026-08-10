@@ -204,6 +204,7 @@ export class Startup extends Page {
       dbNameEl.textContent = 'Not connected';
       dbNameEl.style.color = 'red';
       console.log('Leedz server not available:', error.message);
+      showToast('Leedz Server not connected - start it from the tray icon, then Reload.', 'error');
     }
   }
 
@@ -340,7 +341,6 @@ export class Startup extends Page {
       }
     }, REFRESH_INTERVAL);
 
-    console.log(`[Gmail Auto-Refresh] Timer set: refresh every ${REFRESH_INTERVAL / 60000} minutes`);
   }
 
   /**

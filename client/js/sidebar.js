@@ -1,7 +1,7 @@
 // sidebar.js — LeedzEx Sidebar Orchestrator (Refactored to OOP - Dynamic Page Loading)
 
 import { StateFactory } from './state.js';
-import { initLogging, log, logError } from './logging.js';
+import { initLogging, log, logError, showToast } from './logging.js';
 import { getDbLayer } from './provider_registry.js';
 
 // Start logging
@@ -50,8 +50,6 @@ Available page ids: ${validPageIds.join(', ')}`);
     }
 
     LEEDZ_CONFIG = config;
-    console.log(`Loaded Leedz client config - default page: ${config.ui.defaultPage}`);
-
     return config;
 
   } catch (error) {
@@ -89,8 +87,8 @@ async function initializeApp() {
     initializeAppBackground();
 
   } catch (error) {
-    console.error('Failed to initialize app:', error);
-    log('Initialization failed');
+    console.error('Failed to initialize app:', error.message);
+    showToast(`Startup failed: ${String(error.message).split('\n')[0]}`, 'error');
   }
 }
 
@@ -105,9 +103,9 @@ async function initializeAppBackground() {
     // Initialize database layer globally (respects Chrome storage config + leedz_config.json)
     try {
       window.DB_LAYER = await getDbLayer();
-      console.log('DB_LAYER initialized:', window.DB_LAYER.baseUrl);
     } catch (error) {
-      console.error('Failed to initialize DB_LAYER:', error);
+      console.error('Failed to initialize DB_LAYER:', error.message);
+      showToast('Database not available - start the Leedz Server (tray icon), then reload.', 'error');
       window.DB_LAYER = null;
     }
 
@@ -128,7 +126,8 @@ async function initializeAppBackground() {
         console.warn('VALUE_PROP identity warnings:', STATE.BusinessIdentity.warnings);
       }
     } catch (error) {
-      console.error('Failed to load business identity:', error);
+      console.error('Failed to load business identity:', error.message);
+      showToast('Could not load VALUE_PROP.md - fill in chrome-extension\\DOCS\\VALUE_PROP.md, then reload.', 'error');
     }
 
     // Hydrate runtime Config for the invoice/PDF renderer straight from
@@ -145,7 +144,6 @@ async function initializeAppBackground() {
         ...bi.invoice,
         includeTerms: !!(bi.invoice && bi.invoice.terms)
       });
-      console.log('Invoice/config hydrated from VALUE_PROP:', STATE.Config.companyName || '(none)');
     }
 
     // Listen for storage changes from settings page
@@ -216,8 +214,9 @@ async function initializeAppBackground() {
     // Calling it twice causes duplicate JWT token fetches
 
   } catch (error) {
-    console.error('Failed to initialize app background:', error);
-    log('Initialization failed');
+    // Config missing/invalid lands here - the user MUST see it, not just devtools
+    console.error('Failed to initialize app background:', error.message);
+    showToast(`Startup failed: ${String(error.message).split('\n')[0]}`, 'error');
   }
 }
 

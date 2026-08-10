@@ -262,7 +262,6 @@ export class Page {
       if (!options.forceFullParse) {
         this.showLoadingSpinner();
       }
-      log('Detecting page type...');
 
       // Get current tab URL and tabId
       const { url, tabId } = await new Promise(resolve => {
@@ -276,14 +275,12 @@ export class Page {
       }
 
       const parsers = await getParsers();
-      log(`Found ${parsers.length} parsers`);
 
       let matched = false;
       for (const p of parsers) {
         try {
           // Check if parser matches this URL
           if (p.checkPageMatch && await p.checkPageMatch(url)) {
-            log(`Parser ${p.name} matched!`);
 
             // STEP 1: Quick identity extraction (name/email only)
             // NOTE: This is optional - if parser doesn't support quickExtractIdentity, skip it
@@ -416,8 +413,6 @@ export class Page {
                 state: this.state.toObject()
               }, (response) => {
                 if (response?.ok && response?.data) {
-                  log(`Parser ${p.name} completed successfully`);
-
                   // Store parser data with timestamp for tracking
                   const parserTimestamp = Date.now();
                   this.state._parserTimestamp = parserTimestamp;

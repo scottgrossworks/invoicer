@@ -97,13 +97,10 @@ export class DataPage extends Page {
       }
 
       // STAGE 3: No STATE (or no name/email) - try prelim parse for identity
-      log('No STATE in cache - attempting prelim parse');
       const pageIdentity = await this.quickExtractIdentity();
 
       // STAGE 4: If prelim parse got name/email, search DB
       if (pageIdentity?.name || pageIdentity?.email) {
-        log('Prelim parse found identity:', pageIdentity);
-
         // Create temp state data for DB search
         const tempStateData = {
           Client: {
@@ -116,7 +113,6 @@ export class DataPage extends Page {
 
         if (dbData) {
           // CLIENT FOUND IN DB - RENDER GREEN AND STOP
-          log('Client found in database from prelim parse');
           await this.renderFromDB(dbData);
           showToast('Client Found in Database', 'info');
           this.showPageUI();
@@ -125,21 +121,17 @@ export class DataPage extends Page {
       }
 
       // STAGE 5: Not found in DB - do full LLM parse
-      log('Running full parse...');
       const parseResult = await this.fullParse();
 
       if (parseResult?.success) {
         // STAGE 5a: Search DB with parsed client data
-        log('Parse successful, searching DB for client...');
         const dbData = await this.searchDB(parseResult.data);
 
         // STAGE 5b: Render DB data if found, else parsed data
         if (dbData) {
-          log('Client found in database after parse');
           await this.renderFromDB(dbData);
           showToast('Client Found in Database', 'info');
         } else {
-          log('Client not in database, using parsed data');
           await this.renderFromParse(parseResult);
           showToast('Page parsed successfully', 'success');
         }
@@ -414,12 +406,10 @@ export class DataPage extends Page {
       }
 
       // STEP 2: Search DB with parsed client data
-      log('RELOAD: Parse successful, searching DB for client...');
       const dbData = await this.searchDB(parseResult.data);
 
       // STEP 3: Render DB data if found, else parsed data
       if (dbData) {
-        log('RELOAD: Client found in database');
         // On forced reload: enrich client fields from DB (green styling) but
         // KEEP freshly parsed booking data - don't overwrite with old DB booking
         if (parseResult.data) {
@@ -437,7 +427,6 @@ export class DataPage extends Page {
         await this.renderFromParse(parseResult);
         showToast('Client Found in Database', 'info');
       } else {
-        log('RELOAD: Client not in database, using parsed data');
         await this.renderFromParse(parseResult);
         showToast('Page parsed successfully', 'success');
       }

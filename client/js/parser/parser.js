@@ -83,6 +83,83 @@ class Parser {
     }
 
     /**
+     * Build and send an LLM completion request through background.js (avoids CORS).
+     * PROVIDER-AGNOSTIC AND CENTRALIZED ON PURPOSE: this used to be copy-pasted,
+     * Anthropic-only, in gmail_parser/gcal_parser/client_parser - each copy had to be
+     * edited by hand to switch providers, and the config kept drifting back to Claude
+     * because there was no single place enforcing it (2026-08-04). llmConfig.type
+     * selects the header/auth shape; the request body (model/messages/max_tokens) is
+     * OpenAI-compatible and shared by both providers we support.
+     * @param {Object} llmConfig - CONFIG.llm (merged with LLM_KEY.json's api-key)
+     * @param {string} prompt - Complete prompt text
+     * @returns {Promise<Object|null>} proxied response from background.js, or null
+     */
+    async _sendLLMRequest(llmConfig, prompt) {
+        const type = llmConfig.type || 'anthropic';
+        const headers = type === 'openrouter'
+            ? {
+                'Authorization': `Bearer ${llmConfig['api-key']}`,
+                'content-type': 'application/json',
+                'HTTP-Referer': 'https://theleedz.com',
+                'X-Title': 'Leedz Desktop'
+            }
+            : {
+                'x-api-key': llmConfig['api-key'],
+                'anthropic-version': llmConfig['anthropic-version'],
+                'content-type': 'application/json',
+                'anthropic-dangerous-direct-browser-access': 'true'
+            };
+
+        const llmRequest = {
+            url: `${llmConfig.baseUrl}${llmConfig.endpoints.completions}`,
+            method: 'POST',
+            headers,
+            body: {
+                model: llmConfig.provider,
+                max_tokens: llmConfig.max_tokens,
+                messages: [{ role: 'user', content: prompt }]
+            }
+        };
+
+        return new Promise((resolve) => {
+            try {
+                chrome.runtime.sendMessage(
+                    { type: 'leedz_llm_request', request: llmRequest },
+                    (response) => {
+                        if (chrome.runtime.lastError) {
+                            console.error('Chrome runtime error:', chrome.runtime.lastError.message);
+                            resolve(null);
+                        } else {
+                            resolve(response);
+                        }
+                    }
+                );
+            } catch (error) {
+                console.error('Exception sending message:', error);
+                resolve(null);
+            }
+        });
+    }
+
+    /**
+     * Pull the completion text out of a provider response envelope.
+     * anthropic: {content:[{text}]}   openrouter/openai-compatible: {choices:[{message:{content}}]}
+     * @param {Object} llmConfig - CONFIG.llm (used only for .type)
+     * @param {Object} response - resolved value from _sendLLMRequest (response.data is the parsed JSON body)
+     * @returns {string|null}
+     */
+    _extractLLMText(llmConfig, response) {
+        const data = response?.data;
+        if (!data) return null;
+        const type = llmConfig.type || 'anthropic';
+        if (type === 'openrouter') {
+            return data.choices?.[0]?.message?.content || null;
+        }
+        const firstContent = data.content?.[0];
+        return firstContent?.text || firstContent || null;
+    }
+
+    /**
      * Parse LLM JSON response and transform flat structure to nested Client/Booking structure.
      * Handles markdown code blocks, sanitizes currency values, parses durations, and maps clientId.
      *

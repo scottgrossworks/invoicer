@@ -7,6 +7,7 @@
 import { ProfileParser } from './profile_parser.js';
 import { filterClientsAgainstBusinessIdentity } from '../utils/IdentityFilter.js';
 import { loadConfig } from '../utils/ConfigLoader.js';
+import { showToast, showLLMError } from '../logging.js';
 
 // Global CONFIG variable
 let CONFIG = null;
@@ -139,20 +140,19 @@ class ClientParser extends ProfileParser {
       await this._initializeConfig();
       const llmConfig = CONFIG.llm;
       if (!llmConfig?.baseUrl || !llmConfig?.endpoints?.completions) {
-        throw new Error('Invalid LLM configuration');
+        throw new Error('llm settings missing or invalid in leedz_config.json (baseUrl / endpoints)');
       }
 
       const prompt = this._buildLLMPrompt(content);
       const response = await this._sendLLMRequest(llmConfig, prompt);
 
       if (!response?.ok) {
-        console.error('LLM request failed:', response?.error || 'Request failed');
+        console.error(`[ClientParser] LLM request failed (${response?.status ?? 'no status'}): ${response?.error?.message || response?.error?.type || response?.error || 'no response'}`);
+        showLLMError(response);
         return null;
       }
 
-      const contentArray = response.data?.content;
-      const firstContent = contentArray?.[0];
-      const textContent = firstContent?.text || firstContent;
+      const textContent = this._extractLLMText(llmConfig, response);
 
       // Parse LLM response - expecting array of clients
       const parsedResult = textContent ? this._parseClientArrayResponse(textContent) : null;
@@ -161,6 +161,7 @@ class ClientParser extends ProfileParser {
 
     } catch (error) {
       console.error('LLM processing failed:', error);
+      showToast(`AI parsing failed: ${error.message}`, 'error');
       return null;
     }
   }
@@ -207,48 +208,8 @@ class ClientParser extends ProfileParser {
     return `${systemPrompt}\n\nPage Content:\n${content}`;
   }
 
-  /**
-   * Send LLM request to configured endpoint
-   * @param {Object} llmConfig - LLM configuration
-   * @param {string} prompt - Complete prompt
-   * @returns {Promise<Object>} Response object
-   */
-  async _sendLLMRequest(llmConfig, prompt) {
-    const llmRequest = {
-      url: `${llmConfig.baseUrl}${llmConfig.endpoints.completions}`,
-      method: 'POST',
-      headers: {
-        'x-api-key': llmConfig['api-key'],
-        'anthropic-version': llmConfig['anthropic-version'],
-        'content-type': 'application/json',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: {
-        model: llmConfig.provider,
-        max_tokens: llmConfig.max_tokens,
-        messages: [{ role: 'user', content: prompt }]
-      }
-    };
-
-    return new Promise((resolve) => {
-      try {
-        chrome.runtime.sendMessage(
-          { type: 'leedz_llm_request', request: llmRequest },
-          (response) => {
-            if (chrome.runtime.lastError) {
-              console.error('Chrome runtime error:', chrome.runtime.lastError.message);
-              resolve(null);
-            } else {
-              resolve(response);
-            }
-          }
-        );
-      } catch (error) {
-        console.error('Exception sending message:', error);
-        resolve(null);
-      }
-    });
-  }
+  // _sendLLMRequest() and _extractLLMText() inherited from Parser base class -
+  // provider (anthropic/openrouter) is selected by CONFIG.llm.type, not hardcoded here.
 
   /**
    * Override ProfileParser.parse() to handle LLM client array response

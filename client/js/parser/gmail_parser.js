@@ -11,6 +11,7 @@ import { EventParser } from './event_parser.js';
 import { verifyBookingExtraction } from '../utils/DateEvidence.js';
 import { loadConfig } from '../utils/ConfigLoader.js';
 import { isWeakIdentity } from '../utils/IdentityFilter.js';
+import { showToast, showLLMError } from '../logging.js';
 import Client from '../db/Client.js';
 import Booking from '../db/Booking.js';
 
@@ -136,7 +137,7 @@ class GmailParser extends EventParser {
       await this._initializeConfig();
       const llmConfig = CONFIG.llm;
       if (!llmConfig?.baseUrl || !llmConfig?.endpoints?.completions) {
-        throw new Error('Invalid LLM configuration');
+        throw new Error('llm settings missing or invalid in leedz_config.json (baseUrl / endpoints)');
       }
 
       // Build prompt with known client data from headers
@@ -149,19 +150,18 @@ class GmailParser extends EventParser {
       const response = await this._sendLLMRequest(llmConfig, prompt);
 
       if (!response?.ok) {
-        // Log the FULL error object — silent LLM failures produced blank parses
-        // that looked like extraction bugs (2026-07-22).
-        console.error('[GmailParser] LLM request FAILED:', JSON.stringify(response?.error || response || 'no response').slice(0, 500));
+        // One neat line - the user-facing detail is in the toast (showLLMError)
+        console.error(`[GmailParser] LLM request failed (${response?.status ?? 'no status'}): ${response?.error?.message || response?.error?.type || response?.error || 'no response'}`);
+        showLLMError(response);
         return null;
       }
 
-      const contentArray = response.data?.content;
-      const firstContent = contentArray?.[0];
-      const textContent = firstContent?.text || firstContent;
+      const textContent = this._extractLLMText(llmConfig, response);
 
       const parsedResult = textContent ? this._parseLLMResponse(textContent) : null;
       if (!parsedResult) {
         console.error('[GmailParser] LLM responded but JSON parse produced null. Raw head:', String(textContent).slice(0, 300));
+        showToast('AI returned an unusable response - press Parse to try again.', 'error');
         return null;
       }
       // console.log('[GmailParser] LLM extracted:', JSON.stringify({ Client: parsedResult.Client, Booking: parsedResult.Booking }).slice(0, 400));
@@ -173,7 +173,10 @@ class GmailParser extends EventParser {
       let verification = verifyBookingExtraction(parsedResult, content, opts);
 
       if (!verification.ok) {
-        console.log('[GmailParser] verification failed for:', verification.errors.join(', '), '— running repair pass');
+        // NOT an error - routine double-check. These fields weren't found verbatim
+        // in the email text, so ask the AI to re-confirm just those before trusting
+        // them (better a blank field than a hallucinated one).
+        console.log('[GmailParser] Double-checking fields not found verbatim in email:', verification.errors.join(', '));
         const repaired = await this._repairLLMExtraction(verification.scrubbed, content, verification.errors);
         // GUARD (2026-07-22, the data-destroyer bug): only accept a repair result
         // that actually contains data. The old code re-verified whatever came back —
@@ -200,6 +203,7 @@ class GmailParser extends EventParser {
 
     } catch (error) {
       console.error('LLM processing failed:', error);
+      showToast(`AI parsing failed: ${error.message}`, 'error');
       return null;
     }
   }
@@ -222,8 +226,7 @@ class GmailParser extends EventParser {
       const response = await this._sendLLMRequest(llmConfig, prompt);
       if (!response?.ok) return null;
 
-      const firstContent = response.data?.content?.[0];
-      const textContent = firstContent?.text || firstContent;
+      const textContent = this._extractLLMText(llmConfig, response);
       // The repair prompt demands NESTED {Client, Booking, Config} JSON, but
       // _parseLLMResponse only maps FLAT keys — it turned every nested repair
       // response into {Client:{},Booking:{}} and wiped the extraction (2026-07-22).
@@ -528,49 +531,8 @@ class GmailParser extends EventParser {
 
 
 
-  /**
-   * Send LLM request to configured endpoint
-   * @param {*} llmConfig 
-   * @param {*} prompt 
-   * @returns 
-   */
-  async _sendLLMRequest(llmConfig, prompt) {
-    const llmRequest = {
-      url: `${llmConfig.baseUrl}${llmConfig.endpoints.completions}`,
-      method: 'POST',
-      headers: {
-        'x-api-key': llmConfig['api-key'],
-        'anthropic-version': llmConfig['anthropic-version'],
-        'content-type': 'application/json',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: {
-        model: llmConfig.provider,
-        max_tokens: llmConfig.max_tokens,
-        messages: [{ role: 'user', content: prompt }]
-      }
-    };
-
-
-    return new Promise((resolve) => {
-      try {
-        chrome.runtime.sendMessage(
-          { type: 'leedz_llm_request', request: llmRequest },
-          (response) => {
-            if (chrome.runtime.lastError) {
-              console.error('Chrome runtime error:', chrome.runtime.lastError.message);
-              resolve(null);
-            } else {
-              resolve(response);
-            }
-          })
-      } catch (error) {
-        console.error('Exception sending message:', error);
-        resolve(null);
-      }
-    });
-  }
-
+  // _sendLLMRequest() and _extractLLMText() inherited from Parser base class -
+  // provider (anthropic/openrouter) is selected by CONFIG.llm.type, not hardcoded here.
   // _parseLLMResponse() inherited from Parser base class
   // Transforms flat LLM JSON response into nested Client/Booking structure
 

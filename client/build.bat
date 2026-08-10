@@ -71,11 +71,12 @@ if exist "leedz_config.json" copy /Y "leedz_config.json" "%DIST_DIR%\" >nul
 if exist "invoicer_config.json" copy /Y "invoicer_config.json" "%DIST_DIR%\" >nul
 
 :: User-editable LLM key file - REQUIRED. Nothing (parsing, drafting) works
-:: without the Anthropic API key. Hard-fail so a virgin install can't ship a
+:: without an API key for whatever provider leedz_config.json's llm.type
+:: names (default: OpenRouter). Hard-fail so a virgin install can't ship a
 :: silently-broken extension (every LLM call would 401).
 if not exist "LLM_KEY.json" (
     echo [ERROR] LLM_KEY.json not found.
-    echo         Copy LLM_KEY.template.json to LLM_KEY.json and paste your Anthropic API key.
+    echo         Copy LLM_KEY.template.json to LLM_KEY.json and paste your API key.
     goto :ERROR
 )
 copy /Y "LLM_KEY.json" "%DIST_DIR%\" >nul
@@ -125,15 +126,21 @@ echo     - Build directory ready at: client\%DIST_DIR%
 echo [6/6] Creating distribution ZIP package...
 if exist "%ZIP_NAME%" del "%ZIP_NAME%"
 
-:: SANITIZED STAGING: the ZIP is for DISTRIBUTION. The real Anthropic key
-:: (LLM_KEY.json) and real business identity incl. bank info (VALUE_PROP.md)
+:: SANITIZED STAGING: the ZIP is for DISTRIBUTION. The real API key
+:: (LLM_KEY.json), real business identity incl. bank info (VALUE_PROP.md), and
+:: personal LLM model choice + dead sample-email blocks (leedz_config.json)
 :: must NEVER ship - stage a copy of dist with the blank templates swapped in.
 :: dist\ itself keeps the real files (it is the LOCAL install).
+if not exist "leedz_config.template.json" (
+    echo [ERROR] leedz_config.template.json not found - cannot sanitize the distribution ZIP.
+    goto :ERROR
+)
 set "STAGE=%TEMP%\leedz_zip_stage"
 if exist "%STAGE%" rd /s /q "%STAGE%"
 robocopy "%DIST_DIR%" "%STAGE%" /E /NFL /NDL /NJH /NJS >nul
 copy /Y "LLM_KEY.template.json" "%STAGE%\LLM_KEY.json" >nul
 copy /Y "DOCS\VALUE_PROP.template.md" "%STAGE%\DOCS\VALUE_PROP.md" >nul
+copy /Y "leedz_config.template.json" "%STAGE%\leedz_config.json" >nul
 
 :: Use PowerShell to zip the sanitized staging copy
 :: -NoProfile + absolute paths: profile-proof (see validation note above).

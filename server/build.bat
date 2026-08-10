@@ -98,6 +98,15 @@ for %%A in (%ARCHITECTURES%) do (
         echo     - Removing old build: !PKG_DIR!
         rmdir /S /Q "!PKG_DIR!"
     )
+    REM rmdir fails SILENTLY on locked files (e.g. a hidden Gmail MCP node.exe
+    REM still holding keeper_gmail.err.log open) - stale files then ride into
+    REM the distribution zip. Fail loudly instead.
+    if exist "!PKG_DIR!" (
+        echo [ERROR] Could not fully remove !PKG_DIR! - a file is locked.
+        echo         A hidden node.exe ^(Gmail MCP keeper^) may still be running.
+        echo         Kill it with:  taskkill /F /IM node.exe   then rebuild.
+        goto :ERROR
+    )
 )
 
 echo     - Output directory clean
@@ -263,7 +272,9 @@ for %%A in (%ARCHITECTURES%) do (
     REM dist-pkg\ itself keeps the real config (it is the LOCAL deployment).
     set "STAGE=%TEMP%\leedz_srv_zip_stage"
     if exist "!STAGE!" rd /s /q "!STAGE!"
-    robocopy "!PKG_DIR!" "!STAGE!" /E /NFL /NDL /NJH /NJS >nul
+    REM /XF *.log: runtime logs (server.log, mcp\keeper_gmail.*.log) must
+    REM never ship to customers - they appear whenever the package is test-run.
+    robocopy "!PKG_DIR!" "!STAGE!" /E /XF *.log /NFL /NDL /NJH /NJS >nul
     copy /Y "server_config.template.json" "!STAGE!\server_config.json" >nul
     REM mcp_server_config.json carries the owner's personal marketplace email -
     REM ship the placeholder template instead (dist-pkg keeps the real one)

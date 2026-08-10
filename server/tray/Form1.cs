@@ -44,9 +44,15 @@ public partial class Form1 : Form
     private ToolStripMenuItem? stopMenuItem;
     private ToolStripMenuItem? exitMenuItem;
     private Font? headerFont;
+    private Font? hourglassFont;
     private SolidBrush? greenBrush;
     private SolidBrush? whiteBrush;
     private bool allowMenuClose = false;
+
+    // True while a start/stop is in flight on the background thread.
+    // The header paints an hourglass instead of the green/red dot and
+    // both Start/Stop are disabled until the operation completes.
+    private volatile bool serverBusy = false;
 
     /// <summary>
     /// Constructor - initializes tray application.
@@ -66,10 +72,16 @@ public partial class Form1 : Form
 
             InitializeComponent();
 
+            // The form is never shown, so force handle creation now -
+            // BeginInvoke (used to marshal start/stop completion back to
+            // the UI thread) throws without it.
+            _ = this.Handle;
+
             SetupTrayIcon();
 
-            // Auto-start the server on launch
-            StartNodeServer();
+            // Auto-start the server on launch (background - tray icon
+            // appears immediately with the hourglass instead of stalling)
+            RunServerAction("starting", StartNodeServer);
         }
         catch (Exception ex)
         {
@@ -121,6 +133,7 @@ private void SetupTrayIcon()
 
     // Initialize cached objects for Paint event
     headerFont = new Font("Segoe UI", 12, FontStyle.Bold);
+    hourglassFont = new Font("Segoe UI Emoji", 12);
     greenBrush = new SolidBrush(Color.Green);
     whiteBrush = new SolidBrush(Color.White);
 
@@ -144,8 +157,6 @@ private void SetupTrayIcon()
         e.Graphics.FillRectangle(greenBrush, rect);
 
         // Status indicator circle on the right (25% larger than the old 14px)
-        bool isRunning = IsServerCurrentlyRunning();
-        Color indicatorColor = isRunning ? Color.LimeGreen : Color.Red;
         int circleSize = 18;
         int rightMargin = 16;
         int circleX = rect.Right - circleSize - rightMargin;
@@ -160,10 +171,26 @@ private void SetupTrayIcon()
             textRect, Color.White,
             TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
 
-        e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-        using (SolidBrush indicatorBrush = new SolidBrush(indicatorColor))
+        if (serverBusy)
         {
-            e.Graphics.FillEllipse(indicatorBrush, circleX, circleY, circleSize, circleSize);
+            // Start/stop in flight: hourglass instead of the dot so the user
+            // knows the app is working, not hung.
+            Rectangle hourglassRect = Rectangle.FromLTRB(
+                circleX - 6, rect.Top, circleX + circleSize + 6, rect.Bottom);
+            TextRenderer.DrawText(e.Graphics, "⌛",
+                hourglassFont,
+                hourglassRect, Color.White,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+        }
+        else
+        {
+            bool isRunning = IsServerCurrentlyRunning();
+            Color indicatorColor = isRunning ? Color.LimeGreen : Color.Red;
+            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            using (SolidBrush indicatorBrush = new SolidBrush(indicatorColor))
+            {
+                e.Graphics.FillEllipse(indicatorBrush, circleX, circleY, circleSize, circleSize);
+            }
         }
     };
 
@@ -241,9 +268,67 @@ private class CustomMenuRenderer : ToolStripProfessionalRenderer
 /// </summary>
 private void UpdateMenuState()
 {
+    if (serverBusy)
+    {
+        // Operation in flight - neither action is valid until it finishes
+        if (startMenuItem != null) startMenuItem.Enabled = false;
+        if (stopMenuItem != null) stopMenuItem.Enabled = false;
+        return;
+    }
+
     bool isRunning = IsServerCurrentlyRunning();
     if (startMenuItem != null) startMenuItem.Enabled = !isRunning;
     if (stopMenuItem != null) stopMenuItem.Enabled = isRunning;
+}
+
+/// <summary>
+/// Runs a start/stop operation on a background thread so the menu never
+/// freezes. Immediately shows the hourglass + disables Start/Stop, then
+/// restores the green/red dot and menu state when the operation completes.
+/// </summary>
+private void RunServerAction(string verb, Action action)
+{
+    if (serverBusy) return;   // one operation at a time
+    serverBusy = true;
+
+    if (trayIcon != null) trayIcon.Text = $"Leedz Server: {verb}...";
+    UpdateMenuState();
+    headerMenuItem?.Invalidate();
+
+    Task.Run(() =>
+    {
+        try
+        {
+            action();
+        }
+        catch (Exception ex)
+        {
+            DebugWrite($"[TRAY] {verb} failed: {ex.Message}");
+        }
+        finally
+        {
+            try
+            {
+                BeginInvoke(new Action(() =>
+                {
+                    serverBusy = false;
+                    if (trayIcon != null)
+                    {
+                        trayIcon.Text = IsServerCurrentlyRunning()
+                            ? "Leedz Server: running"
+                            : "Leedz Server: stopped";
+                    }
+                    UpdateMenuState();
+                    headerMenuItem?.Invalidate();
+                }));
+            }
+            catch
+            {
+                // Form disposed mid-operation (app exiting) - nothing to update
+                serverBusy = false;
+            }
+        }
+    });
 }
  
     /// <summary>
@@ -252,13 +337,9 @@ private void UpdateMenuState()
     /// </summary>
     private void OnStartServerClick(object? sender, EventArgs e)
     {
-        // Start the Node server when the user clicks Start Server
-        // (menu state refreshed below after the start attempt)
-        StartNodeServer();
-
-        // Refresh header status circle and Start/Stop enabled state
-        headerMenuItem?.Invalidate();
-        UpdateMenuState();
+        // Hourglass immediately; the actual start runs on a background
+        // thread and the dot turns green/red when it completes.
+        RunServerAction("starting", StartNodeServer);
     }
 
     /// <summary>
@@ -504,10 +585,14 @@ private void UpdateMenuState()
 
         // Create ConfigForm with restart callback and log callback
         using (ConfigForm configForm = new ConfigForm(CONFIG_FILE, () => {
-            DebugWrite("[CONFIG] Stopping server for configuration change...");
-            StopNodeServer();  // Already includes 1 second delay for file handle release
-            DebugWrite("[CONFIG] Starting server with new configuration...");
-            StartNodeServer();
+            // Stop+start as one background action - same hourglass feedback,
+            // no UI freeze while the server restarts
+            RunServerAction("restarting", () => {
+                DebugWrite("[CONFIG] Stopping server for configuration change...");
+                StopNodeServer();  // Already includes 1 second delay for file handle release
+                DebugWrite("[CONFIG] Starting server with new configuration...");
+                StartNodeServer();
+            });
         }, DebugWrite))
         {
             // Show modal dialog - stays open until user clicks Cancel or closes window
@@ -527,11 +612,9 @@ private void UpdateMenuState()
     /// </summary>
     private void OnStopServerClick(object? sender, EventArgs e)
     {
-        StopNodeServer();
-
-        // Refresh header status circle and Start/Stop enabled state
-        headerMenuItem?.Invalidate();
-        UpdateMenuState();
+        // Hourglass immediately; stop can take 5-15s (graceful HTTP shutdown,
+        // process kills, orphan sweep) and used to freeze the menu the whole time.
+        RunServerAction("stopping", StopNodeServer);
     }
 
     /// <summary>

@@ -12,11 +12,8 @@ chrome.action.onClicked.addListener((tab) => {
   try {
     chrome.tabs.sendMessage(tab.id, { action: "toggleSidebar" }, response => {
 
-      const lastError = chrome.runtime.lastError;
-      // Silently handle connection errors
-      if (lastError) {
-        console.log("Connection error handled:", lastError.message);
-      }
+      // Silently handle connection errors (no content script on this tab)
+      void chrome.runtime.lastError;
     });
   } catch (e) {
     // console.log("Error handled:", e.message);
@@ -42,37 +39,36 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Handle LLM requests to avoid CORS issues
   //
   if (message.type === 'leedz_llm_request') {
-    //console.log('DEBUG: Background script received LLM request');
     const { request } = message;
-    
-    // console.log('DEBUG: Making fetch to:', request.url);
-    // console.log('DEBUG: Request method:', request.method);
-    // console.log('DEBUG: Request headers:', request.headers);
-    // console.log('DEBUG: Request body:', JSON.stringify(request.body, null, 2));
-    
+
     fetch(request.url, {
       method: request.method,
       headers: request.headers,
       body: JSON.stringify(request.body)
     })
     .then(response => {
-      // console.log('DEBUG: Fetch response status:', response.status);
       if (response.ok) {
         return response.json().then(data => {
-          // console.log('DEBUG: Sending success response to content script');
           sendResponse({ ok: true, data: data });
         });
       } else {
-        console.error('Sending error response to content script - Status:', response.status, response.statusText);
-        // Get the error response body for debugging
-        response.text().then(errorBody => {
-          console.error('Error response body:', errorBody);
-        });
-        sendResponse({ ok: false, status: response.status, statusText: response.statusText });
+        // Forward the API error body - the sidebar builds the user-facing
+        // toast from it (invalid key vs model-not-found vs rate limit).
+        response.text()
+          .then(errorBody => {
+            let apiError = null;
+            try { apiError = JSON.parse(errorBody)?.error || null; } catch (e) { /* body not JSON */ }
+            console.error(`[LLM] ${response.status} ${apiError?.type || response.statusText}: ${apiError?.message || String(errorBody).slice(0, 200)}`);
+            sendResponse({ ok: false, status: response.status, statusText: response.statusText, error: apiError });
+          })
+          .catch(() => {
+            console.error(`[LLM] ${response.status} ${response.statusText}`);
+            sendResponse({ ok: false, status: response.status, statusText: response.statusText });
+          });
       }
     })
     .catch(error => {
-      console.error('Fetch failed:', error.message);
+      console.error('[LLM] fetch failed:', error.message);
       sendResponse({ ok: false, error: error.message });
     });
 

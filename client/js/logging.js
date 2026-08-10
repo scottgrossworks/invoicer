@@ -188,6 +188,9 @@ const TOAST_DEDUPE_WINDOW = 5000; // Don't show same toast within 5 seconds
  * @param {string} type - Toast type: 'success', 'error', or 'info' (default: 'info')
  */
 export function showToast(message, type = 'info') {
+  // Non-DOM context (background service worker) - nothing to show
+  if (typeof document === 'undefined') return;
+
   // Check if this exact toast was shown recently
   const toastKey = `${message}:${type}`;
   const now = Date.now();
@@ -206,6 +209,14 @@ export function showToast(message, type = 'info') {
     if (now - timestamp > TOAST_DEDUPE_WINDOW) {
       recentToasts.delete(key);
     }
+  }
+
+  // A visible ERROR toast must not be papered over by a later success/info
+  // (e.g. LLM failure toast followed by "Page parsed successfully" from the
+  // prelim-data fallback). Errors may replace errors; nothing else may.
+  const visibleError = document.querySelector('.toast.toast-error');
+  if (visibleError && type !== 'error') {
+    return;
   }
 
   // Clear any existing toasts first (prevent overlap)
@@ -228,4 +239,44 @@ export function showToast(message, type = 'info') {
       toast.parentNode.removeChild(toast);
     }
   }, 4000);
+}
+
+/**
+ * User-facing report for a FAILED LLM request (the leedz_llm_request proxy
+ * response from background.js). Silent LLM failures produce blank parses that
+ * look like extraction bugs (2026-08-04: placeholder API key -> 401 -> empty
+ * booking fields with zero user feedback). Maps the failure to an actionable
+ * error toast. KEEP IN SYNC with the response shape background.js sends:
+ * { ok, status, statusText, error } where error is the Anthropic error object
+ * ({ type, message }) when the body was parseable.
+ *
+ * @param {Object|null} response - proxy response, or null/undefined
+ * @returns {string} the message shown (for logging by the caller)
+ */
+export function showLLMError(response) {
+  const status = response?.status;
+  const apiMsg = response?.error?.message ||
+    (typeof response?.error === 'string' ? response.error : null);
+
+  const apiType = response?.error?.type;
+
+  let msg;
+  if (!response) {
+    msg = 'AI request got no response - reload the extension and try again.';
+  } else if (status === 401 || status === 403) {
+    msg = 'AI rejected your API key. Paste a valid key into LLM_KEY.json, then reload the extension.';
+  } else if (status === 404 || apiType === 'not_found_error') {
+    msg = 'AI model not found - check the llm "provider" model name in leedz_config.json.';
+  } else if (status === 429) {
+    msg = 'AI rate limit reached - wait a minute, then Parse again.';
+  } else if (status >= 500) {
+    msg = 'The AI service is overloaded or down - try again in a few minutes.';
+  } else if (!status && apiMsg) {
+    msg = `Cannot reach the AI service - check the llm settings in leedz_config.json (${apiMsg}).`;
+  } else {
+    msg = `AI request failed${status ? ` (${status})` : ''}${apiMsg ? `: ${apiMsg}` : ''}.`;
+  }
+
+  showToast(msg, 'error');
+  return msg;
 }

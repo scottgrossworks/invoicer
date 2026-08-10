@@ -272,7 +272,6 @@ class State {
         // business identity comes from VALUE_PROP.md at runtime. This branch is
         // NOT a server-down signal (load() already logged the /health result).
         // The old "WARNING: leedz_server is not running" here was a false alarm.
-        console.log("No DB-backed Config (by design) - identity comes from VALUE_PROP.md");
         return;
       }
     } else {
