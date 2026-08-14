@@ -1,0 +1,91 @@
+{
+  "_comment": "Prompt fragments for gmail_parser.js. The MAIN extraction system prompt lives in leedz_config.json (gmailParser.systemPrompt - also JSON, edit it there); this file holds the runtime fragments assembled around it. All prose here was moved verbatim out of gmail_parser.js (standing rule: prompts are never hardcoded in JS).",
+
+  "assembly": {
+    "_comment": "Top-level layout of the full extraction prompt. Placeholders: {systemPrompt} (from leedz_config.json with dates filled), {sellerIdentity} (block below, or empty), {headerMetadata} (block below), {content} (email thread text).",
+    "lines": [
+      "{systemPrompt}",
+      "{sellerIdentity}",
+      "{headerMetadata}",
+      "",
+      "Email Thread Content:",
+      "{content}"
+    ]
+  },
+
+  "headerMetadata": {
+    "_comment": "Header identity + client-identity rules. Placeholders: {headerName} {headerEmail} {weakNote} (weakInboxNote below when the header looks like a shared inbox, else empty). The 2026-07-22 fix: header identity is METADATA, not ground truth - the real client is usually in the signature block.",
+    "lines": [
+      "EMAIL HEADER METADATA (may be a shared mailbox — verify against the message text):",
+      "Header Name: {headerName}",
+      "Header Email: {headerEmail}",
+      "{weakNote}",
+      "CLIENT IDENTITY RULES:",
+      "1. The client is the PERSON who wrote the inquiry — prefer the signature block (name / title / direct phone) over the mailbox display name.",
+      "2. Only return an email address that literally appears in the headers or message text.",
+      "3. Extract the client's phone from the signature when present."
+    ]
+  },
+
+  "weakInboxNote": {
+    "_comment": "Injected into headerMetadata {weakNote} only when Client._identityWeak is set (shared/generic inbox detected).",
+    "lines": [
+      "NOTE: the header identity above looks like a SHARED/GENERIC inbox, not a person. Find the actual PERSON who wrote the message — check the signature block for their name, title, and direct phone, and return THAT as the client name/phone.",
+      ""
+    ]
+  },
+
+  "inboxDemandNote": {
+    "_comment": "INBOX CATCHER (2026-08-14, PRECRIME build item #4). Injected into headerMetadata {weakNote} when the sender is a PLATFORM NOTIFICATION domain (facebookmail, Nextdoor, Google Alerts, Craigslist) — see gmail_parser PLATFORM_NOTIFICATION_DOMAINS. The email relays someone ELSE'S post; the poster is the client, the post is the demand.",
+    "lines": [
+      "NOTE: this email is a PLATFORM NOTIFICATION (a Facebook group post, Nextdoor digest, Google Alert, or Craigslist alert) relaying SOMEONE ELSE'S post or listing. The platform is NEVER the client.",
+      "- The Client is the PERSON WHO WROTE THE POST: take their name from the post byline (e.g. \"Jane Smith posted in Westside Weddings\"). A name-only client is fine.",
+      "- Return an email/phone for them ONLY if it appears verbatim inside the post text. NEVER return the platform's address.",
+      "- The post text is a DEMAND SIGNAL: extract the event they are asking about (occasion, date, venue/city) into the Booking, and quote their ask verbatim in clientNotes.",
+      ""
+    ]
+  },
+
+  "sellerIdentity": {
+    "_comment": "Never-extract-the-seller-as-client block, built from STATE.BusinessIdentity (VALUE_PROP). Placeholders: {sellerName} {companyName} {emails} {phones}. Empty string is used when identity is unavailable (IdentityFilter still removes the seller procedurally).",
+    "lines": [
+      "",
+      "SELLER IDENTITY (NEVER extract these as the client - they are the seller/user, appearing in From: headers and quoted \"On ... wrote:\" reply markers):",
+      "- Name: {sellerName}",
+      "- Company: {companyName}",
+      "- Emails: {emails}",
+      "- Phones: {phones}"
+    ]
+  },
+
+  "repair": {
+    "_comment": "One-pass correction prompt run when DateEvidence source-verification rejects extracted date/time fields. Placeholders: {fields} (comma list, e.g. Booking.startTime), {currentYear}, {content} (email thread text). OUTPUT CONTRACT: a FLAT object keyed by the exact field paths in {fields}, values only - e.g. {\"Booking.endTime\": \"10:00 PM\"}. Deliberately does NOT echo the whole extraction back: re-emitting long description strings made the model produce unescaped quotes and the JSON failed to parse (2026-08-11). The caller merges these values onto the first-pass result and RE-VERIFIES them, so a wrong answer here is still caught.",
+    "lines": [
+      "You previously extracted booking fields from a Gmail thread. These fields could not be verified against the email text: {fields}.",
+      "",
+      "Re-examine the email and report ONLY those fields.",
+      "",
+      "RULES:",
+      "1. Re-extract the listed fields ONLY from text literally present in the email body.",
+      "2. If a field is not literally present, return null for that field.",
+      "3. DO NOT GUESS. DO NOT INFER AM/PM. DO NOT HALLUCINATE TIMES OR DATES.",
+      "4. startDate/endDate are ISO YYYY-MM-DD; if the email has no year use {currentYear}; never roll a no-year date into next year.",
+      "5. Times are 12-hour with AM/PM (e.g. \"7:00 PM\"); return null if no time with AM/PM context is literally present.",
+      "",
+      "OUTPUT: a single flat JSON object whose keys are EXACTLY the field paths listed above, and nothing else. Example shape:",
+      "{\"Booking.endTime\": \"10:00 PM\", \"Booking.startDate\": null}",
+      "",
+      "Do NOT return any other field. Do NOT repeat the email. Do NOT add commentary or markdown fences.",
+      "",
+      "Email thread:",
+      "{content}"
+    ]
+  },
+
+  "fallbackSystemPrompt": {
+    "_comment": "Used ONLY if leedz_config.json gmailParser.systemPrompt is missing.",
+    "lines": [
+      "Extract booking information from the following email thread and output JSON."
+    ]
+  }
+}

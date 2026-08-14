@@ -11,12 +11,39 @@ import { EventParser } from './event_parser.js';
 import { verifyBookingExtraction } from '../utils/DateEvidence.js';
 import { loadConfig } from '../utils/ConfigLoader.js';
 import { isWeakIdentity } from '../utils/IdentityFilter.js';
-import { showToast, showLLMError } from '../logging.js';
+import { showToast, buildLLMErrorMessage } from '../logging.js';
+import { loadPromptFile, fillPrompt } from '../utils/PromptLoader.js';
+
+// Adjunct prompt file (prompts are never hardcoded in JS - edit the JSON)
+const PROMPT_PATH = 'js/parser/GMAIL_PROMPT.json';
 import Client from '../db/Client.js';
 import Booking from '../db/Booking.js';
 
 // Global CONFIG variable
 let CONFIG = null;
+
+// INBOX CATCHER (2026-08-14, PRECRIME build item #4): platform-notification
+// sender domains. An email from one of these relays SOMEONE ELSE'S post (a FB
+// group post, Nextdoor digest, Google Alert, Craigslist alert) — the platform
+// is never the client; the POSTER is, and the post text is the demand signal.
+// Detection is by sender-domain suffix; the extraction rules ride in
+// GMAIL_PROMPT.json inboxDemandNote via the existing weak-identity machinery.
+const PLATFORM_NOTIFICATION_DOMAINS = [
+  'facebookmail.com', 'facebook.com',
+  'nextdoor.com', 'email.nextdoor.com', 'ss.email.nextdoor.com',
+  'craigslist.org', 'reply.craigslist.org'
+];
+// Google Alerts come from googlealerts-noreply@google.com — match the local
+// part, not google.com (which would swallow every gmail correspondent's relay).
+const PLATFORM_NOTIFICATION_LOCALPARTS = ['googlealerts'];
+
+function isPlatformNotificationSender(email) {
+  const e = String(email || '').toLowerCase().trim();
+  if (!e || !e.includes('@')) return false;
+  const [local, domain] = e.split('@');
+  if (PLATFORM_NOTIFICATION_DOMAINS.some(d => domain === d || domain.endsWith('.' + d))) return true;
+  return PLATFORM_NOTIFICATION_LOCALPARTS.some(p => local.startsWith(p));
+}
 
 class GmailParser extends EventParser {
 
@@ -43,9 +70,27 @@ class GmailParser extends EventParser {
     return (url || window.location.href).includes('mail.google.com');
   }
 
+  /**
+   * Is an individual conversation THREAD open (vs. the inbox/list view)?
+   * The extension digests one thread between two people - an inbox full of
+   * preview rows is unparseable noise and must never reach the LLM.
+   * An open conversation renders a subject line (h2.hP) and sender chips
+   * (.gD[email]) - the same selectors _extractEmailAndName already trusts.
+   * The list view renders neither.
+   * @returns {boolean}
+   */
+  _isThreadOpen() {
+    if (document.querySelector('h2.hP, .gD[email], .gD > span[email]')) return true;
+    // Fallback if Gmail ever renames those classes: a thread URL appends a
+    // long message-id segment to the view hash (#inbox/FMfcgzQhVW...).
+    const seg = (window.location.hash || '').split('/').pop() || '';
+    return /^[A-Za-z0-9_-]{20,}$/.test(seg);
+  }
+
   async initialize(state) {
     this.STATE = state;
     this.STATE.clear();
+    this._inboxDemand = false;   // set per-parse when the sender is a platform notification
   }
 
   /**
@@ -54,7 +99,17 @@ class GmailParser extends EventParser {
    * @returns {Promise<Object|null>} {email, name} or null
    */
   async quickExtractIdentity() {
+    // No thread open = no identity. THROW rather than return null so the
+    // sidebar can tell "nothing is open" apart from "a thread is open but I
+    // could not read it" - the first must blank the form, the second may fall
+    // back to cached STATE. Returning null for both rendered the PREVIOUS
+    // thread's client on the inbox view (2026-08-11).
+    if (!this._isThreadOpen()) throw new Error('NO_THREAD_OPEN');
     const emailData = this._extractEmailAndName();
+    // Platform notification (inbox catcher): "Facebook" is not an identity.
+    // Return null so the sidebar does NOT look up / render the platform as a
+    // client — the real poster only emerges from the full LLM parse.
+    if (emailData && isPlatformNotificationSender(emailData.email)) return null;
     if (emailData && (emailData.email || emailData.name)) {
       return emailData;
     }
@@ -72,7 +127,16 @@ class GmailParser extends EventParser {
 
     // Client 1: Sender
     const senderData = this._extractEmailAndName();
-    if (senderData && (senderData.email || senderData.name)) {
+    if (senderData && isPlatformNotificationSender(senderData.email)) {
+      // INBOX CATCHER (2026-08-14): a platform notification's sender identity is
+      // GARBAGE — "Facebook" must never become a client name and
+      // noreply@facebookmail.com must never become a client email. Push an empty
+      // weak identity so the LLM (told via inboxDemandNote) supplies the POSTER's
+      // name, and an email only if it appears verbatim in the post
+      // (Parser._applyWeakIdentityOverride enforces both).
+      this._inboxDemand = true;
+      clients.push({ email: null, name: null, _identityWeak: true });
+    } else if (senderData && (senderData.email || senderData.name)) {
       clients.push({
         email: senderData.email || null,
         name: senderData.name || null,
@@ -114,7 +178,9 @@ class GmailParser extends EventParser {
     }
 
     return {
-      source: 'gmail'
+      // 'inbox' = demand relayed by a platform notification (the inbox catcher,
+      // 2026-08-14): PRECRIME treats these as own-inbox demand leads.
+      source: this._inboxDemand ? 'inbox' : 'gmail'
     };
   }
 
@@ -145,15 +211,18 @@ class GmailParser extends EventParser {
         name: this.STATE.Client?.name,
         email: this.STATE.Client?.email
       };
-      const prompt = this._buildLLMPrompt(emailData, content, CONFIG.gmailParser);
+      const prompt = await this._buildLLMPrompt(emailData, content, CONFIG.gmailParser);
       // console.log(`[GmailParser] sending to LLM: ${content.length} chars of thread content`);
       const response = await this._sendLLMRequest(llmConfig, prompt);
 
       if (!response?.ok) {
-        // One neat line - the user-facing detail is in the toast (showLLMError)
-        console.error(`[GmailParser] LLM request failed (${response?.status ?? 'no status'}): ${response?.error?.message || response?.error?.type || response?.error || 'no response'}`);
-        showLLMError(response);
-        return null;
+        // NOT a code fault (bad key, out of credits, rate limit) - console.warn,
+        // never console.error. Throw so the SIDEBAR can raise one authoritative
+        // error toast; a toast raised here lands in the Gmail page's document,
+        // which the sidebar's toast cannot see or suppress.
+        const llmMsg = buildLLMErrorMessage(response);
+        console.warn(`[GmailParser] LLM request failed (${response?.status ?? 'no status'}): ${llmMsg}`);
+        throw new Error('LLM_ERROR:' + llmMsg);
       }
 
       const textContent = this._extractLLMText(llmConfig, response);
@@ -202,6 +271,10 @@ class GmailParser extends EventParser {
       return verification.scrubbed;
 
     } catch (error) {
+      // A user-actionable LLM failure (out of credits, bad key, rate limit)
+      // must reach the sidebar, which owns the single error toast. Swallowing
+      // it here produced a blank parse reported as "Page parsed successfully".
+      if (String(error.message).startsWith('LLM_ERROR:')) throw error;
       console.error('LLM processing failed:', error);
       showToast(`AI parsing failed: ${error.message}`, 'error');
       return null;
@@ -222,78 +295,148 @@ class GmailParser extends EventParser {
       const llmConfig = CONFIG.llm;
       if (!llmConfig?.baseUrl || !llmConfig?.endpoints?.completions) return null;
 
-      const prompt = this._buildRepairPrompt(scrubbed, content, failedFields);
+      const prompt = await this._buildRepairPrompt(content, failedFields);
       const response = await this._sendLLMRequest(llmConfig, prompt);
       if (!response?.ok) return null;
 
       const textContent = this._extractLLMText(llmConfig, response);
-      // The repair prompt demands NESTED {Client, Booking, Config} JSON, but
-      // _parseLLMResponse only maps FLAT keys — it turned every nested repair
-      // response into {Client:{},Booking:{}} and wiped the extraction (2026-07-22).
-      return textContent ? this._parseRepairResponse(textContent) : null;
+      return textContent
+        ? this._parseRepairResponse(textContent, scrubbed, failedFields)
+        : null;
     } catch (error) {
-      console.error('Date/time repair pass failed:', error);
+      // Best-effort second opinion - a failure here is NOT a code fault, the
+      // first-pass extraction is kept with the unverified field left blank.
+      console.warn('[GmailParser] Double-check pass could not run:', error.message);
       return null;
     }
   }
 
   /**
-   * Parse the repair-pass response. Accepts the NESTED {Client, Booking, Config}
-   * shape the repair prompt demands; falls back to the flat-field parser when the
-   * model returned flat keys anyway.
+   * Best-effort JSON extraction from a model response. Models append prose,
+   * wrap output in fences, or truncate; none of that should cost us the
+   * answer. Tries the greedy {...} span first, then a brace-balanced prefix
+   * (which drops any trailing commentary).
+   * @param {string} raw - raw model text
+   * @returns {Object|null} parsed object, or null if nothing salvageable
+   */
+  _salvageJson(raw) {
+    const text = String(raw == null ? '' : raw)
+      .replace(/```json/gi, '')
+      .replace(/```/g, '')
+      .trim();
+
+    const start = text.indexOf('{');
+    if (start === -1) return null;
+
+    const attempts = [];
+    const last = text.lastIndexOf('}');
+    if (last > start) attempts.push(text.slice(start, last + 1));
+
+    // Brace-balanced prefix (string-aware so braces inside values don't count)
+    let depth = 0, inStr = false, esc = false;
+    for (let i = start; i < text.length; i++) {
+      const ch = text[i];
+      if (esc) { esc = false; continue; }
+      if (ch === '\\') { esc = true; continue; }
+      if (ch === '"') { inStr = !inStr; continue; }
+      if (inStr) continue;
+      if (ch === '{') depth++;
+      else if (ch === '}' && --depth === 0) { attempts.push(text.slice(start, i + 1)); break; }
+    }
+
+    for (const candidate of attempts) {
+      try { return JSON.parse(candidate); } catch (e) { /* try the next shape */ }
+    }
+    return null;
+  }
+
+  /**
+   * Parse the repair-pass response and merge it onto the first-pass extraction.
+   *
+   * The prompt asks for a FLAT map of the failed field paths only
+   * ({"Booking.endTime": "10:00 PM"}). Only the fields that were actually
+   * queried are applied - anything else the model volunteers is ignored, so a
+   * chatty response cannot overwrite good data. The caller RE-VERIFIES the
+   * merged result against the email, so a wrong answer here is still scrubbed.
+   *
+   * Still accepts the older nested {Client, Booking, Config} shape in case the
+   * model answers that way.
+   *
    * @param {string} content - Raw LLM response text
+   * @param {Object} scrubbed - first-pass extraction with failed fields nulled
+   * @param {string[]} failedFields - e.g. ['Booking.endTime']
    * @returns {Object|null} nested {Client, Booking, Config} or null
    */
-  _parseRepairResponse(content) {
-    try {
-      const jsonText = String(content).replace(/```json\s*/g, '').replace(/```\s*$/g, '');
-      const match = jsonText.match(/\{[\s\S]*\}/);
-      if (!match) return null;
-      const parsed = JSON.parse(match[0]);
-      if (parsed && (parsed.Client || parsed.Booking)) {
-        return {
-          Client: parsed.Client || {},
-          Booking: parsed.Booking || {},
-          Config: parsed.Config || {}
-        };
-      }
-      return this._parseLLMResponse(content);
-    } catch (error) {
-      console.error('Date/time repair pass failed:', error);
+  _parseRepairResponse(content, scrubbed, failedFields) {
+    const parsed = this._salvageJson(content);
+    if (!parsed) {
+      console.warn('[GmailParser] Double-check pass returned unusable JSON - keeping first-pass data');
       return null;
     }
+
+    // Older/nested shape - pass straight through.
+    if (parsed.Client || parsed.Booking) {
+      return {
+        Client: parsed.Client || {},
+        Booking: parsed.Booking || {},
+        Config: parsed.Config || {}
+      };
+    }
+
+    // Flat field-path map: merge ONLY the fields we asked about.
+    const merged = {
+      Client: { ...(scrubbed?.Client || {}) },
+      Booking: { ...(scrubbed?.Booking || {}) },
+      Config: { ...(scrubbed?.Config || {}) }
+    };
+
+    let applied = 0;
+    for (const path of (failedFields || [])) {
+      if (!Object.prototype.hasOwnProperty.call(parsed, path)) continue;
+      const dot = String(path).indexOf('.');
+      if (dot < 1) continue;
+      const section = path.slice(0, dot);
+      const field = path.slice(dot + 1);
+      if (!merged[section] || !field) continue;
+      merged[section][field] = parsed[path]; // null is a valid answer ("not in the email")
+      applied++;
+    }
+
+    if (applied === 0) {
+      console.warn('[GmailParser] Double-check pass answered none of the queried fields - keeping first-pass data');
+      return null;
+    }
+
+    return merged;
   }
 
   /**
-   * Build the repair prompt (version-controlled here rather than leedz_config.json, which
-   * is gitignored). Mirrors the agent_shareLeed repair.json contract: correct only failed
-   * fields from literal text, never guess, return complete JSON with the same keys.
+   * Build the repair prompt from GMAIL_PROMPT.json (repair block). Asks for the
+   * failed fields ONLY - the extraction is deliberately NOT echoed back, since
+   * re-emitting description text full of quotes is what made the model produce
+   * unparseable JSON (2026-08-11).
    */
-  _buildRepairPrompt(scrubbed, content, failedFields) {
-    const currentYear = new Date().getFullYear();
-    const fields = (failedFields || []).join(', ');
-    return `You previously extracted booking fields from a Gmail thread. These fields could ` +
-      `not be verified against the email text: ${fields}.\n\n` +
-      `Re-examine the email and CORRECT only those fields. All other fields pass through unchanged.\n\n` +
-      `CORRECTION RULES:\n` +
-      `1. Re-extract the failed fields ONLY from text literally present in the email body.\n` +
-      `2. If a field is not literally present, return null for that field.\n` +
-      `3. DO NOT GUESS. DO NOT INFER AM/PM. DO NOT HALLUCINATE TIMES OR DATES.\n` +
-      `4. Do not modify any field not in the failed list.\n` +
-      `5. startDate/endDate are ISO YYYY-MM-DD; if the email has no year use ${currentYear}; ` +
-      `never roll a no-year date into next year.\n` +
-      `6. Times are 12-hour with AM/PM (e.g. "7:00 PM"); return null if no time with AM/PM ` +
-      `context is literally present.\n` +
-      `7. Return COMPLETE JSON with the same nested keys as the original ({Client, Booking, Config}).\n\n` +
-      `Original extraction:\n${JSON.stringify(scrubbed)}\n\n` +
-      `Email thread:\n${content}\n\n` +
-      `Return JSON only. No markdown fences, no commentary.`;
+  async _buildRepairPrompt(content, failedFields) {
+    const P = await loadPromptFile(PROMPT_PATH);
+    return fillPrompt(P.repair.lines, {
+      fields: (failedFields || []).join(', '),
+      currentYear: new Date().getFullYear(),
+      content
+    });
   }
 
   /**
    * Override EventParser parse() to add post-processing
    */
   async parse(state) {
+    // SHORTCUT (2026-08-11): nothing but the inbox/list view is open, so there
+    // is NOTHING to parse - bail before any extraction or LLM request. The
+    // sentinel error is recognized by Page.reloadParser, which clears the form.
+    if (!this._isThreadOpen()) {
+      console.log('[GmailParser] No conversation thread open - skipping parse');
+      throw new Error('NO_THREAD_OPEN');
+    }
+
     // Call parent EventParser template method
     const result = await super.parse(state);
 
@@ -464,69 +607,70 @@ class GmailParser extends EventParser {
 
 
 
-  _buildLLMPrompt(emailData, threadContent, parserConfig) {
-    // Header identity is METADATA, not ground truth — a shared inbox
-    // ("USU Events4" <usuevents4@csun.edu>) is a mailbox, not a person. The
-    // real client is usually the human in the SIGNATURE BLOCK (name, title,
-    // direct phone). The old wording ("Sender Name: ...") anchored the LLM on
-    // the mailbox label and suppressed signature detection. 2026-07-22 fix.
-    const weakNote = this.STATE?.Client?._identityWeak
-      ? `\nNOTE: the header identity above looks like a SHARED/GENERIC inbox, not a person. ` +
-        `Find the actual PERSON who wrote the message — check the signature block for their ` +
-        `name, title, and direct phone, and return THAT as the client name/phone.`
-      : '';
-    const knownInfo =
-      `EMAIL HEADER METADATA (may be a shared mailbox — verify against the message text):\n` +
-      `Header Name: ${emailData.name || 'N/A'}\nHeader Email: ${emailData.email || 'N/A'}` +
-      weakNote +
-      `\n\nCLIENT IDENTITY RULES:\n` +
-      `1. The client is the PERSON who wrote the inquiry — prefer the signature block ` +
-      `(name / title / direct phone) over the mailbox display name.\n` +
-      `2. Only return an email address that literally appears in the headers or message text.\n` +
-      `3. Extract the client's phone from the signature when present.`;
+  /**
+   * Assemble the full extraction prompt from GMAIL_PROMPT.json fragments around
+   * the main system prompt (leedz_config.json gmailParser.systemPrompt).
+   * Header identity is METADATA, not ground truth — a shared inbox
+   * ("USU Events4" <usuevents4@csun.edu>) is a mailbox, not a person; the real
+   * client is usually the human in the SIGNATURE BLOCK (2026-07-22 fix, the
+   * prose for which lives in the JSON's headerMetadata/weakInboxNote blocks).
+   */
+  async _buildLLMPrompt(emailData, threadContent, parserConfig) {
+    const P = await loadPromptFile(PROMPT_PATH);
 
-    // Runtime seller-identity block (U9) - replaces the hardcoded seller exclusions that
-    // used to live in leedz_config.json prompts. Built from STATE.BusinessIdentity.
-    const identityBlock = this._buildIdentityBlock();
+    // Inbox catcher outranks the generic shared-inbox note: a platform
+    // notification needs the POSTER-is-the-client rules, not the
+    // signature-block hunt (there is no signature — the sender is a robot).
+    const weakNote = this._inboxDemand
+      ? fillPrompt(P.inboxDemandNote.lines, {})
+      : (this.STATE?.Client?._identityWeak ? fillPrompt(P.weakInboxNote.lines, {}) : '');
+    const headerMetadata = fillPrompt(P.headerMetadata.lines, {
+      headerName: emailData.name || 'N/A',
+      headerEmail: emailData.email || 'N/A',
+      weakNote
+    });
+
+    // Runtime seller-identity block (U9), built from STATE.BusinessIdentity.
+    const sellerIdentity = this._buildIdentityBlock(P);
 
     // Inject current date context for smart date parsing
     const now = new Date();
     const currentYear = now.getFullYear();
-    const nextYear = currentYear + 1;
     const currentDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
 
-    let systemPrompt = parserConfig?.systemPrompt || 'Extract booking information from the following email thread and output JSON.';
-
-    // Replace template variables with actual dates
-    systemPrompt = systemPrompt
+    const systemPrompt = (parserConfig?.systemPrompt || fillPrompt(P.fallbackSystemPrompt.lines, {}))
       .replace(/\{\{CURRENT_DATE\}\}/g, currentDate)
       .replace(/\{\{CURRENT_YEAR\}\}/g, currentYear)
-      .replace(/\{\{NEXT_YEAR\}\}/g, nextYear);
+      .replace(/\{\{NEXT_YEAR\}\}/g, currentYear + 1);
 
-    return `${systemPrompt}\n${identityBlock}\n${knownInfo}\n\nEmail Thread Content:\n${threadContent}`;
+    return fillPrompt(P.assembly.lines, {
+      systemPrompt,
+      sellerIdentity,
+      headerMetadata,
+      content: threadContent
+    });
   }
 
   /**
-   * Build a runtime seller-identity block for the LLM prompt from STATE.BusinessIdentity.
-   * Instructs the LLM never to extract the seller as the client. Returns '' when identity
-   * is unavailable (the shared IdentityFilter still removes the seller procedurally).
+   * Build the seller-identity block from STATE.BusinessIdentity using the
+   * sellerIdentity fragment in GMAIL_PROMPT.json. Returns '' when identity is
+   * unavailable (the shared IdentityFilter still removes the seller procedurally).
+   * @param {Object} P - loaded GMAIL_PROMPT.json
    * @returns {string}
    */
-  _buildIdentityBlock() {
+  _buildIdentityBlock(P) {
     const bi = this.STATE && this.STATE.BusinessIdentity;
     if (!bi) return '';
-    const emails = (bi.excludedEmails && bi.excludedEmails.length)
-      ? bi.excludedEmails.join(', ')
-      : (bi.companyEmail || 'unknown');
-    const phones = (bi.excludedPhones && bi.excludedPhones.length)
-      ? bi.excludedPhones.join(', ')
-      : (bi.companyPhone || 'unknown');
-    return `\nSELLER IDENTITY (NEVER extract these as the client - they are the seller/user, ` +
-      `appearing in From: headers and quoted "On ... wrote:" reply markers):\n` +
-      `- Name: ${bi.sellerName || 'unknown'}\n` +
-      `- Company: ${bi.companyName || 'unknown'}\n` +
-      `- Emails: ${emails}\n` +
-      `- Phones: ${phones}\n`;
+    return fillPrompt(P.sellerIdentity.lines, {
+      sellerName: bi.sellerName || 'unknown',
+      companyName: bi.companyName || 'unknown',
+      emails: (bi.excludedEmails && bi.excludedEmails.length)
+        ? bi.excludedEmails.join(', ')
+        : (bi.companyEmail || 'unknown'),
+      phones: (bi.excludedPhones && bi.excludedPhones.length)
+        ? bi.excludedPhones.join(', ')
+        : (bi.companyPhone || 'unknown')
+    });
   }
 
 
