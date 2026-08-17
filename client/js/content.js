@@ -130,13 +130,27 @@ async function openGmailCompose({ mode, to, subject, body, actionName }) {
     composeButton.click();
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Populate TO field
+    // Populate TO field (2026-08-17 fix: modern Gmail compose uses a peoplekit
+    // combobox input, NOT input[name="to"] -- the old selector matched nothing
+    // and To: opened blank. The chip is committed with an Enter keydown.)
     if (to) {
-      const toField = document.querySelector('input[name="to"]') ||
-                     document.querySelector('textarea[name="to"]');
+      let toField = null;
+      for (let attempt = 0; attempt < 10 && !toField; attempt++) {
+        toField = document.querySelector('input[aria-label*="To"]')
+          || document.querySelector('input[role="combobox"][aria-haspopup="listbox"]')
+          || document.querySelector('input[name="to"]')
+          || document.querySelector('textarea[name="to"]');
+        if (!toField) await new Promise(r => setTimeout(r, 200));
+      }
       if (toField) {
+        toField.focus();
         toField.value = to;
-        toField.dispatchEvent(new Event('input', { bubbles: true }));
+        toField.dispatchEvent(new InputEvent('input', { bubbles: true, data: to }));
+        toField.dispatchEvent(new KeyboardEvent('keydown',
+          { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
+        toField.blur();
+      } else {
+        console.warn('[Leedz] compose To field not found - recipient left blank');
       }
     }
   }
@@ -233,7 +247,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
   }
 
   // Open outreach compose window in Gmail (NEW email, not reply)
-  if (msg.action === 'openOutreach') {
+  if (msg.action === 'openWrite') {
     return handleGmailComposeAction(msg, reply, {
       mode: 'compose',
       to: msg.clientEmail,
@@ -269,7 +283,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
           identity: identity || { email: null, name: null }
         });
       } catch (e) {
-        console.log('Content script identity extraction error:', e.message);
+        if (e.message !== 'NO_THREAD_OPEN') {
+          console.log('Content script identity extraction error:', e.message);
+        }
         reply({ ok: false, error: e.message });
       }
     })();
@@ -299,7 +315,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
           data: stateInstance.toObject()
         });
       } catch (e) {
-        console.error('Content script client extraction error:', e);
+        if (e.message === 'NO_THREAD_OPEN') {
+          console.log('[Leedz] No conversation thread open - nothing to parse');
+        } else {
+          console.error('Content script client extraction error:', e);
+        }
         reply({ ok: false, error: e.message });
       }
     })();
@@ -307,7 +327,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
     return true; // keep port open for async reply
   }
 
-  // Full parse with both client and booking data (for Booker page)
+  // Full parse with both client and booking data (for Book page)
   if (msg.type === 'leedz_parse_page') {
     (async () => {
       try {
@@ -335,7 +355,12 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
           data: data
         });
       } catch (e) {
-        console.error('Content script parser error:', e);
+        if (e.message === 'NO_THREAD_OPEN') {
+          // Deliberate shortcut, not a failure - the sidebar clears the form.
+          console.log('[Leedz] No conversation thread open - nothing to parse');
+        } else {
+          console.error('Content script parser error:', e);
+        }
         reply({ ok: false, error: e.message });
       }
     })();
