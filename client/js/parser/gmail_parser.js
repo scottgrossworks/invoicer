@@ -183,6 +183,12 @@ class GmailParser extends EventParser {
       source: this._inboxDemand ? 'inbox' : 'gmail'
     };
     if (this._inboxDemand) {
+      // LEAD, NOT CORRESPONDENCE (2026-08-17): the server's status normalizer
+      // defaults a blank status to 'contacted' -- correct for INVOICER's normal
+      // flow (you save AFTER emailing the client), but TERMINAL in PRECRIME:
+      // a 'contacted' booking is never judged, drilled, or surfaced again.
+      // Nobody has contacted this poster; the whole point is that PRECRIME will.
+      booking.status = 'brewing';
       // THE POST LINK IS THE PAYLOAD (2026-08-17). The notification email body
       // carries only the poster's name and a TRUNCATED one-line ask — the real
       // information is behind the "View" link. Saved as Booking.sourceUrl it
@@ -201,19 +207,40 @@ class GmailParser extends EventParser {
    */
   _extractPostLink() {
     try {
-      const anchors = document.querySelectorAll('[role="main"] a[href]');
+      // Search the whole document, not just [role=main]: Gmail moves the
+      // message body between containers across views. Consider href AND
+      // data-saferedirecturl (Gmail's wrapper), and unwrap google.com/url?q=
+      // redirects before matching.
+      const anchors = document.querySelectorAll('a[href]');
       const POST_SHAPES = [
         /facebook\.com\/(n\/|groups\/|permalink|story|.*story_fbid)/i,
         /nextdoor\.com\/(p\/|news_feed|post)/i,
         /craigslist\.org\/.+\.html/i
       ];
+      const unwrap = (u) => {
+        try {
+          const url = new URL(u);
+          if (/(^|\.)google\.com$/.test(url.hostname) && url.pathname === '/url') {
+            return url.searchParams.get('q') || url.searchParams.get('url') || u;
+          }
+        } catch (_) {}
+        return u;
+      };
+      const candidates = [];
       for (const a of anchors) {
-        const href = a.href || '';
-        const label = (a.textContent || '').trim().toLowerCase();
-        if (/unsubscribe|learn more|settings|help|privacy/.test(label)) continue;
-        if (/unsubscribe|\/settings|\/help|\/legal/i.test(href)) continue;
-        if (POST_SHAPES.some(re => re.test(href))) return href;
+        for (const raw of [a.getAttribute('href'), a.getAttribute('data-saferedirecturl')]) {
+          if (!raw || !/^https?:/i.test(raw)) continue;
+          const href = unwrap(raw);
+          const label = (a.textContent || '').trim().toLowerCase();
+          if (/unsubscribe|learn more|settings|help|privacy/.test(label)) continue;
+          if (/unsubscribe|\/settings\b|\/help\b|\/legal\b/i.test(href)) continue;
+          candidates.push(href);
+          if (POST_SHAPES.some(re => re.test(href))) return href;
+        }
       }
+      // Nothing matched: say exactly what WAS seen so the next test diagnoses itself.
+      console.warn('[GmailParser] inbox-demand: no post link matched. Candidate hrefs:',
+        candidates.slice(0, 8));
       return null;
     } catch (e) {
       console.warn('[GmailParser] post-link extraction failed:', e.message);
