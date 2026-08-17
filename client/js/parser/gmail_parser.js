@@ -504,6 +504,16 @@ class GmailParser extends EventParser {
     // Call parent EventParser template method
     const result = await super.parse(state);
 
+    // NAMELESS INBOX LEAD (2026-08-17): some platform notifications carry no
+    // poster byline at all -- the name only exists on the post page behind the
+    // View link. The lead is still real demand with a URL. Same pattern as the
+    // last30days worker: save under a placeholder derived from the ask; the
+    // DRILL_DOWN that browses the post replaces it with the real person.
+    if (this._inboxDemand && !this.STATE.Client.name) {
+      const hint = this.STATE.Booking.title || this.STATE.Booking.description || 'demand post';
+      this.STATE.Client.name = `(post) ${String(hint).slice(0, 60)}`;
+    }
+
     // Post-processing: ensure clientId is set from name
     if (this.STATE.Client.name && !this.STATE.Booking.clientId) {
       this.STATE.Booking.clientId = this.STATE.Client.name;

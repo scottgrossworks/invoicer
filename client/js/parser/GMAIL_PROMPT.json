@@ -40,6 +40,7 @@
     "lines": [
       "NOTE: this email is a PLATFORM NOTIFICATION (a Facebook group post, Nextdoor digest, Google Alert, or Craigslist alert) relaying SOMEONE ELSE'S post or listing. The platform is NEVER the client.",
       "- The Client is the PERSON WHO WROTE THE POST: take their name from the post byline (e.g. \"Jane Smith posted in Westside Weddings\"). A name-only client is fine.",
+      "- Some notifications show NO poster name (the byline is just the group name). Then leave the client name EMPTY — never use the group or platform as the name. STILL extract the Booking (the ask, occasion, location) and quote the ask in clientNotes; the post link carries the poster's identity and research follows it.",
       "- Return an email/phone for them ONLY if it appears verbatim inside the post text. NEVER return the platform's address.",
       "- The post text is a DEMAND SIGNAL: extract the event they are asking about (occasion, date, venue/city) into the Booking, and quote their ask verbatim in clientNotes.",
       ""
