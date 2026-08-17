@@ -18,6 +18,7 @@ class Booking {
       this.totalAmount = data.totalAmount;
       this.status = data.status; // IGNORE
       this.source = data.source;
+      this.sourceUrl = data.sourceUrl || null;
       this.notes = data.notes;
       this.shared = data.shared !== undefined ? data.shared : false;
       this.sharedTo = data.sharedTo || null;
@@ -43,6 +44,7 @@ class Booking {
       this.totalAmount = data.totalAmount || null;
       this.status = data.status || 'new';
       this.source = data.source || null;
+      this.sourceUrl = data.sourceUrl || null;
       this.notes = data.notes || null;
       this.shared = data.shared !== undefined ? data.shared : false;
       this.sharedTo = data.sharedTo || null;

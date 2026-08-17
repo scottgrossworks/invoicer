@@ -158,7 +158,12 @@ cleanFloat(value) {
             flatRate: this.cleanFloat(data.flatRate),
             totalAmount: this.cleanFloat(data.totalAmount),
             status: data.status || null,
-            source: data.source || null
+            source: data.source || null,
+            // sourceUrl: the page the demand was actually seen on (2026-08-17,
+            // inbox catcher): for a platform notification this is the FB/Nextdoor
+            // post permalink. PRECRIME's drill lane opens it through the user's
+            // logged-in Chrome to harvest what the email itself doesn't carry.
+            sourceUrl: data.sourceUrl || null
           };
 
           let bookingRes = await fetch(`${this.baseUrl}/bookings`, {

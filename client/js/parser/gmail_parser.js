@@ -177,11 +177,48 @@ class GmailParser extends EventParser {
       console.warn('No email content could be extracted. The email might be empty or selectors need updating.');
     }
 
-    return {
+    const booking = {
       // 'inbox' = demand relayed by a platform notification (the inbox catcher,
       // 2026-08-14): PRECRIME treats these as own-inbox demand leads.
       source: this._inboxDemand ? 'inbox' : 'gmail'
     };
+    if (this._inboxDemand) {
+      // THE POST LINK IS THE PAYLOAD (2026-08-17). The notification email body
+      // carries only the poster's name and a TRUNCATED one-line ask — the real
+      // information is behind the "View" link. Saved as Booking.sourceUrl it
+      // (a) passes PRECRIME's drill evidence gate and (b) gives DRILL_DOWN the
+      // exact page to open through the user's logged-in Chrome.
+      const postUrl = this._extractPostLink();
+      if (postUrl) booking.sourceUrl = postUrl;
+    }
+    return booking;
+  }
+
+  /**
+   * Find the platform post permalink in the open notification email (the View
+   * button / post link). Skips unsubscribe/settings/help links. Returns the
+   * first plausible post URL in DOM order, or null.
+   */
+  _extractPostLink() {
+    try {
+      const anchors = document.querySelectorAll('[role="main"] a[href]');
+      const POST_SHAPES = [
+        /facebook\.com\/(n\/|groups\/|permalink|story|.*story_fbid)/i,
+        /nextdoor\.com\/(p\/|news_feed|post)/i,
+        /craigslist\.org\/.+\.html/i
+      ];
+      for (const a of anchors) {
+        const href = a.href || '';
+        const label = (a.textContent || '').trim().toLowerCase();
+        if (/unsubscribe|learn more|settings|help|privacy/.test(label)) continue;
+        if (/unsubscribe|\/settings|\/help|\/legal/i.test(href)) continue;
+        if (POST_SHAPES.some(re => re.test(href))) return href;
+      }
+      return null;
+    } catch (e) {
+      console.warn('[GmailParser] post-link extraction failed:', e.message);
+      return null;
+    }
   }
 
   /**
