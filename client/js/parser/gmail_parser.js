@@ -649,11 +649,16 @@ class GmailParser extends EventParser {
   async _extractThreadContent() {
     try {
 
+        // SUBJECT FIRST (2026-08-17): the subject line often carries the ONLY
+        // date ("Event 8/23/26") -- prepend it explicitly so the LLM can't
+        // overlook it and the date-evidence verifier finds it verbatim.
+        const subject = document.querySelector('h2.hP')?.textContent?.trim() || '';
+        const subjectLine = subject ? `SUBJECT: ${subject}\n\n` : '';
         const mainRegion = document.querySelector('[role="main"]');
         if (mainRegion) {
           const mainContent = mainRegion.textContent.trim();
           // console.log("EMAIL CONTENT:" + mainContent);
-          return mainContent;
+          return subjectLine + mainContent;
         
         } else {
           

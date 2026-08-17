@@ -173,10 +173,13 @@ export function extractDateParts(text, baseDate = null) {
     }
   }
 
-  // Slash M/D[/YYYY]
-  m = s.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(20\d{2}))?\b/);
+  // Slash M/D[/YYYY or /YY] -- "8/23/26" counts (2026-08-17 fix: the 2-digit
+  // year form failed the old (20\d{2})-only group, so a subject like
+  // "Event 8/23/26" never verified). Two-digit years are 20xx.
+  m = s.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(20\d{2}|\d{2}))?\b/);
   if (m) {
-    const month = parseInt(m[1], 10), day = parseInt(m[2], 10), year = parsedYear(m[3]);
+    const rawYear = m[3] && m[3].length === 2 ? '20' + m[3] : m[3];
+    const month = parseInt(m[1], 10), day = parseInt(m[2], 10), year = parsedYear(rawYear);
     if (validYmd(year, month, day)) {
       return { year, startMonth: month, startDay: day, endMonth: month, endDay: day, evidence: m[0] };
     }
